@@ -14,51 +14,33 @@
 | Ryan Osmond | |
 | Ben Norton | |
 
-### Sprint Planning Meeting Items
-<table>
-  <tr>
-    <th>Sprint Theme</th>
-    <td></td>
-  </tr>
-  <tr>
-    <th>Issues Completed</th>
-    <td></td>
-  </tr>
-  <tr>
-    <th>Issues Left</th>
-    <td></td>
-  </tr>
-  <tr>
-    <th>Team Capacity</th>
-    <td></td>
-  </tr>
-  <tr>
-    <th>Summary</th>
-    <td></td>
-  </tr>
-</table>
+## Sprint Planning Meeting Items
+
+### Previous Sprint - Summary
+
+* N/A - No previous sprint.
 
 ### Current Sprint - Details
 <table>
   <tr>
     <th>Start Date</th>
-    <td></td>
+    <td>N/A</td>
   </tr>
   <tr>
     <th>End Date</th>
-    <td></td>
+    <td>N/A</td>
   </tr>
   <tr>
     <th>Sprint Theme</th>
-    <td></td>
+    <td>Use Case & Requirements Gathering</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td></td>
+    <td>N/A</td>
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td></td>
+    <td>N/A</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
@@ -72,11 +54,11 @@
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td></td>
+    <td>N/A</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td></td>
+    <td>N/A</td>
   </tr>
 </table>
 
