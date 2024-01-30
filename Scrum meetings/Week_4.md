@@ -8,17 +8,17 @@
 ### Sprint Team Members
 | Name | Role |
 | --- | --- |
-| | |
-| | |
-| | |
-| | |
-| | |
+| Bridgette Hunt | |
+| Mackenzie Richards | |
+| Zahra Kagda | |
+| Ryan Osmond | |
+| Ben Norton | |
 
 ### Sprint Planning Meeting Items
 <table>
   <tr>
     <th>Sprint Theme</th>
-    <td>e.g., Bugs</td>
+    <td></td>
   </tr>
   <tr>
     <th>Issues Completed</th>
