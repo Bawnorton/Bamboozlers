@@ -14,7 +14,9 @@
 | | |
 | | |
 
-### Sprint Planning Meeting Items
+## Sprint Planning Meeting Items
+
+### Previous Sprint - Summary
 <table>
   <tr>
     <th>Sprint Theme</th>
