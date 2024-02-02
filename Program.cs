@@ -1,10 +1,18 @@
-using Bamboozlers.Components;
+using Bamboozlers;
+using Bamboozlers.Classes.AppDbContext;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Access Configuration from the builder
+var configuration = builder.Configuration;
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseSqlServer(configuration.GetConnectionString("MyDatabase")));
+
 
 var app = builder.Build();
 
@@ -20,6 +28,7 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

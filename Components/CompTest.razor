@@ -1,0 +1,68 @@
+@using Bamboozlers.Classes.AppDbContext
+@inject IDbContextFactory<AppDbContext> _db;
+@rendermode InteractiveServer
+
+<h3>testComponent</h3>
+<button type="button" class="btn btn-success" @onclick="@Add">Add New test table row</button>
+@if(TestTables == null)
+{
+    <p>TestTables is empty</p>
+}
+else
+{
+    @foreach(TestTable testTable in TestTables)
+    {
+        <div class="d-flex m-4">
+            <p>@testTable.Name @testTable.Id</p>
+            <button type="button" class="btn btn-danger d-inline mx-4" @onclick="@(() => Delete(testTable))">Delete test table row number @testTable.Id</button>
+        </div>
+        
+    }
+}
+
+<br/>
+
+@code {
+    public List<TestTable> TestTables { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await _db.CreateDbContextAsync();
+        TestTables = await db.TestTable.ToListAsync();
+    }
+    
+    public void Add()
+    {
+        try
+        {
+            using var db = _db.CreateDbContext();
+            TestTable testTable = new TestTable()
+            {
+                Name = "test"
+            };
+            db.TestTable.Add(testTable);
+            db.SaveChanges();
+            TestTables = db.TestTable.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+        }
+        
+    }
+    
+    public void Delete(TestTable testTable)
+    {
+        try
+        {
+            using var db = _db.CreateDbContext();
+            db.TestTable.Remove(testTable);
+            db.SaveChanges();
+            TestTables = db.TestTable.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+        }
+        
+    }
+}
