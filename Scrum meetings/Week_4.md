@@ -3,7 +3,7 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| | | | 
+| N/A | N/A | N/A | 
 
 ### Sprint Team Members
 | Name | Role |
@@ -24,11 +24,11 @@
 <table>
   <tr>
     <th>Start Date</th>
-    <td>N/A</td>
+    <td>2024/01/30</td>
   </tr>
   <tr>
     <th>End Date</th>
-    <td>N/A</td>
+    <td>2024/02/06</td>
   </tr>
   <tr>
     <th>Sprint Theme</th>
@@ -36,28 +36,28 @@
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td>N/A</td>
+    <td>Not of concern.</td>
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td>N/A</td>
+    <td>Not of concern.</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      N/A<br>
+      Not of concern.<br>
     </td>
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td>N/A</td>
+    <td>There is not enough information available to work on or conceptualize tasks/issues.</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td>N/A</td>
+    <td>None. Must wait for necessary information to begin forming issues/tasks. For now, focus on repository housekeeping.
+    </td>
   </tr>
 </table>
 
 ## Sprint Planning Resources
-- ...
-- ...
+- N/A
