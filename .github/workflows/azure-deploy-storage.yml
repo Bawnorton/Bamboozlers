@@ -26,10 +26,10 @@ jobs:
       run: dotnet restore
 
     - name: Build with dotnet
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Debug --no-restore
     
     - name: Publish with dotnet
-      run: dotnet publish --configuration Release -o ./published_app --no-build
+      run: dotnet publish --configuration Debug -o ./published_app --no-build
     
     - name: Publish artifacts
       uses: actions/upload-artifact@v2
