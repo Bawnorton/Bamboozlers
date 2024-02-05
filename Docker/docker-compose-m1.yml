@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    platform: linux/amd64
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: mssql_m1_container
+    environment:
+      SA_PASSWORD: "Password_123"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
