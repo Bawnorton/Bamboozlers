@@ -55,5 +55,17 @@
  ### Use Case 5: Registration
 
 5. a) **Registering as a memeber**
-- As a unregistered user, I want to register as a member so I can use the app
-      - Acceptance criteria: The user creates a username and passcode, the server updates the database and the member recives access to the platforms functionalities.
+- As a unregistered user, I want to register as a member so I can use the app.
+      - Acceptance criteria: The user creates an account with their username, email and password and the server updates the database and the member receives access to the platforms functionalities.
+
+### Use Case 6: Account Management
+6. a) **Changing Username**
+- As a user, I want to change my username to refelct my current identity.
+   - Acceptance Requirements: The user creates a new username and the server updates the username in the database and in all friend lists.
+6. b) **Changing Password**
+- As a user, I want to change my password to make my account more secure.
+    - Acceptance Criteria: The user creates a new password and the server updates the database.
+6. c)**Reset Password**
+- As a user, I want to reset my password so I can still access my account if I lose my password.
+    -Acceptance Criteria: The user selects reset password, the server sends their registered email a reset password option, the user inputs a     new password and the server updates the database.     
+  
