@@ -21,9 +21,9 @@
 2. a) **Sending Friend Requests**
 -   As a user, I want to send friend requests, so that I can connect with new people.
     -   Acceptance Criteria: The user selects a person and sends a friend request, the system stores this in the database and notifies the recipient.
-2. b) **Accepting Friend Requests**
--   As a user, I want to accept friend requests, so that I can expand my network.
-    -   Acceptance Criteria: If the user accepts a friend request, the system removes the request from the database and updates both users' friend lists.
+2. b) **Responding to Friend Requests**
+-   As a user, I want to accept or deny friend requests, so that I can expand my network.
+    -   Acceptance Criteria: If the user accepts or denies a friend request, the system removes the request from the database and updates both users' friend lists accordingly.
 2. c) **Editing Friend Messages**
 -   As a user, I want to edit messages sent to friends, so that I can correct mistakes or update information.
     -   Acceptance Criteria: The user selects a message to a friend and edits it. The system updates the message in the database and chat.
@@ -33,9 +33,12 @@
 3. a) **Creating Groups**
 -   As a user, I want to create groups with my friends, so that we can have shared conversations.
     -   Acceptance Criteria: The user creates a group and adds friends, the system creates a group identifier and notifies all added members.
-3. b) **Messaging in Group Chats**
--   As a user, I want to send messages in group chats to communicate with multiple friends at once.
-    -   Acceptance Criteria: The user sends a message in a group chat, and the system saves the message in the database and displays it to all group members.
+3. b) **Joining Groups**
+-   As a user, I want to join groups so I can communicate with all members of a group
+    -   Acceptance Criteria: If the user accepts a group invitation, the system removes the invitation from the database and updates the group member list for all members in the group
+3. c) **Leaving Groups**
+- As a user, I want to leave groups so I no longer have to recieve messages that are irrelevant to me
+      - Acceptance Criteria: If the user leaves the group, the system removes the memeber from the group and updates the group member list for all members in the group.
 
 ### Use Case 4: Manage Group Members
 
@@ -48,3 +51,9 @@
 4. c) **Assigning Permissions to Members**
 -   As a group moderator, I want to assign permissions to members, so that they can help manage the group.
     -   Acceptance Criteria: Moderator assigns permissions to a member, the system updates this in the database, and the member receives admin visuals and capabilities in the group chat.
+
+ ### Use Case 5: Registration
+
+5. a) **Registering as a memeber**
+- As a unregistered user, I want to register as a member so I can use the app
+      - Acceptance criteria: The user creates a username and passcode, the server updates the database and the member recives access to the platforms functionalities.
