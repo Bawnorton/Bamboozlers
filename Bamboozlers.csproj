@@ -7,34 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.1" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.1">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.1" />
-      <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.1" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <_ContentIncludedByDefault Remove="published_app\web.config" />
-      <_ContentIncludedByDefault Remove="published_app\appsettings.Development.json" />
-      <_ContentIncludedByDefault Remove="published_app\appsettings.json" />
-      <_ContentIncludedByDefault Remove="published_app\Bamboozlers.deps.json" />
-      <_ContentIncludedByDefault Remove="published_app\Bamboozlers.runtimeconfig.json" />
-      <_ContentIncludedByDefault Remove="myapp\myapp\web.config" />
-      <_ContentIncludedByDefault Remove="myapp\web.config" />
-      <_ContentIncludedByDefault Remove="myapp\appsettings.Development.json" />
-      <_ContentIncludedByDefault Remove="myapp\appsettings.json" />
-      <_ContentIncludedByDefault Remove="myapp\Bamboozlers.deps.json" />
-      <_ContentIncludedByDefault Remove="myapp\Bamboozlers.runtimeconfig.json" />
-      <_ContentIncludedByDefault Remove="myapp\BlazorDebugProxy\BrowserDebugHost.runtimeconfig.json" />
-      <_ContentIncludedByDefault Remove="myapp\myapp\appsettings.Development.json" />
-      <_ContentIncludedByDefault Remove="myapp\myapp\appsettings.json" />
-      <_ContentIncludedByDefault Remove="myapp\myapp\Bamboozlers.deps.json" />
-      <_ContentIncludedByDefault Remove="myapp\myapp\Bamboozlers.runtimeconfig.json" />
-      <_ContentIncludedByDefault Remove="myapp\myapp\BlazorDebugProxy\BrowserDebugHost.runtimeconfig.json" />
     </ItemGroup>
 
 </Project>
