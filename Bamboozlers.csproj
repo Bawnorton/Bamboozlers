@@ -13,7 +13,7 @@
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.1" />
+      <PackageReference Include="MySql.EntityFrameworkCore" Version="8.0.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -22,6 +22,10 @@
       <_ContentIncludedByDefault Remove="published_app\appsettings.json" />
       <_ContentIncludedByDefault Remove="published_app\Bamboozlers.deps.json" />
       <_ContentIncludedByDefault Remove="published_app\Bamboozlers.runtimeconfig.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Migrations\" />
     </ItemGroup>
 
 </Project>

@@ -11,7 +11,7 @@ var configuration = builder.Configuration;
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseSqlServer(configuration.GetConnectionString("MyDatabase")));
+    options.UseMySQL(configuration.GetConnectionString("MyDatabase")));
 
 
 var app = builder.Build();
