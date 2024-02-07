@@ -3,7 +3,7 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| Complete | Complete | Complete | 
+| Complete | Complete | N/A | 
 
 ### Sprint Team Members
 | Name | Role |
