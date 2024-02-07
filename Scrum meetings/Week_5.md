@@ -3,16 +3,16 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| Complete | | | 
+| Complete | Complete | Complete | 
 
 ### Sprint Team Members
 | Name | Role |
 | --- | --- |
-| Bridgette Hunt | |
-| MacKenzie Richards | |
-| Zahra Kagda | |
-| Ben Norton | |
-| Ryan Osmond | |
+| Bridgette Hunt | Scrum Master |
+| MacKenzie Richards |Member |
+| Zahra Kagda |Member |
+| Ben Norton |Member |
+| Ryan Osmond |Member |
 
 ## Sprint Planning Meeting Items
 
