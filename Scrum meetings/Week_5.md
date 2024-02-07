@@ -3,16 +3,16 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| | | | 
+| Complete | Complete | N/A | 
 
 ### Sprint Team Members
 | Name | Role |
 | --- | --- |
-| | |
-| | |
-| | |
-| | |
-| | |
+| Bridgette Hunt | Scrum Master |
+| MacKenzie Richards |Member |
+| Zahra Kagda |Member |
+| Ben Norton |Member |
+| Ryan Osmond |Member |
 
 ## Sprint Planning Meeting Items
 
@@ -20,23 +20,23 @@
 <table>
   <tr>
     <th>Sprint Theme</th>
-    <td>e.g., Bugs</td>
+    <td>Use Case & Requirements Gathering</td>
   </tr>
   <tr>
     <th>Issues Completed</th>
-    <td></td>
+    <td>4</td>
   </tr>
   <tr>
     <th>Issues Left</th>
-    <td></td>
+    <td>8</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td></td>
+    <td>0-3 issues per team member</td>
   </tr>
   <tr>
     <th>Summary</th>
-    <td></td>
+    <td>4 Issues of 12 Issues completed</td>
   </tr>
 </table>
 
@@ -44,41 +44,41 @@
 <table>
   <tr>
     <th>Start Date</th>
-    <td></td>
+    <td>02/06/2024</td>
   </tr>
   <tr>
     <th>End Date</th>
-    <td></td>
+    <td>02/13/2024</td>
   </tr>
   <tr>
     <th>Sprint Theme</th>
-    <td></td>
+    <td>Requirements Engineering & User Stories, Continuous Integration</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td></td>
+    <td>At least 2 issues per team member</td>
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td></td>
+    <td>8 issues as of February 6th</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      Member 1<br>
-      Member 2<br>
-      Member 3<br>
-      Member 4<br>
-      Member 5
+      Bridgette Hunt - 4 issues<br>
+      MacKenzie Richards - 4 issues<br>
+      Zahra Kagda - 2 issues<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 2 issues
     </td>
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td></td>
+    <td>Cannot complete certain portions of Requirements Engineering without more information.</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td></td>
+    <td>Unable to mitigate this issue. Can do housekeeping chores to keep productivity.</td>
   </tr>
 </table>
 
