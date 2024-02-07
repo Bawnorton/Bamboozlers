@@ -3,7 +3,7 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| | | | 
+| Complete | | | 
 
 ### Sprint Team Members
 | Name | Role |
@@ -32,7 +32,7 @@
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td>N/A</td>
+    <td>0-3 issues per team member</td>
   </tr>
   <tr>
     <th>Summary</th>
@@ -56,20 +56,20 @@
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td>At least 2 issues per team member </td>
+    <td>At least 2 issues per team member</td>
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td>Approximately 10 issues</td>
+    <td>8 issues as of February 6th</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      Bridgette Hunt - N/A<br>
-      MacKenzie Richards - N/A<br>
-      Zahra Kagda - N/A<br>
-      Ben Norton - N/A<br>
-      Ryan Osmond - N/A
+      Bridgette Hunt - 4 issues<br>
+      MacKenzie Richards - 4 issues<br>
+      Zahra Kagda - 2 issues<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 2 issues
     </td>
   </tr>
   <tr>
