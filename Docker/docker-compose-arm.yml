@@ -2,8 +2,9 @@ version: '3.8'
 
 services:
   sqlserver:
+    platform: linux/amd64
     image: mcr.microsoft.com/mssql/server:2019-latest
-    container_name: bamboozlers-mssql-server
+    container_name: bamboozlers-mssql-server-arm
     environment:
       SA_PASSWORD: "Password_123"
       ACCEPT_EULA: "Y"

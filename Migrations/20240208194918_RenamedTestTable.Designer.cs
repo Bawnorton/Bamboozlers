@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bamboozlers.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240130220900_InitTest")]
-    partial class InitTest
+    [Migration("20240208194918_RenamedTestTable")]
+    partial class RenamedTestTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,7 +24,7 @@ namespace Bamboozlers.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.TestTable", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.RenamedTestTable", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -38,7 +38,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TestTable");
+                    b.ToTable("RenamedTestTable");
                 });
 #pragma warning restore 612, 618
         }

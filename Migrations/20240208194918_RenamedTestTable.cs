@@ -5,13 +5,13 @@
 namespace Bamboozlers.Migrations
 {
     /// <inheritdoc />
-    public partial class InitTest : Migration
+    public partial class RenamedTestTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "TestTable",
+                name: "RenamedTestTable",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -20,7 +20,7 @@ namespace Bamboozlers.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TestTable", x => x.Id);
+                    table.PrimaryKey("PK_RenamedTestTable", x => x.Id);
                 });
         }
 
@@ -28,7 +28,7 @@ namespace Bamboozlers.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "TestTable");
+                name: "RenamedTestTable");
         }
     }
 }
