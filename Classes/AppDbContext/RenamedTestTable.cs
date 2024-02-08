@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Bamboozlers.Classes.AppDbContext;
 
-public class TestTable
+public class RenamedTestTable
 {
     [Key]
     public int Id { get; set; }
