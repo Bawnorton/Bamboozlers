@@ -21,7 +21,7 @@ namespace Bamboozlers.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.TestTable", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.RenamedTestTable", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -35,7 +35,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TestTable");
+                    b.ToTable("RenamedTestTable");
                 });
 #pragma warning restore 612, 618
         }

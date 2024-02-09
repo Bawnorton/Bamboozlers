@@ -2,19 +2,19 @@
 @inject IDbContextFactory<AppDbContext> _db;
 @rendermode InteractiveServer
 
-<h3>testComponent</h3>
+<h3>Renamed Test Component</h3>
 <button type="button" class="btn btn-success" @onclick="@Add">Add New test table row</button>
-@if(TestTables == null)
+@if(RenamedTestTables == null)
 {
-    <p>TestTables is empty</p>
+    <p>RenamedTestTables is empty</p>
 }
 else
 {
-    @foreach(TestTable testTable in TestTables)
+    @foreach(RenamedTestTable renamedTestTable in RenamedTestTables)
     {
         <div class="d-flex m-4">
-            <p>@testTable.Name @testTable.Id</p>
-            <button type="button" class="btn btn-danger d-inline mx-4" @onclick="@(() => Delete(testTable))">Delete test table row number @testTable.Id</button>
+            <p>@renamedTestTable.Name @renamedTestTable.Id</p>
+            <button type="button" class="btn btn-danger d-inline mx-4" @onclick="@(() => Delete(renamedTestTable))">Delete test table row number @renamedTestTable.Id</button>
         </div>
         
     }
@@ -23,11 +23,11 @@ else
 <br/>
 
 @code {
-    public List<TestTable> TestTables { get; set; }
+    public List<RenamedTestTable> RenamedTestTables { get; set; }
     protected override async Task OnInitializedAsync()
     {
         await using var db = await _db.CreateDbContextAsync();
-        TestTables = await db.TestTable.ToListAsync();
+        RenamedTestTables = await db.RenamedTestTable.ToListAsync();
     }
     
     public void Add()
@@ -35,13 +35,13 @@ else
         try
         {
             using var db = _db.CreateDbContext();
-            TestTable testTable = new TestTable()
+            RenamedTestTable renamedTestTable = new RenamedTestTable()
             {
                 Name = "test"
             };
-            db.TestTable.Add(testTable);
+            db.RenamedTestTable.Add(renamedTestTable);
             db.SaveChanges();
-            TestTables = db.TestTable.ToList();
+            RenamedTestTables = db.RenamedTestTable.ToList();
         }
         catch (Exception ex)
         {
@@ -50,14 +50,14 @@ else
         
     }
     
-    public void Delete(TestTable testTable)
+    public void Delete(RenamedTestTable renamedTestTable)
     {
         try
         {
             using var db = _db.CreateDbContext();
-            db.TestTable.Remove(testTable);
+            db.RenamedTestTable.Remove(renamedTestTable);
             db.SaveChanges();
-            TestTables = db.TestTable.ToList();
+            RenamedTestTables = db.RenamedTestTable.ToList();
         }
         catch (Exception ex)
         {

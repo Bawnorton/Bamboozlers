@@ -6,5 +6,5 @@ public class AppDbContext:DbContext
     {
     }
     
-    public DbSet<TestTable> TestTable { get; set; }
+    public DbSet<RenamedTestTable> RenamedTestTable { get; set; }
 }
