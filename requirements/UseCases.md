@@ -1,3 +1,5 @@
+![Use Case Diagram](usecasediagram.png)
+
 <table>
 <tr>
     <th>Use Case</th>
