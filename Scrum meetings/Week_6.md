@@ -62,29 +62,29 @@
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td>At least 1 Issue per Member</td>
+    <td>At least 8 hours per member</td>
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td>36 Issues in Product Backlog</td>
+    <td>8 issues</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      Bridgette Hunt - _ issues<br>
-      MacKenzie Richards - _ issues<br>
-      Zahra Kagda - _ issues<br>
-      Ben Norton - _ issues<br>
-      Ryan Osmond - _ issues
+      Bridgette Hunt - 3 issues<br>
+      MacKenzie Richards - 3 issues<br>
+      Zahra Kagda - 3 issues<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 2 issues
     </td>
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td>Milestone 2 is due and requires completion prior to Friday of the first week of the Sprint.</td>
+    <td>Milestone 2 is due and requires completion before Friday of the first week of the Sprint.</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td>Team members will need to collaborate and be present for completion the Milestone 2 document.</td>
+    <td>Team members will need to collaborate and be present for the completion of the Milestone 2 document.</td>
   </tr>
 </table>
 
