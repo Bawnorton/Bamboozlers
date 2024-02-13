@@ -6,7 +6,7 @@ name: Build and deploy ASP.Net Core app to Azure Web App - bawnorton
 on:
   push:
     branches:
-      - main
+      - release
   workflow_dispatch:
 
 jobs:
