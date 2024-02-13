@@ -1,0 +1,27 @@
+@using Bamboozlers.Classes.AppDbContext
+@inject IDbContextFactory<AppDbContext> _db;
+
+<div style="display: flex; align-items: center">
+    <Image Source="@Friend.Avatar" Style="float: left; padding-right: 15px;"></Image>
+    <span style="float: right;">@Friend.Username</span>
+</div>
+
+@code {
+    [Parameter] 
+    public required DirectMessageEntry Entry { get; set; }
+
+    public required User Friend { get; set; }
+
+    protected override void OnInitialized()
+    {
+        using var db = _db.CreateDbContext();
+        // TODO
+        // Chat = db.DirectChats.First(c => c.FriendshipId == Entry.FriendshipId); 
+        Friend = new User
+        {
+            UserId = Entry.FriendUserId,
+            Username = "Name (" + Entry.FriendUserId + ")",
+            Avatar = "https://via.placeholder.com/24"
+        };
+    }
+}

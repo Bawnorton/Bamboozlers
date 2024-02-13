@@ -1,32 +1,70 @@
 ﻿@using System.Diagnostics.CodeAnalysis
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Bamboozlers</a>
-    </div>
-</div>
+@using Bamboozlers.Classes.AppDbContext
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler"/>
+<div>
+    <Button Color="Color.Primary" Clicked="@Toggle" Class="group-dm-button">
+        <Icon Name="@(_viewDms ? "fa-user" : "fa-users")"></Icon>
+        <Text>@(_viewDms ? "Direct Messages" : "Groups")</Text>
+    </Button>
 
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <Button Color="Color.Primary" Clicked="@Toggle" Block="true">
-                <Icon Name="@(_show ? "fa-user" : "fa-users")"></Icon>
-                <Text>@(_show ? "Direct Messages" : "Groups")</Text>
-            </Button>
-            @code{
-                private bool _show = false;
-                Task Toggle()
-                {
-                    _show = !_show;
-                    return Task.CompletedTask;
-                }
+    <ListGroup Mode="ListGroupMode.Selectable" @bind-SelectedItem="_selectedItem" Class="group-dm-list scrollbar-container">
+        @if (_viewDms)
+        {
+            @foreach (var dmEntry in _directMessageEntries)
+            {
+                <ListGroupItem Name="@Convert.ToString(dmEntry.FriendshipId)" Color="Color.Secondary">
+                    <DirectMessageEntryComponent Entry="@dmEntry"></DirectMessageEntryComponent>
+                </ListGroupItem>
             }
-            @* <NavLink class="nav-link" href="" Match="NavLinkMatch.All"> *@
-            @*     <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home *@
-            @* </NavLink> *@
-        </div>
-    </nav>
-</div>
+            <ListGroupItem Name="new" Color="Color.Success">
+                <Icon Name="@("fa-plus")"></Icon>
+                <Text>Create New DM</Text>
+            </ListGroupItem>
+        }
+        else
+        {
+            @foreach (var groupEntry in _groupEntries)
+            {
+                <ListGroupItem Name="@Convert.ToString(groupEntry.GroupId)" Color="Color.Secondary">
+                    <GroupEntryComponent Entry="@groupEntry"></GroupEntryComponent>
+                </ListGroupItem>
+            }
+            <ListGroupItem Name="new" Color="Color.Success">
+                <Icon Name="@("fa-plus")"></Icon>
+                <Text>Create New Group</Text>
+            </ListGroupItem>
+        }
+    </ListGroup>
 
+    @code{
+        private bool _viewDms = false;
+        
+        private string _selectedItem = "1234";
+
+        // sample data
+        private List<GroupEntry> _groupEntries =
+        [
+            new GroupEntry { GroupId = 1234, GroupName = "Group 1", GroupAvatar = "https://via.placeholder.com/24" },
+            new GroupEntry { GroupId = 3124, GroupName = "Group 2", GroupAvatar = "https://via.placeholder.com/24" },
+            new GroupEntry { GroupId = 8429, GroupName = "Group 3" },
+            new GroupEntry { GroupId = 2451, GroupName = "Group 4", GroupAvatar = "https://via.placeholder.com/24" },
+            new GroupEntry { GroupId = 3142, GroupName = "Group 5" },
+            new GroupEntry { GroupId = 4251, GroupName = "Group 6", GroupAvatar = "https://via.placeholder.com/24" }
+        ];
+
+        private List<DirectMessageEntry> _directMessageEntries =
+        [
+            new DirectMessageEntry { FriendUserId = 1234, SelfUserId = 5678, FriendshipId = 345 },
+            new DirectMessageEntry { FriendUserId = 3124, SelfUserId = 5678, FriendshipId = 431 },
+            new DirectMessageEntry { FriendUserId = 8429, SelfUserId = 5678, FriendshipId = 425 }
+        ];
+
+
+        Task Toggle()
+        {
+            _viewDms = !_viewDms;
+            return Task.CompletedTask;
+        }
+
+    }
+</div>

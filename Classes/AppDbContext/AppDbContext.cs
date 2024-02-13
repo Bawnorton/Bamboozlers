@@ -6,5 +6,8 @@ public class AppDbContext:DbContext
     {
     }
     
-    public DbSet<RenamedTestTable> RenamedTestTable { get; set; }
+    public required DbSet<RenamedTestTable> RenamedTestTable { get; set; }
+    public required DbSet<DirectMessageEntry> DirectMessageEntries { get; set; }
+    public required DbSet<GroupEntry> GroupEntries { get; set; }
+    public required DbSet<User> Users { get; set; }
 }
