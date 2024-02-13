@@ -76,7 +76,7 @@ Users are individuals seeking a communication platform. They range from casual u
 
 ### 3. Specific Requirements
 
-####3.1 USer Requirements
+#### 3.1 User Requirements
 -   Users must be able to register, login, and manage their profiles.
 -   Users must be able to add and remove friends.
 -   Users must be able to create and manage groups
