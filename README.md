@@ -76,15 +76,31 @@ Users are individuals seeking a communication platform. They range from casual u
 
 ### 3. Specific Requirements
 
-#### 3.1 Functional Requirements
-
+####3.1 USer Requirements
 -   Users must be able to register, login, and manage their profiles.
--   Users should be able to add and remove friends.
--   The platform should support the creation and management of groups.
+-   Users must be able to add and remove friends.
+-   Users must be able to create and manage groups
 -   Users must be able to send, receive, edit, and delete messages.
--   Moderators in groups should be able to manage member roles and permissions.
+-   Moderators in groups must be able to manage member roles and permissions.
 
-#### 3.2 Non-Functional Requirements
+#### 3.2 Functional Requirements
+
+-   The system must allow Users to register using their email.
+-   The system must save the account information of users to the database.
+-   The system must send a verification email when a new User attempts to register.
+-   The system must send a confirmation email when a user successfully registers, changes their password or email.
+-   The system must allow users to update their profile and username.
+-   The system must update the database when Users edit their account information.
+-   The system must allow users to change their email or password.
+-   The system must allow users to access their friend list.
+-   The system must allow users to send and accept friend requests.
+-   The system must update the database and users friend lists when they accept friend requests.
+-   The system must support the creation and management of groups.
+-   The system must update the database and message history when users send, receive, edit, pin, and delete messages.
+-   The system must allow moderators to manage memeber roles and permission.
+-   The system must update the database if moderators change member roles and permission.
+
+#### 3.3 Non-Functional Requirements
 
 -   **Performance & Reliability**: The system should be able to handle multiple users performing system functions such as messaging, registering, friend requesting.
 -   **Scalability**: Should accommodate an increasing number of users and groups while maintaining performance and reliability.
