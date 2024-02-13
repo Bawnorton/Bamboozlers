@@ -1,6 +1,9 @@
 using Bamboozlers;
 using Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
+using Blazorise;
+using Blazorise.Bootstrap;
+using Blazorise.Icons.FontAwesome;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +11,11 @@ var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
 // Add services to the container.
+builder.Services
+    .AddBlazorise( options => options.Immediate = true )
+    .AddBootstrapProviders()
+    .AddFontAwesomeIcons();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddDbContextFactory<AppDbContext>(options =>

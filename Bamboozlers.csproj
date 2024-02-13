@@ -7,6 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Blazorise" Version="1.5.0-preview1" />
+      <PackageReference Include="Blazorise.Bootstrap" Version="1.5.0-preview1" />
+      <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.5.0-preview1" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.1">
         <PrivateAssets>all</PrivateAssets>
@@ -14,6 +17,40 @@
       </PackageReference>
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.1" />
       <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="wwwroot\images\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\a.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\b.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\c.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\d.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\e.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\f.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\g.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\h.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\i.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\j.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\k.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\l.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\m.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\n.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\o.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\p.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\q.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\r.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\README.md" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\s.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\t.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\u.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\v.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\w.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\x.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\y.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\images\letters\z.png" />
     </ItemGroup>
 
 </Project>
