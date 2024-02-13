@@ -110,4 +110,4 @@ Users are individuals seeking a communication platform. They range from casual u
 
 #### 4.1 Use Case UML Diagrams
 
-[requirements\\usecasediagram.png](requirements/usecasediagram.png)
+![requirements\\usecasediagram.png](requirements/usecasediagram.png)
