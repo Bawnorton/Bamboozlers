@@ -86,19 +86,12 @@ Users are individuals seeking a communication platform. They range from casual u
 
 #### 3.2 Non-Functional Requirements
 
--   **Performance**: The system should handle simultaneous messages and interactions efficiently.
--   **Reliability**: High uptime, with minimal downtime for maintenance.
--   **Scalability**: Should accommodate an increasing number of users and groups.
--   **Security**: Robust security measures to protect user data and privacy.
+-   **Performance & Reliability**: The system should be able to handle multiple users performing system functions such as messaging, registering, friend requesting.
+-   **Scalability**: Should accommodate an increasing number of users and groups while maintaining performance and reliability.
+-   **Security**: Robust security measures to protect user data and privacy. Policies such as email verification when resetting password and safe password and email storing.
 
 ### 4. Appendix
 
 #### 4.1 Use Case UML Diagrams
 
-(Insert UML diagrams relevant to the system here.)
-
-### 5. Index
-
-(Insert index of the document here, referencing the page numbers for easy navigation.)
-
-This template serves as a foundational structure for your requirements document. You can expand each section with more details specific to the Discord Clone project as needed.
+[requirements\\usecasediagram.png](requirements/usecasediagram.png)
