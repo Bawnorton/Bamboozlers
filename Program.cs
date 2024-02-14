@@ -19,7 +19,7 @@ builder.Services
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseSqlServer(configuration.GetConnectionString("AZURE_SQL_CONNECTIONSTRING")));
+    options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING")));
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
