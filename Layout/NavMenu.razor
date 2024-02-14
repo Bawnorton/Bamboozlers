@@ -1,7 +1,15 @@
 ﻿@using System.Diagnostics.CodeAnalysis
 @using Bamboozlers.Classes.AppDbContext
+@inject IDbContextFactory<AppDbContext> Db;
+@inject IJSRuntime JsRuntime
 
 <div>
+    <Button Color="Color.Primary" Clicked="@OpenFriends" Class="group-dm-button">
+        <Icon Name="@("fa-people-arrows")"></Icon> @* placeholder icon *@
+        <Text>Friends</Text>
+        <Badge Color="Color.Warning">3</Badge> @* placeholder (num friends?) *@
+    </Button>
+
     <Button Color="Color.Primary" Clicked="@Toggle" Class="group-dm-button">
         <Icon Name="@(_viewDms ? "fa-user" : "fa-users")"></Icon>
         <Text>@(_viewDms ? "Direct Messages" : "Groups")</Text>
@@ -10,61 +18,116 @@
     <ListGroup Mode="ListGroupMode.Selectable" @bind-SelectedItem="_selectedItem" Class="group-dm-list scrollbar-container">
         @if (_viewDms)
         {
-            @foreach (var dmEntry in _directMessageEntries)
+            @foreach (var dmEntry in DirectChats)
             {
-                <ListGroupItem Name="@Convert.ToString(dmEntry.FriendshipId)" Color="Color.Secondary">
-                    <DirectMessageEntryComponent Entry="@dmEntry"></DirectMessageEntryComponent>
+                <ListGroupItem Name="@Convert.ToString(dmEntry.Item1.ID)" Color="Color.Secondary">
+                    <DirectChatEntryComponent Entry="@dmEntry.Item1" Friend="@dmEntry.Item2"></DirectChatEntryComponent>
                 </ListGroupItem>
             }
-            <ListGroupItem Name="new" Color="Color.Success">
+
+            <ListGroupItem Name="new" Color="Color.Success" Clicked="@CreateNewDm">
                 <Icon Name="@("fa-plus")"></Icon>
                 <Text>Create New DM</Text>
             </ListGroupItem>
         }
         else
         {
-            @foreach (var groupEntry in _groupEntries)
+            @foreach (var groupEntry in GroupChats)
             {
-                <ListGroupItem Name="@Convert.ToString(groupEntry.GroupId)" Color="Color.Secondary">
-                    <GroupEntryComponent Entry="@groupEntry"></GroupEntryComponent>
+                <ListGroupItem Name="@Convert.ToString(groupEntry.ID)" Color="Color.Secondary">
+                    <GroupChatEntryComponent Entry="@groupEntry"></GroupChatEntryComponent>
                 </ListGroupItem>
             }
-            <ListGroupItem Name="new" Color="Color.Success">
+
+            <ListGroupItem Name="new" Color="Color.Success" Clicked="@CreateNewGroup">
                 <Icon Name="@("fa-plus")"></Icon>
                 <Text>Create New Group</Text>
             </ListGroupItem>
         }
     </ListGroup>
 
+    <Button Color="Color.Info" Class="profile-button" Clicked="@NextUser">
+        <Image Source="https://via.placeholder.com/24"></Image>
+        <Text>@Username</Text>
+        <Icon Name="@("fa-warehouse")"></Icon> @* placeholder icon *@
+    </Button>
+
     @code{
         private bool _viewDms = false;
-        
-        private string _selectedItem = "1234";
 
-        // sample data
-        private List<GroupEntry> _groupEntries =
-        [
-            new GroupEntry { GroupId = 1234, GroupName = "Group 1", GroupAvatar = "https://via.placeholder.com/24" },
-            new GroupEntry { GroupId = 3124, GroupName = "Group 2", GroupAvatar = "https://via.placeholder.com/24" },
-            new GroupEntry { GroupId = 8429, GroupName = "Group 3" },
-            new GroupEntry { GroupId = 2451, GroupName = "Group 4", GroupAvatar = "https://via.placeholder.com/24" },
-            new GroupEntry { GroupId = 3142, GroupName = "Group 5" },
-            new GroupEntry { GroupId = 4251, GroupName = "Group 6", GroupAvatar = "https://via.placeholder.com/24" }
-        ];
+        private string _selectedItem;
 
-        private List<DirectMessageEntry> _directMessageEntries =
-        [
-            new DirectMessageEntry { FriendUserId = 1234, SelfUserId = 5678, FriendshipId = 345 },
-            new DirectMessageEntry { FriendUserId = 3124, SelfUserId = 5678, FriendshipId = 431 },
-            new DirectMessageEntry { FriendUserId = 8429, SelfUserId = 5678, FriendshipId = 425 }
-        ];
+        // placeholder
+        private int _selfId = 1;
 
+        // placeholder
+        private User Self { get; set; }
 
-        Task Toggle()
+        private string Username { get; set; } = "Loading...";
+
+        private List<Tuple<Chat, User>> DirectChats { get; set; } = [];
+
+        private List<GroupChat> GroupChats { get; set; } = [];
+
+        private Task Toggle()
         {
             _viewDms = !_viewDms;
             return Task.CompletedTask;
         }
 
+        protected override async Task OnInitializedAsync()
+        {
+            await using var db = await Db.CreateDbContextAsync();
+            Self = await db.Users.Include(user => user.Chats).ThenInclude(chat => chat.Users).FirstAsync(user => user.ID == _selfId);
+            GroupChats.Clear();
+            DirectChats.Clear();
+            foreach (var chat in Self.Chats)
+            {
+                if (chat is GroupChat groupChat)
+                {
+                    GroupChats.Add(groupChat);
+                }
+                else
+                {
+                    var friend = chat.Users.First(user => user.ID != Self.ID);
+                    DirectChats.Add(new Tuple<Chat, User>(chat, friend));
+                }
+            }
+
+            _selectedItem = Convert.ToString(_viewDms ? DirectChats.First().Item1.ID : GroupChats.First().ID);
+            Username = Self.Username;
+        }
+
+        // placeholder
+        private async Task NextUser()
+        {
+            await using var db = await Db.CreateDbContextAsync();
+            var users = await db.Users.ToListAsync();
+            var index = users.FindIndex(user => user.ID == _selfId);
+            index = (index + 1) % users.Count;
+            _selfId = users[index].ID;
+            await OnInitializedAsync();
+        }
+
+        private async Task OpenFriends()
+        {
+            // TODO: open friends component 
+            await JsRuntime.InvokeVoidAsync("alert", "Not implemented yet");
+        }
+
+        private async Task CreateNewDm()
+        {
+            _selectedItem = "";
+            // TODO: open new dm component
+            await JsRuntime.InvokeVoidAsync("alert", "Not implemented yet");
+        }
+        
+        private async Task CreateNewGroup()
+        {
+            _selectedItem = "";
+            // TODO: open new group component
+            await JsRuntime.InvokeVoidAsync("alert", "Not implemented yet");
+        }
     }
+
 </div>
