@@ -6,5 +6,51 @@ public class AppDbContext:DbContext
     {
     }
     
-    public DbSet<RenamedTestTable> RenamedTestTable { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<Chat> Chats { get; set; }
+    public DbSet<GroupChat> GroupChats { get; set; }
+    public DbSet<Message> Messages { get; set; }
+    public DbSet<Friendship> FriendShips { get; set; }
+    public DbSet<FriendRequest> FriendRequests { get; set; }
+    public DbSet<GroupInvite> GroupInvites { get; set; }
+    public DbSet<Block> BlockList { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        //specify chat relations since there EF can't infer them from the model because of diff types of users
+        modelBuilder.Entity<GroupChat>()
+            .HasMany(e => e.Moderators)
+            .WithMany(e => e.ModeratedChats);
+        modelBuilder.Entity<User>()
+            .HasMany(u => u.Chats)
+            .WithMany(c => c.Users); 
+        modelBuilder.Entity<GroupChat>()
+            .HasOne(h => h.Owner)
+            .WithMany(w => w.OwnedChats);
+        
+        //default behavior is cascade however all relationships except for chat messages need to be set to no action
+        foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+        {
+            relationship.DeleteBehavior = DeleteBehavior.NoAction;
+        }
+        
+        //chat messages need to be deleted if chat is deleted
+        modelBuilder.Entity<Chat>()
+            .HasMany(h => h.Messages)
+            .WithOne(w => w.Chat)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        //seed the database with some basic data for development
+        DbSeed.SeedUsers(modelBuilder);
+        DbSeed.SeedChats(modelBuilder);
+        DbSeed.SeedChatUsers(modelBuilder);
+        DbSeed.SeedMessages(modelBuilder);
+        DbSeed.SeedFriendships(modelBuilder);
+        DbSeed.SeedFriendRequests(modelBuilder);
+        DbSeed.SeedGroupInvites(modelBuilder);
+
+        base.OnModelCreating(modelBuilder);
+
+    }
+    
 }
