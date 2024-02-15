@@ -1,10 +1,10 @@
-﻿@using System.Diagnostics.CodeAnalysis
+﻿@implements IDisposable
 @using Bamboozlers.Classes.AppDbContext
-@inject IDbContextFactory<AppDbContext> Db;
+@using Bamboozlers.Classes
 @inject IJSRuntime JsRuntime
 
 <div>
-    <Button Color="Color.Primary" Clicked="@OpenFriends" Class="group-dm-button">
+    <Button Color="Color.Primary" Clicked="@_windowManager.OpenFriendsWindow" Class="group-dm-button">
         <Icon Name="@("fa-people-arrows")"></Icon> @* placeholder icon *@
         <Text>Friends</Text>
         <Badge Color="Color.Warning">3</Badge> @* placeholder (num friends?) *@
@@ -16,58 +16,40 @@
     </Button>
 
     <ListGroup Mode="ListGroupMode.Selectable" @bind-SelectedItem="_selectedItem" Class="group-dm-list scrollbar-container">
-        @if (_viewDms)
+        @foreach (var chat in _client.Chats.Where(chat => IsValidChat(chat)))
         {
-            @foreach (var dmEntry in DirectChats)
-            {
-                <ListGroupItem Name="@Convert.ToString(dmEntry.Item1.ID)" Color="Color.Secondary">
-                    <DirectChatEntryComponent Entry="@dmEntry.Item1" Friend="@dmEntry.Item2"></DirectChatEntryComponent>
-                </ListGroupItem>
-            }
-
-            <ListGroupItem Name="new" Color="Color.Success" Clicked="@CreateNewDm">
-                <Icon Name="@("fa-plus")"></Icon>
-                <Text>Create New DM</Text>
-            </ListGroupItem>
-        }
-        else
-        {
-            @foreach (var groupEntry in GroupChats)
-            {
-                <ListGroupItem Name="@Convert.ToString(groupEntry.ID)" Color="Color.Secondary">
-                    <GroupChatEntryComponent Entry="@groupEntry"></GroupChatEntryComponent>
-                </ListGroupItem>
-            }
-
-            <ListGroupItem Name="new" Color="Color.Success" Clicked="@CreateNewGroup">
-                <Icon Name="@("fa-plus")"></Icon>
-                <Text>Create New Group</Text>
+            <ListGroupItem Name="@Convert.ToString(chat.ID)" Color="Color.Secondary">
+                <CompChatEntry Name="@chat.Name" Avatar="@chat.Avatar"></CompChatEntry> @*"@user.Avatar"*@
             </ListGroupItem>
         }
     </ListGroup>
+    <Button Color="Color.Success" Clicked="@(_viewDms ? _windowManager.OpenNewDmWindow : _windowManager.OpenNewGroupWindow)" Class="group-dm-button">
+        <Icon Name="@("fa-plus")"></Icon>
+        <Text>@(_viewDms ? "New DM" : "New Group")</Text>
+    </Button>
 
     <Button Color="Color.Info" Class="profile-button" Clicked="@NextUser">
         <Image Source="https://via.placeholder.com/24"></Image>
-        <Text>@Username</Text>
+        <Text>@_client.Username</Text>
         <Icon Name="@("fa-warehouse")"></Icon> @* placeholder icon *@
     </Button>
 
     @code{
+        private readonly BamboozlersClient _client = BamboozlersClient.Instance;
+        
+        private readonly WindowManager _windowManager;
+        
         private bool _viewDms = false;
 
         private string _selectedItem;
 
-        // placeholder
-        private int _selfId = 1;
-
-        // placeholder
-        private User Self { get; set; }
-
-        private string Username { get; set; } = "Loading...";
-
-        private List<Tuple<Chat, User>> DirectChats { get; set; } = [];
-
-        private List<GroupChat> GroupChats { get; set; } = [];
+        private Predicate<ClientChat?> IsValidChat => chat => chat != null && chat.IsGroupChat == !_viewDms;
+        
+        public NavMenu()
+        {
+            _windowManager = _client.WindowManager;
+            _selectedItem = Convert.ToString(_viewDms ? _client.DirectChats.First().ID : _client.GroupChats.First().ID);
+        }
 
         private Task Toggle()
         {
@@ -75,58 +57,23 @@
             return Task.CompletedTask;
         }
 
-        protected override async Task OnInitializedAsync()
+        protected override void OnInitialized()
         {
-            await using var db = await Db.CreateDbContextAsync();
-            Self = await db.Users.Include(user => user.Chats).ThenInclude(chat => chat.Users).FirstAsync(user => user.ID == _selfId);
-            GroupChats.Clear();
-            DirectChats.Clear();
-            foreach (var chat in Self.Chats)
-            {
-                if (chat is GroupChat groupChat)
-                {
-                    GroupChats.Add(groupChat);
-                }
-                else
-                {
-                    var friend = chat.Users.First(user => user.ID != Self.ID);
-                    DirectChats.Add(new Tuple<Chat, User>(chat, friend));
-                }
-            }
-
-            _selectedItem = Convert.ToString(_viewDms ? DirectChats.First().Item1.ID : GroupChats.First().ID);
-            Username = Self.Username;
+            _client.OnChange += StateHasChanged;
         }
-
+        
+        void IDisposable.Dispose()
+        {
+            _client.OnChange -= StateHasChanged;
+        }
+        
         // placeholder
         private async Task NextUser()
         {
-            await using var db = await Db.CreateDbContextAsync();
-            var users = await db.Users.ToListAsync();
-            var index = users.FindIndex(user => user.ID == _selfId);
+            var users = _client.Db.Users.ToList();
+            var index = users.FindIndex(user => user.ID == _client.UserId);
             index = (index + 1) % users.Count;
-            _selfId = users[index].ID;
-            await OnInitializedAsync();
-        }
-
-        private async Task OpenFriends()
-        {
-            // TODO: open friends component 
-            await JsRuntime.InvokeVoidAsync("alert", "Not implemented yet");
-        }
-
-        private async Task CreateNewDm()
-        {
-            _selectedItem = "";
-            // TODO: open new dm component
-            await JsRuntime.InvokeVoidAsync("alert", "Not implemented yet");
-        }
-        
-        private async Task CreateNewGroup()
-        {
-            _selectedItem = "";
-            // TODO: open new group component
-            await JsRuntime.InvokeVoidAsync("alert", "Not implemented yet");
+            await InvokeAsync(() => _client.UserId = users[index].ID);
         }
     }
 

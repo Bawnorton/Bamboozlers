@@ -1,9 +1,10 @@
 using Bamboozlers;
+using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
-using Microsoft.EntityFrameworkCore;
 using Blazorise;
 using Blazorise.Bootstrap;
 using Blazorise.Icons.FontAwesome;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,8 +43,16 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var dbContext = services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext();
+    BamboozlersClient.Instance.Init(dbContext);
+    // TODO: Set Via Registration
+    BamboozlersClient.Instance.UserId = 1;
+}
 
 app.Run();
