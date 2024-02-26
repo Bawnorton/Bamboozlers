@@ -66,18 +66,16 @@
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td></td>
+    <td>7 Issues</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      <td>
-        Bridgette Hunt - _ issues<br>
-        MacKenzie Richards - _ issues<br>
-        Zahra Kagda - _ issues<br>
-        Ben Norton - _ issues<br>
-        Ryan Osmond - _ issues
-      </td>
+      Bridgette Hunt - 2 issues<br>
+      MacKenzie Richards - 2 issues<br>
+      Zahra Kagda - 1 issue<br>
+      Ben Norton - 3 issues<br>
+      Ryan Osmond - 2 issues
     </td>
   </tr>
   <tr>
