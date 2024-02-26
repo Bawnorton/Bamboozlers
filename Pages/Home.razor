@@ -1,8 +1,35 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Bamboozlers</PageTitle>
 
+<div id = "mainContainer" style="margin: 0 auto; width: 50%;">
+    <Tabs RenderMode = "TabsRenderMode.LazyReload" SelectedTab="@selectedTab" SelectedTabChanged="@OnSelectedTabChanged">
+        <Items>
+            <Tab Name="login">
+                Log In
+            </Tab>
+            <Tab Name="signup">
+                Sign Up
+            </Tab>
+        </Items>
+        <Content>
+            <br/>
+            <TabPanel Name="login">
+                <Login/>
+            </TabPanel>
+            <TabPanel Name="signup">
+                <Register/>
+            </TabPanel>
+        </Content>
+    </Tabs>
+</div>
 
-<h1>Hello!</h1>
+@code{
+    string selectedTab = "login";
 
-Welcome to your new app.
+    private Task OnSelectedTabChanged(string name)
+    {
+        selectedTab = name;
+        return Task.CompletedTask;
+    }
+}
