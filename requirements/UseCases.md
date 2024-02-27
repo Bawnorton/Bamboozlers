@@ -1,118 +1,4 @@
-# COSC 310 Project - Discord Clone
-
-## Team Bamboozlers
-
-### Members
-
-| Student Name       | Student Number | Github Username |
-|--------------------|----------------|-----------------|
-| Bridgette Hunt     | 43214485       | bhunt02         |
-| MacKenzie Richards | 47753504       | mrichards03     |
-| Zahra Kagda        | 90484528       | zkagda          |
-| Ryan Osmond        | 66398421       | Phoenix78911    |
-| Ben Norton         | 98964356       | Bawnorton       |
-
-## Requirements
-
-### What the project is:
-
-Discord Clone
-
-### Description:
-
-Our project will be a Messaging Platform allowing users to create accounts, add friends and create groups with or send and receive messages to/from. It will also allow users to become moderators of groups and control members permissions within said groups.
-
-### 1. Introduction
-
-#### 1.1 Purpose of the Requirements Document
-
-The purpose of this document is to outline the user requirements and the functional purpose of the Discord Clone, a messaging platform. It will serve as a comprehensive guide for the development team to understand what features and functionalities are required, ensuring that the final product aligns with user expectations and project objectives.
-
-#### 1.2 Scope of the Product
-
-The Discord Clone is a messaging platform that enables users to create accounts, add friends, form groups, and communicate through messages. It also includes features for users to act as moderators in groups, managing member permissions and overseeing group activities.
-
-#### 1.3 Definitions, Acronyms, and Abbreviations
-
--   **User**: An individual who interacts with the Discord Clone platform.
--   **Moderator**: A user with elevated permissions within a group to manage members and settings.
--   **Group**: A chat environment where multiple users can communicate simultaneously.
--   **DM (Direct Message)**: A direct message sent from one user to another.
-
-#### 1.4 References
-
-Discord: <https://discord.com/>
-
-#### 1.5 Overview of the Remainder of the Document
-
-The remainder of this document is divided into sections detailing the general description of the product, specific requirements including functional and non-functional aspects, followed by appendices and an index for easy navigation.
-
-### 2. General Description
-
-#### 2.1 Product Perspective
-
-The Discord Clone is an independent product, designed to provide an intuitive, user-friendly messaging experience. It aims to incorporate the best features of existing messaging platforms while introducing unique functionalities tailored to user needs.
-
-#### 2.2 Product Functions
-
--   Account creation and management
--   Friend list management
--   Group creation and management
--   Messaging (both private and group)
--   Moderator roles and permissions in groups
-
-#### 2.3 User Characteristics
-
-Users are individuals seeking a communication platform. They range from casual users who want to keep in touch with friends to businesses, teachers, and group leaders who need to manage large groups.
-
-#### 2.4 General Constraints
-
--   The platform must ensure data privacy and security.
--   It should be scalable to accommodate a growing number of users.
-
-#### 2.5 Assumptions and Dependencies
-
--   Continuous internet connectivity for users.
-
-### 3. Specific Requirements
-
-#### 3.1 User Requirements
--   Users must be able to register, login, and manage their profiles.
--   Users must be able to add and remove friends.
--   Users must be able to create and manage groups
--   Users must be able to send, receive, edit, and delete messages.
--   Moderators in groups must be able to manage member roles and permissions.
-
-#### 3.2 Functional Requirements
-
--   The system must allow Users to register using their email.
--   The system must save the account information of users to the database.
--   The system must send a verification email when a new User attempts to register.
--   The system must send a confirmation email when a user successfully registers, changes their password or email.
--   The system must allow users to update their profile and username.
--   The system must update the database when Users edit their account information.
--   The system must allow users to change their email or password.
--   The system must allow users to access their friend list.
--   The system must allow users to send and accept friend requests.
--   The system must update the database and users friend lists when they accept friend requests.
--   The system must support the creation and management of groups.
--   The system must update the database and message history when users send, receive, edit, pin, and delete messages.
--   The system must allow moderators to manage memeber roles and permission.
--   The system must update the database if moderators change member roles and permission.
-
-#### 3.3 Non-Functional Requirements
-
--   **Performance & Reliability**: The system should be able to handle multiple users performing system functions such as messaging, registering, friend requesting.
--   **Scalability**: Should accommodate an increasing number of users and groups while maintaining performance and reliability.
--   **Security**: Robust security measures to protect user data and privacy. Policies such as email verification when resetting password and safe password and email storing.
-
-### 4. Appendix
-
-#### 4.1 Use Case UML Diagrams
-
-![requirements\\usecasediagram.png](requirements/usecasediagram.png)
-
-####4.2 Detailed Use Cases
+![Use Case Diagram](usecasediagram.png)
 
 <table>
 <tr>
@@ -139,11 +25,6 @@ a) Send Message
 2. Server takes message and saves it in the database
 3. Message is distributed via server to recipients
 4. Message is displayed for all involved clients
-
-<ins>Extensions</ins>
-1. User attempts to send a message to another user they are not friends with
-*System issues an error message to the user and informs them they cannot send messages to non friends
-
    
 </tr>
 <tr>
@@ -153,11 +34,6 @@ b) Attaching Media
 2. Server takes file and saves it in the database
 3. Message with file is distributed via server to recipients
 4. Message with file is displayed for all involved clients
-
-<ins>Extensions</ins>
-1. User inserts unsupported file type
-* System issues an error message and requests user to attach a supported file type
-
 
 </tr>
 <tr>
@@ -209,15 +85,14 @@ a) Send Friend Request
 4. The friend request is stored in the database by the server
 5. The friend sees the pending request in their own "Friends" tab
 
-<ins>Extensions</ins>
-1. User attempts to send a friend request to an existing friend
-* System informs user that this is already an existing friend
+a) <u>Extensions</u>
+</tr>
+<tr>
 
-2. User cancels the friend request
-* Server removes the outgoing friend request from the database
+1. User cancels the friend request
+   * Server removes the outgoing friend request from the database
 
 </tr>
-
 <tr>
 
 b) Accept Friend Request
@@ -247,13 +122,24 @@ d) Block User
 4. Neither user can send friend requests to each other
 5. The blocked user cannot see the profile of the user and the user cannot see messages sent by the blocked user
 
-<ins>Extensions</ins>
-1. User was friend with the blocked user 
-* Server removes the user's friendship with the blocked user from the database
-2. User had pending friend request from the blocked user 
-* Server removes the pending friend request from the database
-3. User had outgoing friend request to the blocked user 
-* Server removes the outgoing friend request from the database
+d) <u>Extensions</u>
+</tr>
+<tr>
+
+1. User was friend with the blocked user
+   * Server removes the user's friendship with the blocked user from the database
+
+</tr>
+<tr>
+
+2. User had pending friend request from the blocked user
+   * Server removes the pending friend request from the database
+
+</tr>
+<tr>
+
+2. User had outgoing friend request to the blocked user
+    * Server removes the outgoing friend request from the database
 
 </tr>
 </table>
@@ -295,9 +181,9 @@ c) Leave Group
 2. Server takes request and removes User from Group, removing corresponding database entries
 3. User no longer sees the group in their list of groups
 
-c) <ins>Extensions</ins>
+c) <u>Extensions</u>
 1. User is the Group Owner
-   * Server assigns the oldest appointed GroupModerator as the new Owner 
+* Server assigns the oldest appointed GroupModerator as the new Owner
 
 </tr>
 </table>
@@ -376,11 +262,6 @@ a) Log Into Account
 3. Server checks credentials against database and opens an authenticated logged-in session
 4. User is redirected to their landing page
 
-<ins>Extensions</ins>
-1. User enters incorrect credentials
-*System issues an error and informs user their credentials are incorrect
-
-
 </tr>
 <tr>
 
@@ -400,11 +281,6 @@ c) Change Username
 4. Server changes the username in the database if there are no conflicts
 5. User's profile representation changes in all views for all other users and themselves
 
-<ins>Extensions</ins>
-1. User selects a username that is already in use
-*System issues and error and requests user to select another username
-
-
 </tr>
 <tr>
 
@@ -422,10 +298,6 @@ e) Change Description
 2. User selects "change description" and types a new description, confirming it
 3. Server saves the new description in the database
 4. User's profile representation changes in all views for all other users and themselves
-
-<ins>Extensions</ins>
-1. User attempts to enter a description beyond the allotted length
-*System prevents user from continuing to input characters and displays the maximum number of characters in red
 
 </tr>
 <tr>
@@ -491,13 +363,6 @@ i) Delete Account
 4. If there are no conflicts, the Server sends a validation email to the specified email.
 5. Visitor navigates to the email and confirms by clicking the link.
 6. Server creates the new User's account and record in the User table, with the link automatically logging the user in.
-
-<ins>Extensions</ins>
-1. User selects an email/username that is already in use
-*System issues an error and informs user that the email/username is already associated with an account and to enter a different one
-
-2.User selects password that does not meet minimum security requirements
-*System issues an error and informs user that they must choose a password that meets security requirements
 
 </tr>
 </table>

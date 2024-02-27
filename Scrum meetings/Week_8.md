@@ -3,16 +3,16 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| | | | 
+| Complete | Complete | Not necessary | 
 
 ### Sprint Team Members
-| Name | Role |
-| --- | --- |
-| | |
-| | |
-| | |
-| | |
-| | |
+| Name               | Role        |
+|--------------------|-------------|
+| Bridgette Hunt     | Team Leader |
+| Ben Norton         | Developer   |
+| MacKenzie Richards | Developer   |
+| Zahra Kagda        | Developer   |
+| Ryan Osmond        | Developer   |
 
 ## Sprint Planning Meeting Items
 
@@ -20,23 +20,29 @@
 <table>
   <tr>
     <th>Sprint Theme</th>
-    <td>e.g., Bugs</td>
+    <td>Requirements Documentation & Development First Stages</td>
   </tr>
   <tr>
     <th>Issues Completed</th>
-    <td></td>
+    <td>3</td>
   </tr>
   <tr>
     <th>Issues Left</th>
-    <td></td>
+    <td>5</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td></td>
+    <td>
+      Bridgette Hunt - 3 issues<br>
+      MacKenzie Richards - 3 issues<br>
+      Zahra Kagda - 3 issues<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 2 issues
+    </td>
   </tr>
   <tr>
     <th>Summary</th>
-    <td></td>
+    <td>Most issues were not completed in time for the end of Sprint.</td>
   </tr>
 </table>
 
@@ -44,41 +50,41 @@
 <table>
   <tr>
     <th>Start Date</th>
-    <td></td>
+    <td>02/27/2024</td>
   </tr>
   <tr>
     <th>End Date</th>
-    <td></td>
+    <td>03/05/2024</td>
   </tr>
   <tr>
     <th>Sprint Theme</th>
-    <td></td>
+    <td>Development First Stages</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td></td>
+    <td>At least 8 hours per Team Member</td>
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td></td>
+    <td>7 Issues</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      Member 1<br>
-      Member 2<br>
-      Member 3<br>
-      Member 4<br>
-      Member 5
+      Bridgette Hunt - 2 issues<br>
+      MacKenzie Richards - 2 issues<br>
+      Zahra Kagda - 1 issue<br>
+      Ben Norton - 3 issues<br>
+      Ryan Osmond - 2 issues
     </td>
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td></td>
+    <td>There are a lot of issues that rely on other assigned issues for completion.</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td></td>
+    <td>Not much to do about dependencies, but work on Milestone 3 to ensure proper time is invested.</td>
   </tr>
 </table>
 
