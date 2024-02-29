@@ -41,15 +41,6 @@ public class AppDbContext:IdentityDbContext<User, IdentityRole<int>, int>
             .WithOne(w => w.Chat)
             .OnDelete(DeleteBehavior.Cascade);
         
-        //seed the database with some basic data for development
-        //DbSeed.SeedUsers(modelBuilder);
-        // DbSeed.SeedChats(modelBuilder);
-        // DbSeed.SeedChatUsers(modelBuilder);
-        // DbSeed.SeedMessages(modelBuilder);
-        // DbSeed.SeedFriendships(modelBuilder);
-        // DbSeed.SeedFriendRequests(modelBuilder);
-        // DbSeed.SeedGroupInvites(modelBuilder);
-
         base.OnModelCreating(modelBuilder);
 
     }
