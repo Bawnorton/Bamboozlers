@@ -2,6 +2,7 @@
 @using Bamboozlers.Classes.AppDbContext
 
 @inject SignInManager<User> SignInManager
+@inject NavigationManager NavigationManager
 
 <ul class="nav nav-pills flex-column">
     <li class="nav-item">
@@ -16,14 +17,32 @@
     <li class="nav-item">
         <NavLink class="nav-link" href="Account/Manage/PersonalData">Personal data</NavLink>
     </li>
+    <li>
+        <form action="Account/Logout" method="post">
+            <AntiforgeryToken/>
+            <input type="hidden" name="ReturnUrl" value="@currentUrl"/>
+            <button type="submit" class="nav-link">
+                <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+            </button>
+        </form>
+    </li>
 </ul>
 
 @code {
-    private bool hasExternalLogins;
+    private string? currentUrl;
 
     protected override async Task OnInitializedAsync()
     {
-        hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
     }
+    
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    
 
 }
