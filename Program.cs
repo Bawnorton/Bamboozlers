@@ -37,7 +37,11 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING")));
 
-builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = true)
+builder.Services.AddIdentityCore<User>(options =>
+                        {
+                            options.SignIn.RequireConfirmedAccount = true;
+                            options.User.RequireUniqueEmail = true;
+                        })
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
