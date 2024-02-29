@@ -1,5 +1,4 @@
 using Bamboozlers;
-using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
 using Blazorise;
 using Blazorise.Bootstrap;
@@ -45,14 +44,5 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var dbContext = services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext();
-    BamboozlersClient.Instance.Init(dbContext);
-    // TODO: Set Via Registration
-    BamboozlersClient.Instance.UserId = 1;
-}
 
 app.Run();

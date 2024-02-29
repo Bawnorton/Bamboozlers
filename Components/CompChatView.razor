@@ -1,0 +1,18 @@
+@using Bamboozlers.Classes.AppDbContext
+@implements Bamboozlers.Classes.IViewDelegate
+
+<h3>Chat Window</h3>
+
+@code {
+    public Chat Chat { get; set; }
+    
+    public string GetViewName()
+    {
+        if (Chat is GroupChat groupChat)
+        {
+            return groupChat.Name;
+        }
+        // else get non-self name from chat users, 
+        return "Friend Name";
+    }
+}
