@@ -2,7 +2,7 @@ using Bamboozlers;
 using Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
 using Blazorise;
-using Blazorise.Bootstrap;
+using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
 using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
@@ -16,7 +16,7 @@ var configuration = builder.Configuration;
 // Add services to the container.
 builder.Services
     .AddBlazorise( options => options.Immediate = true )
-    .AddBootstrapProviders()
+    .AddBootstrap5Providers()
     .AddFontAwesomeIcons();
 
 builder.Services.AddRazorComponents()

@@ -17,10 +17,8 @@
 
 <PageTitle>Register</PageTitle>
 
-<h1>Register</h1>
-
-<div class="row">
-    <div class="col-md-4">
+<div class="d-flex min-vh-100 min-vw-100">
+    <div class="col-md-4 d-flex flex-column flex-grow-1 align-items-center justify-content-center">
         <StatusMessage Message="@Message"/>
         <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
             <DataAnnotationsValidator/>
@@ -48,6 +46,9 @@
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger"/>
             </div>
             <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+            <p>
+                <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Login", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Already have an account?</a>
+            </p>
         </EditForm>
     </div>
 </div>

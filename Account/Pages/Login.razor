@@ -14,14 +14,13 @@
 
 <PageTitle>Log in</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-md-4">
+<div class="d-flex min-vh-100 min-vw-100">
+    <div class="col-md-4 d-flex flex-grow-1 align-items-center justify-content-center">
         <section>
             <StatusMessage Message="@errorMessage"/>
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator/>
-                <h2>Use a local account to log in.</h2>
+                <h2>Log in to Bamboozlers</h2>
                 <hr/>
                 <ValidationSummary class="text-danger" role="alert"/>
                 <div class="form-floating mb-3">
