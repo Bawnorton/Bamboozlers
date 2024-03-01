@@ -1,0 +1,136 @@
+@using Bamboozlers.Classes
+@using Bamboozlers.Classes.AppDbContext
+@inject IDbContextFactory<AppDbContext> Db
+
+<Layout Sider>
+    <LayoutSider>
+        <LayoutSiderContent>
+            <Bar Mode="BarMode.VerticalInline"
+                 CollapseMode="BarCollapseMode.Small"
+                 Breakpoint="Breakpoint.Desktop"
+                 NavigationBreakpoint="Breakpoint.Tablet"
+                 ThemeContrast="ThemeContrast.Dark"
+                 Class="scrollbar-container">
+                <BarBrand>
+                    <BarItem>
+                        <BarIcon IconName="IconName.Hospital"></BarIcon>
+                        Bamboozlers
+                    </BarItem>
+                </BarBrand>
+                <BarMenu Style="margin-top: 64px">
+                    <BarItem>
+                        <BarLink @onclick="() => ChangeView(View.Friends)">
+                            <BarIcon IconName="IconName.Check"></BarIcon>
+                            Friends
+                        </BarLink>
+                    </BarItem>
+                    <BarItem>
+                        <BarDropdown>
+                            <BarDropdownToggle>
+                                <BarIcon IconName="IconName.User"></BarIcon>
+                                Direct Messages
+                            </BarDropdownToggle>
+                            <BarDropdownMenu>
+                                @foreach (var chat in DmChats)
+                                {
+                                    <BarItem>
+                                        <BarLink @onclick="() => ChangeView(View.Dm, chat.DbReference)">
+                                            <BarIcon IconName="IconName.User"></BarIcon>
+                                            @chat.User.DisplayName
+                                        </BarLink>
+                                    </BarItem>
+                                }
+                                @for (var i = 0; i < 100; i++)
+                                {
+                                    <BarItem>
+                                        <BarLink To="#">
+                                            <BarIcon IconName="IconName.Spa"></BarIcon>
+                                            Test
+                                        </BarLink>
+                                    </BarItem>
+                                }
+                            </BarDropdownMenu>
+                        </BarDropdown>
+                    </BarItem>
+                    <BarItem>
+                        <BarDropdown>
+                            <BarDropdownToggle>
+                                <BarIcon IconName="IconName.Users"></BarIcon>
+                                Group Chats
+                            </BarDropdownToggle>
+                            <BarDropdownMenu>
+                                @foreach (var chat in GroupChats)
+                                {
+                                    <BarItem>
+                                        <BarLink @onclick="() => ChangeView(View.Group, chat)">
+                                            <BarIcon IconName="IconName.Users"></BarIcon>
+                                            @chat.Name
+                                        </BarLink>
+                                    </BarItem>
+                                }
+                            </BarDropdownMenu>
+                        </BarDropdown>
+                    </BarItem>
+                </BarMenu>
+            </Bar>
+        </LayoutSiderContent>
+    </LayoutSider>
+    <Layout>
+        <LayoutHeader Fixed
+                      Padding="Padding.Is3"
+                      TextSize="TextSize.Heading5"
+                      TextColor="TextColor.Primary"
+                      Background="Background.Dark">
+            @Views[CurrentView].GetViewName()
+        </LayoutHeader>
+        <LayoutContent Padding="Padding.Is3"
+                       Background="Background.Primary"
+                       TextColor="TextColor.Primary">
+            @Views[CurrentView]
+        </LayoutContent>
+    </Layout>
+</Layout>
+
+@code {
+
+    private User? Self { get; set; }
+    
+    private List<DmChat> DmChats { get; set; }
+    
+    private List<GroupChat> GroupChats { get; set; }
+
+    private View CurrentView { get; set; } = View.Friends;
+
+    private Dictionary<View, IViewDelegate> Views { get; } = new()
+    {
+        {View.Friends, new CompFriendsView()},
+        {View.Dm, new CompChatView()},
+        {View.Group, new CompChatView()}
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        Self = db.Users.Include(i => i.Chats).ThenInclude(c => c.Users).FirstOrDefault();
+        Self = null;
+        if (Self is null)
+        {
+            throw new InvalidOperationException("User not found");
+        }
+        GroupChats = Self.Chats.OfType<GroupChat>().ToList();
+        DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.ID != Self.ID))).ToList();
+    }
+
+    private void ChangeView(View view, Chat? chat = null)
+    {
+        CurrentView = view;
+        if (CurrentView is View.Dm or View.Group)
+        {
+            (Views[CurrentView] as CompChatView)!.Chat = chat!;
+        }
+    }
+
+    private enum View { Dm, Group, Friends }
+
+    private record DmChat(Chat DbReference, User User);
+}
