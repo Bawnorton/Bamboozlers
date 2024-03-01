@@ -12,10 +12,16 @@
                  Breakpoint="Breakpoint.Desktop"
                  NavigationBreakpoint="Breakpoint.Tablet"
                  ThemeContrast="ThemeContrast.Dark">
+                <BarBrand>
+                    <BarItem>
+                        <BarIcon IconName="IconName.Hospital"></BarIcon>
+                        Bamboozlers
+                    </BarItem>
+                </BarBrand>
                 <BarMenu>
                     <BarItem>
                         <BarLink @onclick="() => ChangeView(View.Friends)">
-                            <BarIcon IconName="IconName.UserFriends"></BarIcon>
+                            <BarIcon IconName="IconName.Plane"></BarIcon>
                             Friends
                         </BarLink>
                     </BarItem>
@@ -45,7 +51,7 @@
                                 Group Chats
                             </BarDropdownToggle>
                             <BarDropdownMenu>
-                                @foreach(var chat in GroupChats)
+                                @foreach (var chat in GroupChats)
                                 {
                                     <BarItem>
                                         <BarLink @onclick="() => ChangeView(View.Group, chat)">
@@ -62,10 +68,16 @@
         </LayoutSiderContent>
     </LayoutSider>
     <Layout>
-        <LayoutHeader Fixed>
+        <LayoutHeader Fixed
+                      Padding="Padding.Is3"
+                      TextSize="TextSize.Heading5"
+                      TextColor="TextColor.Primary"
+                      Background="Background.Dark">
             @Views[CurrentView].GetViewName()
         </LayoutHeader>
-        <LayoutContent>
+        <LayoutContent Padding="Padding.Is3"
+                       Background="Background.Primary"
+                       TextColor="TextColor.Primary">
             @Views[CurrentView]
         </LayoutContent>
     </Layout>
@@ -99,20 +111,13 @@
     private void ChangeView(View view, Chat? chat = null)
     {
         CurrentView = view;
-        if (CurrentView.HasFlag(View.Chat))
+        if (CurrentView is View.Dm or View.Group)
         {
             (Views[CurrentView] as CompChatView)!.Chat = chat!;
         }
     }
 
-    [Flags]
-    private enum View
-    {
-        Dm = 0b0001,
-        Group = 0b0010,
-        Friends = 0b0100,
-        Chat = Dm | Group
-    }
+    private enum View { Dm, Group, Friends }
 
     private record DmChat(Chat DbReference, User User);
 }

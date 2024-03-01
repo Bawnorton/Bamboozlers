@@ -1,0 +1,23 @@
+/* css file to override blazorise's default styles */
+/* !important is required to override the default styles */
+
+.b-bar-item { /* <BarItem> */
+    margin: 0 !important;
+    min-height: 0 !important;
+}
+
+.b-bar-menu { /* <BarMenu> */
+    flex: none !important;
+}
+
+.b-bar-brand { /* <BarBrand> */
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    min-height: 0 !important;
+}
+
+.b-bar-brand > .b-bar-item { /* <BarBrand> -> <BarItem> */
+    flex-grow: unset !important;
+    font-size: 20px !important;
+}
