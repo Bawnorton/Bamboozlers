@@ -11,17 +11,18 @@
                  CollapseMode="BarCollapseMode.Small"
                  Breakpoint="Breakpoint.Desktop"
                  NavigationBreakpoint="Breakpoint.Tablet"
-                 ThemeContrast="ThemeContrast.Dark">
+                 ThemeContrast="ThemeContrast.Dark"
+                 Class="scrollbar-container">
                 <BarBrand>
                     <BarItem>
                         <BarIcon IconName="IconName.Hospital"></BarIcon>
                         Bamboozlers
                     </BarItem>
                 </BarBrand>
-                <BarMenu>
+                <BarMenu Style="margin-top: 64px">
                     <BarItem>
                         <BarLink @onclick="() => ChangeView(View.Friends)">
-                            <BarIcon IconName="IconName.Plane"></BarIcon>
+                            <BarIcon IconName="IconName.Check"></BarIcon>
                             Friends
                         </BarLink>
                     </BarItem>
@@ -38,6 +39,15 @@
                                         <BarLink @onclick="() => ChangeView(View.Dm, chat.DbReference)">
                                             <BarIcon IconName="IconName.User"></BarIcon>
                                             @chat.User.DisplayName
+                                        </BarLink>
+                                    </BarItem>
+                                }
+                                @for (var i = 0; i < 100; i++)
+                                {
+                                    <BarItem>
+                                        <BarLink To="#">
+                                            <BarIcon IconName="IconName.Spa"></BarIcon>
+                                            Test
                                         </BarLink>
                                     </BarItem>
                                 }

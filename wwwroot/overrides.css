@@ -7,14 +7,21 @@
 }
 
 .b-bar-menu { /* <BarMenu> */
+    width: 236px !important;
     flex: none !important;
 }
 
 .b-bar-brand { /* <BarBrand> */
+    /* sticky header */
+    width: 236px !important;
+    position: fixed;
+    z-index: 1;
+    min-height: 0 !important;
+    
+    /* alignment */
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    min-height: 0 !important;
 }
 
 .b-bar-brand > .b-bar-item { /* <BarBrand> -> <BarItem> */
