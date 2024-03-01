@@ -112,7 +112,6 @@
     {
         await using var db = await Db.CreateDbContextAsync();
         Self = db.Users.Include(i => i.Chats).ThenInclude(c => c.Users).FirstOrDefault();
-        Self = null;
         if (Self is null)
         {
             throw new InvalidOperationException("User not found");
