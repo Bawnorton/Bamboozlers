@@ -1,5 +1,6 @@
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Components
 @inject IDbContextFactory<AppDbContext> Db
 
 <Layout Sider>
@@ -118,7 +119,7 @@
         }
 
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
-        DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.ID != Self.ID))).ToList();
+        DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
     }
 
     private void ChangeView(View view, Chat? chat = null)

@@ -1,0 +1,39 @@
+﻿@inject NavigationManager NavigationManager
+@if (!string.IsNullOrEmpty(DisplayMessage))
+{
+    var statusMessageClass = DisplayMessage.StartsWith("Error") ? "danger" : "success";
+    <div class="alert alert-@statusMessageClass" role="alert">
+        @DisplayMessage
+        @if(LinkText is not null && Link is not null && ReturnUrl is not null)
+        {
+            <a href="@(NavigationManager.GetUriWithQueryParameters(Link, new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">@LinkText</a>
+        }else if(LinkText is not null && Link is not null)
+        {
+            <a href="@Link">@LinkText</a>
+        }
+    </div>
+}
+
+@code {
+    private string? messageFromCookie;
+
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string? Link { get; set; }
+    [Parameter] public string? LinkText { get; set; }
+    [Parameter] public string? ReturnUrl { get; set; }
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    private string? DisplayMessage => Message ?? messageFromCookie;
+
+    protected override void OnInitialized()
+    {
+        messageFromCookie = HttpContext.Request.Cookies[IdentityRedirectManager.StatusCookieName];
+
+        if (messageFromCookie is not null)
+        {
+            HttpContext.Response.Cookies.Delete(IdentityRedirectManager.StatusCookieName);
+        }
+    }
+
+}

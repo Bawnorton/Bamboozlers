@@ -1,10 +1,17 @@
 ﻿@page "/"
 @inherits LayoutComponentBase
 
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize]
+
 <PageTitle>Bamboozlers</PageTitle>
+
 <ErrorBoundary>
     <ChildContent>
-        <NavLayout/>
+        <AuthorizeView>
+            <NavLayout/>
+        </AuthorizeView>
     </ChildContent>
     <ErrorContent Context="exception">
         <Layout>

@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.AppDbContext;
@@ -7,7 +6,6 @@ namespace Bamboozlers.Classes.AppDbContext;
 public class FriendRequest
 {
     public int SenderID { get; set; }
-    [DeleteBehavior(DeleteBehavior.NoAction)]
     public User Sender { get; set; }
     public int ReceiverID { get; set; }
     public User Receiver { get; set; }

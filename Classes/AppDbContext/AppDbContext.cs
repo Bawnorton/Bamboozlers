@@ -1,13 +1,14 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 namespace Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
 
-public class AppDbContext : DbContext
+public class AppDbContext:IdentityDbContext<User, IdentityRole<int>, int>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
 
-    public DbSet<User> Users { get; set; }
     public DbSet<Chat> Chats { get; set; }
     public DbSet<GroupChat> GroupChats { get; set; }
     public DbSet<Message> Messages { get; set; }
@@ -40,17 +41,7 @@ public class AppDbContext : DbContext
             .HasMany(h => h.Messages)
             .WithOne(w => w.Chat)
             .OnDelete(DeleteBehavior.Cascade);
-
-        //seed the database with some basic data for development
-        DbSeed.SeedUsers(modelBuilder);
-        DbSeed.SeedChats(modelBuilder);
-        DbSeed.SeedChatUsers(modelBuilder);
-        DbSeed.SeedMessages(modelBuilder);
-        DbSeed.SeedFriendships(modelBuilder);
-        DbSeed.SeedFriendRequests(modelBuilder);
-        DbSeed.SeedGroupInvites(modelBuilder);
-
+        
         base.OnModelCreating(modelBuilder);
-
     }
 }

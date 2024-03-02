@@ -4,6 +4,7 @@ using Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bamboozlers.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240228073519_init")]
+    partial class init
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -116,40 +119,42 @@ namespace Bamboozlers.Migrations
                 });
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Message", b =>
-            {
-                b.Property<int>("ID")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("int");
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
 
-                b.Property<byte[]>("Attachment")
-                    .HasColumnType("varbinary(max)");
+                    b.Property<byte[]>("Attachment")
+                        .HasColumnType("varbinary(max)");
 
-                b.Property<int>("ChatID")
-                    .HasColumnType("int");
+                    b.Property<int>("ChatID")
+                        .HasColumnType("int");
 
-                b.Property<string>("Content")
-                    .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<bool>("IsPinned")
-                    .HasColumnType("bit");
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("bit");
 
-                b.Property<int>("SenderID")
-                    .HasColumnType("int");
+                    b.Property<int>("SenderID")
+                        .HasColumnType("int");
 
-                b.Property<DateTime>("SentAt")
-                    .HasColumnType("datetime2");
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
 
-                b.HasKey("ID");
+                    b.HasKey("ID");
 
-                b.HasIndex("ChatID");
+                    b.HasIndex("ChatID");
 
-                b.HasIndex("SenderID");
+                    b.HasIndex("SenderID");
 
-                b.ToTable("Messages");
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.User", b =>
+                    b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -226,7 +231,7 @@ namespace Bamboozlers.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-                modelBuilder.Entity("ChatUser", b =>
+            modelBuilder.Entity("ChatUser", b =>
                 {
                     b.Property<int>("ChatsID")
                         .HasColumnType("int");
@@ -241,7 +246,7 @@ namespace Bamboozlers.Migrations
                     b.ToTable("ChatUser");
                 });
 
-                modelBuilder.Entity("GroupChatUser", b =>
+            modelBuilder.Entity("GroupChatUser", b =>
                 {
                     b.Property<int>("ModeratedChatsID")
                         .HasColumnType("int");
@@ -256,7 +261,7 @@ namespace Bamboozlers.Migrations
                     b.ToTable("GroupChatUser");
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -286,7 +291,7 @@ namespace Bamboozlers.Migrations
                     b.ToTable("AspNetRoles", (string)null);
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -310,7 +315,7 @@ namespace Bamboozlers.Migrations
                     b.ToTable("AspNetRoleClaims", (string)null);
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -334,7 +339,7 @@ namespace Bamboozlers.Migrations
                     b.ToTable("AspNetUserClaims", (string)null);
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
                 {
                     b.Property<string>("LoginProvider")
                         .HasColumnType("nvarchar(450)");
@@ -355,7 +360,7 @@ namespace Bamboozlers.Migrations
                     b.ToTable("AspNetUserLogins", (string)null);
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
                 {
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -370,7 +375,7 @@ namespace Bamboozlers.Migrations
                     b.ToTable("AspNetUserRoles", (string)null);
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
                 {
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -389,7 +394,7 @@ namespace Bamboozlers.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.GroupChat", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.GroupChat", b =>
                 {
                     b.HasBaseType("Bamboozlers.Classes.AppDbContext.Chat");
 
@@ -408,7 +413,7 @@ namespace Bamboozlers.Migrations
                     b.HasDiscriminator().HasValue("GroupChat");
                 });
 
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Block", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Block", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Blocked")
                         .WithMany()
@@ -427,7 +432,7 @@ namespace Bamboozlers.Migrations
                     b.Navigation("Blocker");
                 });
 
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.FriendRequest", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.FriendRequest", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Receiver")
                         .WithMany()
@@ -446,7 +451,7 @@ namespace Bamboozlers.Migrations
                     b.Navigation("Sender");
                 });
 
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Friendship", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Friendship", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "User1")
                         .WithMany()
@@ -465,7 +470,7 @@ namespace Bamboozlers.Migrations
                     b.Navigation("User2");
                 });
 
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.GroupInvite", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.GroupInvite", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.GroupChat", "Group")
                         .WithMany()
@@ -492,7 +497,7 @@ namespace Bamboozlers.Migrations
                     b.Navigation("Sender");
                 });
 
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Message", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Message", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.Chat", "Chat")
                         .WithMany("Messages")
@@ -511,7 +516,7 @@ namespace Bamboozlers.Migrations
                     b.Navigation("Sender");
                 });
 
-                modelBuilder.Entity("ChatUser", b =>
+            modelBuilder.Entity("ChatUser", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.Chat", null)
                         .WithMany()
@@ -526,7 +531,7 @@ namespace Bamboozlers.Migrations
                         .IsRequired();
                 });
 
-                modelBuilder.Entity("GroupChatUser", b =>
+            modelBuilder.Entity("GroupChatUser", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.GroupChat", null)
                         .WithMany()
@@ -541,7 +546,7 @@ namespace Bamboozlers.Migrations
                         .IsRequired();
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
                         .WithMany()
@@ -550,7 +555,7 @@ namespace Bamboozlers.Migrations
                         .IsRequired();
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", null)
                         .WithMany()
@@ -559,7 +564,7 @@ namespace Bamboozlers.Migrations
                         .IsRequired();
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", null)
                         .WithMany()
@@ -568,7 +573,7 @@ namespace Bamboozlers.Migrations
                         .IsRequired();
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
                         .WithMany()
@@ -583,7 +588,7 @@ namespace Bamboozlers.Migrations
                         .IsRequired();
                 });
 
-                modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", null)
                         .WithMany()
@@ -592,7 +597,7 @@ namespace Bamboozlers.Migrations
                         .IsRequired();
                 });
 
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.GroupChat", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.GroupChat", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Owner")
                         .WithMany("OwnedChats")
@@ -603,10 +608,16 @@ namespace Bamboozlers.Migrations
                     b.Navigation("Owner");
                 });
 
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Chat", b => { b.Navigation("Messages"); });
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Chat", b =>
+                {
+                    b.Navigation("Messages");
+                });
 
-                modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.User", b => { b.Navigation("OwnedChats"); });
-            });
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.User", b =>
+                {
+                    b.Navigation("OwnedChats");
+                });
+#pragma warning restore 612, 618
         }
     }
 }

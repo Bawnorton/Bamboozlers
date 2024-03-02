@@ -1,14 +1,9 @@
-using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 
 namespace Bamboozlers.Classes.AppDbContext;
 
-public class User
+public class User:IdentityUser<int>
 {
-    [Key]
-    public int ID { get; set; }
-    public string Username { get; set; }
-    public string Password { get; set; }
-    public string Email { get; set; }
     public string? DisplayName { get; set; }
     public string? Bio { get; set; }
     
