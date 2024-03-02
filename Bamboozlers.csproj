@@ -1,27 +1,40 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-    </PropertyGroup>
+      <UserSecretsId>f4893ed3-d04a-4482-a557-95280a99eb12</UserSecretsId>
+  </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="Blazorise" Version="1.5.0-preview1" />
-      <PackageReference Include="Blazorise.Bootstrap" Version="1.5.0-preview1" />
+      <PackageReference Include="Blazorise.Bootstrap5" Version="1.5.0-preview1" />
       <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.5.0-preview1" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.1">
+      <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.2" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.1" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.2" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.2">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
       <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.1" />
+      <PackageReference Include="SendGrid" Version="9.29.2" />
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Components\" />
       <Folder Include="Migrations\" />
       <Folder Include="wwwroot\images\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css.map" />
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,59 @@
+﻿@page "/Account/ConfirmEmail"
+
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Bamboozlers.Classes.AppDbContext
+
+@inject UserManager<User> UserManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Confirm email</PageTitle>
+
+<h1>Confirm email</h1>
+<StatusMessage Message="@statusMessage" Link="@link" LinkText="@linkText"/>
+
+@code {
+    private string? statusMessage;
+    private string? link;
+    private string? linkText;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery] private string? UserId { get; set; }
+
+    [SupplyParameterFromQuery] private string? Code { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserId is null || Code is null)
+        {
+            RedirectManager.RedirectTo("");
+        }
+
+        var user = await UserManager.FindByIdAsync(UserId);
+        if (user is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            statusMessage = $"Error loading user with ID {UserId}";
+        }
+        else
+        {
+            var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+            var result = await UserManager.ConfirmEmailAsync(user, code);
+            if (result.Succeeded)
+            {
+                statusMessage = "Thank you for confirming your email. ";
+                link = "Account/Login";
+                linkText = "click here to login.";
+            }
+            else
+            {
+                statusMessage = "Error confirming your email. ";
+                link = "Account/ResendEmailConfirmation";
+                linkText = "Resend Confirmation Email";
+            }
+        }
+    }
+
+}

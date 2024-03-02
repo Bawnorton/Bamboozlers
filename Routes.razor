@@ -1,6 +1,49 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)"/>
-        <FocusOnNavigate RouteData="routeData" Selector="h1"/>
-    </Found>
-</Router>
+﻿@using Blazorise
+<Blazorise.ThemeProvider Theme="@theme">
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)"/>
+            <FocusOnNavigate RouteData="routeData" Selector="h1"/>
+        </Found>
+    </Router>
+</Blazorise.ThemeProvider>
+
+@code{
+    private Theme theme = new()
+    {
+        ColorOptions = new()
+        {
+            Primary = "#5C12A1",
+            Secondary = "#053565",
+            Success = "#0B8A55",
+            Danger = "#A40729",
+            Warning = "#E69A04",
+            Light = "#BDBDBD",
+            Dark = "#202126",
+        },
+        BackgroundOptions = new()
+        {
+            Primary = "#282829",
+            Secondary = "#202126",
+            Success = "#0B8A55",
+            Danger = "#A40729",
+            Warning = "#E69A04",
+            Light = "#BDBDBD",
+            Dark = "#202126",
+        },
+        TextColorOptions = new()
+        {
+            Primary = "#BDBDBD",
+            Success = "#0B8A55",
+            Danger = "#A40729",
+            Warning = "#E69A04",
+            Light = "#BDBDBD",
+            Dark = "#202126",
+            Info = "#394CAC"
+        },
+        InputOptions = new()
+        {
+            CheckColor = "#9333ea",
+        },
+    };
+}
