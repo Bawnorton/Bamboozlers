@@ -86,7 +86,7 @@
         <LayoutContent Padding="Padding.Is3"
                        Background="Background.Primary"
                        TextColor="TextColor.Primary">
-            @Views[CurrentView]
+            <DynamicComponent type="@Views[CurrentView].GetType()" Parameters="@Views[CurrentView].GetParameters()"/>
         </LayoutContent>
     </Layout>
 </Layout>
@@ -94,9 +94,9 @@
 @code {
 
     private User? Self { get; set; }
-    
+
     private List<DmChat> DmChats { get; set; }
-    
+
     private List<GroupChat> GroupChats { get; set; }
 
     private View CurrentView { get; set; } = View.Friends;
@@ -116,6 +116,7 @@
         {
             throw new InvalidOperationException("User not found");
         }
+
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.ID != Self.ID))).ToList();
     }
@@ -129,7 +130,12 @@
         }
     }
 
-    private enum View { Dm, Group, Friends }
+    private enum View
+    {
+        Dm,
+        Group,
+        Friends
+    }
 
     private record DmChat(Chat DbReference, User User);
 }
