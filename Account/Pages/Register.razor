@@ -149,7 +149,7 @@
         public string DisplayName { get; set; } = "";
         
         [Required]
-        [DataType((DataType.Text))]
+        [ValidUsername(ErrorMessage = "Username is invalid. It can only contain letters, numbers, and underscores. There can only be 1 underscore in a row.")]
         [Display(Name = "Username")]
         public string Username { get; set; } = "";
         

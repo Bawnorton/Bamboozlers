@@ -45,7 +45,7 @@
         var result = await UserManager.ChangeEmailAsync(user, Email, code);
         if (!result.Succeeded)
         {
-            message = "Error changing email.";
+            message = $"Error: {string.Join(", ", result.Errors.Select(error => error.Description))}";
             return;
         }
 
