@@ -1,6 +1,7 @@
 ﻿@page "/Account/Manage/PersonalData"
-
-@inject IdentityUserAccessor UserAccessor
+@using Microsoft.AspNetCore.Identity
+@using Bamboozlers.Classes.AppDbContext
+@inject UserManager<User> UserManager
 
 <PageTitle>Personal Data</PageTitle>
 
@@ -27,7 +28,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _ = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        _ = await UserManager.GetUserAsync(HttpContext.User);
     }
 
 }

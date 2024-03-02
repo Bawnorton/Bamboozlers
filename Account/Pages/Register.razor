@@ -16,18 +16,15 @@
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Register</PageTitle>
-
 <div class="d-flex min-vh-100 min-vw-100">
     <div class="col-md-4 d-flex flex-grow-1 align-items-center justify-content-center">
-        <StatusMessage Message="@Message"/>
         <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" class="w-50 p-5 shadow" OnValidSubmit="RegisterUser" FormName="register">
             <DataAnnotationsValidator/>
             <h2>Create a new account.</h2>
             <hr/>
-            <ValidationSummary class="text-danger" role="alert"/>
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.Email" class="form-control" autocomplete="email" aria-required="true" placeholder="name@example.com"/>
-                <label for="email">Email</label>
+                <label for="email">Email <label class="text-danger">*</label></label>
                 <ValidationMessage For="() => Input.Email" class="text-danger"/>
             </div>
             <div class="form-floating mb-3">
@@ -35,18 +32,18 @@
                 <label for="displayName">Display Name</label>
             </div>
             <div class="form-floating mb-3">
-                  <InputText @bind-Value="Input.Username" class="form-control" autocomplete="username" aria-required="true" placeholder="username"/>
-                  <label for="username">Username</label>
-                  <ValidationMessage For="() => Input.Username" class="text-danger"/>
+                <InputText @bind-Value="Input.Username" class="form-control" autocomplete="username" aria-required="true" placeholder="username"/>
+                <label for="username">Username <label class="text-danger">*</label></label>
+                <ValidationMessage For="() => Input.Username" class="text-danger"/>
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password"/>
-                <label for="password">Password</label>
+                <label for="password">Password <label class="text-danger">*</label></label>
                 <ValidationMessage For="() => Input.Password" class="text-danger"/>
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password"/>
-                <label for="confirm-password">Confirm Password</label>
+                <label for="confirm-password">Confirm Password <label class="text-danger">*</label></label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger"/>
             </div>
             <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
@@ -65,7 +62,7 @@
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
-
+    private ValidationMessageStore? validationMessageStore;
     public async Task RegisterUser(EditContext editContext)
     {
         var user = CreateUser();
@@ -75,10 +72,29 @@
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
         user.DisplayName = Input.DisplayName;
         var result = await UserManager.CreateAsync(user, Input.Password);
-
+        
+        validationMessageStore = new ValidationMessageStore(editContext);
+        
         if (!result.Succeeded)
         {
-            identityErrors = result.Errors;
+            foreach (var error in result.Errors)
+            {
+                if (error.Code.Contains("Password"))
+                {
+                    validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Password)), error.Description);
+                }
+                if (error.Code.Contains("Email"))
+                {
+                    validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Email)), error.Description);
+                }
+                if (error.Code.Contains("UserName"))
+                {
+                    validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Username)), error.Description);
+                }
+                // Handle other errors as needed
+            }
+
+            editContext.NotifyValidationStateChanged();
             return;
         }
 
@@ -138,12 +154,11 @@
         public string Username { get; set; } = "";
         
         [Required]
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Provided email address is invalid.")]
         [Display(Name = "Email")]
         public string Email { get; set; } = "";
 
         [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
         [DataType(DataType.Password)]
         [Display(Name = "Password")]
         public string Password { get; set; } = "";

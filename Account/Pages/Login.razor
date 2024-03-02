@@ -17,15 +17,14 @@
 <div class="d-flex min-vh-100 min-vw-100">
     <div class="col-md-4 d-flex flex-grow-1 align-items-center justify-content-center">
         <section class="w-50 p-5 shadow">
-            <StatusMessage Message="@errorMessage"/>
+            <StatusMessage Message="@errorMessage" Link="@errorLink" LinkText="@errorLinkText" ReturnUrl="@ReturnUrl"/>
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator/>
                 <h2>Welcome Back!</h2>
                 <hr/>
-                <ValidationSummary class="text-danger" role="alert"/>
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.UserNameOrEmail" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com or username"/>
-                    <label for="email" class="form-label">Email or UserName</label>
+                    <label for="email" class="form-label">Email or Username</label>
                     <ValidationMessage For="() => Input.UserNameOrEmail" class="text-danger"/>
                 </div>
                 <div class="form-floating mb-3">
@@ -56,6 +55,8 @@
 
 @code {
     private string? errorMessage;
+    private string? errorLink;
+    private string? errorLinkText;
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
@@ -90,7 +91,17 @@
         }
         else
         {
-            errorMessage = "Error: Invalid login attempt.";
+            if (!UserManager.IsEmailConfirmedAsync(user).Result)
+            {
+                errorMessage = "Please Confirm your email before logging in.";
+                errorLink = "Account/ResendEmailConfirmation";
+                errorLinkText = "Resend Confirmation Email";
+            }
+            else
+            {
+                errorMessage= "Error: Invalid login attempt.";
+            }
+            
         }
     }
 
@@ -98,7 +109,7 @@
     {
         [Required] 
         [DataType(DataType.Text)] 
-        [DisplayName("Username or email")]
+        [Display(Name = "Email or Username")]
         public string UserNameOrEmail { get; set; } = "";
 
         [Required]

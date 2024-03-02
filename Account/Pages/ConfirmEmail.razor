@@ -15,6 +15,8 @@
 
 @code {
     private string? statusMessage;
+    private string? link;
+    private string? linkText;
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
@@ -39,7 +41,18 @@
         {
             var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
             var result = await UserManager.ConfirmEmailAsync(user, code);
-            statusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
+            if (result.Succeeded)
+            {
+                statusMessage = "Thank you for confirming your email.";
+                link = "Account/Login";
+                linkText = "click here to login.";
+            }
+            else
+            {
+                statusMessage = "Error confirming your email.";
+                link = "Account/ResendEmailConfirmation";
+                linkText = "Resend Confirmation Email";
+            }
         }
     }
 
