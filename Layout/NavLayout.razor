@@ -1,5 +1,6 @@
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.AppDbContext
+@using Blazorise.Extensions
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> Db
 @inject IJSRuntime Js
@@ -82,18 +83,12 @@
             <Div Padding="Padding.Is3"
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer"
-                 @onclick="() => OpenProfilePopup()">
-                <Text>@Self.DisplayName</Text>
+                 @onclick="OpenProfilePopup">
+                <Text>
+                    @(Self.DisplayName ?? Self.UserName ?? "Self") 
+                </Text>
                 <Icon Name="IconName.UserTie" IconSize="IconSize.Large"></Icon>
             </Div>
-            @* <BarEnd> *@
-            @*     <BarItem> *@
-            @*         <BarLink @onclick="() => { }"> $1$ TODO: Open profile popup #1# *@
-            @*             <BarIcon IconName="IconName.UserTie"></BarIcon> *@
-            @*             Profile *@
-            @*         </BarLink> *@
-            @*     </BarItem> *@
-            @* </BarEnd> *@
         </LayoutSiderContent>
     </LayoutSider>
     <Layout>
@@ -102,12 +97,12 @@
                       TextSize="TextSize.Heading5"
                       TextColor="TextColor.Primary"
                       Background="Background.Dark">
-            @Views[CurrentView].GetViewName()
+            <Text>@Views[CurrentView].Name</Text>
         </LayoutHeader>
         <LayoutContent Padding="Padding.Is3"
                        Background="Background.Primary"
                        TextColor="TextColor.Primary">
-            <DynamicComponent type="@Views[CurrentView].GetType()" Parameters="@Views[CurrentView].GetParameters()"/>
+            <DynamicComponent Type="@Views[CurrentView].HeldType" Parameters="@Views[CurrentView].Parameters"/>
         </LayoutContent>
     </Layout>
 </Layout>
@@ -122,11 +117,11 @@
 
     private View CurrentView { get; set; } = View.Friends;
 
-    private Dictionary<View, IViewDelegate> Views { get; } = new()
+    private Dictionary<View, ViewHolder> Views { get; } = new()
     {
-        {View.Friends, new CompFriendsView()},
-        {View.Dm, new CompChatView()},
-        {View.Group, new CompChatView()}
+        {View.Friends, ViewHolder.Of(new CompFriendsView())},
+        {View.Dm, ViewHolder.Of(new CompChatView())},
+        {View.Group, ViewHolder.Of(new CompChatView())}
     };
 
     protected override async Task OnInitializedAsync()
@@ -144,14 +139,40 @@
 
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
+        ChangeView(CurrentView);
     }
 
     private void ChangeView(View view, Chat? chat = null)
     {
         CurrentView = view;
-        if (CurrentView is View.Dm or View.Group)
+        switch (CurrentView)
         {
-            (Views[CurrentView] as CompChatView)!.Chat = chat!;
+            case View.Group:
+                Views[CurrentView].Name = (chat as GroupChat)!.Name;
+                Views[CurrentView].Parameters = new Dictionary<string, object>
+                {
+                    {"Chat", chat}
+                };
+                break;
+            case View.Dm:
+            {
+                var other = chat!.Users.First(u => u.Id != Self!.Id);
+                Views[CurrentView].Name = other.DisplayName ?? other.UserName ?? "User";
+                Views[CurrentView].Parameters = new Dictionary<string, object>
+                {
+                    {"Chat", chat}
+                };
+                break;
+            }
+            case View.Friends:
+                Views[CurrentView].Name = $"Friends ({DmChats.Count})"; 
+                Views[CurrentView].Parameters = new Dictionary<string, object>
+                {
+                    {"Friends", DmChats.Select(c => c.User).ToList()}
+                };
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
     
@@ -171,4 +192,17 @@
     }
 
     private record DmChat(Chat DbReference, User User);
+
+    private class ViewHolder(ComponentBase component)
+    {
+        public ComponentBase Held { get; } = component;
+
+        public string? Name { get; set; }
+        
+        public IDictionary<string, object> Parameters { get; set; }
+        
+        public Type HeldType => Held.GetType();
+        
+        public static ViewHolder Of(ComponentBase component) => new(component);
+    }
 }

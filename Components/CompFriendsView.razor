@@ -1,16 +1,8 @@
-@implements Bamboozlers.Classes.IViewDelegate
+@using Bamboozlers.Classes.AppDbContext
 
 <h3>Friend Window</h3>
 
 @code {
-    public string GetViewName()
-    {
-        return "Friends";
-    }
-    
-    public IDictionary<string, object> GetParameters()
-    {
-        /* Placeholder for instance specific parameters - May not be needed */
-        return new Dictionary<string, object>();
-    }
+    [Parameter]
+    public List<User>? Friends { get; set; }
 }
