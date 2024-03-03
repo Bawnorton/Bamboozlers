@@ -2,7 +2,13 @@
 @using Bamboozlers.Classes.AppDbContext
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> Db
+@inject AuthenticationStateProvider AuthStateProvider;
 
+@if (Self is null)
+{
+    <p>Loading...</p>
+    return;
+}
 <Layout Sider>
     <LayoutSider>
         <LayoutSiderContent>
@@ -112,10 +118,14 @@
     protected override async Task OnInitializedAsync()
     {
         await using var db = await Db.CreateDbContextAsync();
-        Self = db.Users.Include(i => i.Chats).ThenInclude(c => c.Users).FirstOrDefault();
+        var userIdentity = AuthStateProvider.GetAuthenticationStateAsync().Result.User.Identity;
+        if (userIdentity is { IsAuthenticated: true })
+        {
+            Self = await db.Users.Include(i => i.Chats).ThenInclude(c => c.Users).FirstOrDefaultAsync(f => f.UserName == userIdentity.Name);
+        }
         if (Self is null)
         {
-            throw new InvalidOperationException("User not found");
+            throw new InvalidOperationException("User not authenticated");
         }
 
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
