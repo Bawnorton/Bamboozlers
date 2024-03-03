@@ -7,24 +7,9 @@
 }
 
 .b-bar-menu { /* <BarMenu> */
-    width: 236px !important;
     flex: none !important;
 }
 
-.b-bar-brand { /* <BarBrand> */
-    /* sticky header */
-    width: 236px !important;
-    position: fixed;
-    z-index: 1;
-    min-height: 0 !important;
-    
-    /* alignment */
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-}
-
-.b-bar-brand > .b-bar-item { /* <BarBrand> -> <BarItem> */
-    flex-grow: unset !important;
-    font-size: 20px !important;
+.b-bar-vertical-inline { /* <Bar Mode="BarMode.VerticalInline"> */
+    height: calc(100% - calc(62px * 2)) !important;
 }

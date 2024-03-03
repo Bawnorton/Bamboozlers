@@ -2,6 +2,7 @@
 @using Bamboozlers.Classes.AppDbContext
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> Db
+@inject IJSRuntime Js
 @inject AuthenticationStateProvider AuthStateProvider;
 
 @if (Self is null)
@@ -12,19 +13,17 @@
 <Layout Sider>
     <LayoutSider>
         <LayoutSiderContent>
+            <Div Background="Background.Secondary"
+                 Padding="Padding.Is3"
+                 TextSize="TextSize.Heading5">
+                <Icon Name="IconName.Hospital"></Icon>
+                <Text>Bamboozlers</Text>
+            </Div>
             <Bar Mode="BarMode.VerticalInline"
-                 CollapseMode="BarCollapseMode.Small"
-                 Breakpoint="Breakpoint.Desktop"
-                 NavigationBreakpoint="Breakpoint.Tablet"
+                 CollapseMode="BarCollapseMode.Hide"
                  ThemeContrast="ThemeContrast.Dark"
                  Class="scrollbar-container">
-                <BarBrand>
-                    <BarItem>
-                        <BarIcon IconName="IconName.Hospital"></BarIcon>
-                        Bamboozlers
-                    </BarItem>
-                </BarBrand>
-                <BarMenu Style="margin-top: 64px">
+                <BarMenu>
                     <BarItem>
                         <BarLink @onclick="() => ChangeView(View.Friends)">
                             <BarIcon IconName="IconName.Check"></BarIcon>
@@ -80,6 +79,21 @@
                     </BarItem>
                 </BarMenu>
             </Bar>
+            <Div Padding="Padding.Is3"
+                 TextSize="TextSize.Heading5"
+                 Class="sidebar-footer"
+                 @onclick="() => OpenProfilePopup()">
+                <Text>@Self.DisplayName</Text>
+                <Icon Name="IconName.UserTie" IconSize="IconSize.Large"></Icon>
+            </Div>
+            @* <BarEnd> *@
+            @*     <BarItem> *@
+            @*         <BarLink @onclick="() => { }"> $1$ TODO: Open profile popup #1# *@
+            @*             <BarIcon IconName="IconName.UserTie"></BarIcon> *@
+            @*             Profile *@
+            @*         </BarLink> *@
+            @*     </BarItem> *@
+            @* </BarEnd> *@
         </LayoutSiderContent>
     </LayoutSider>
     <Layout>
@@ -139,6 +153,14 @@
         {
             (Views[CurrentView] as CompChatView)!.Chat = chat!;
         }
+    }
+    
+    
+    private Task OpenProfilePopup()
+    {
+        // TODO: Impl;
+        Js.InvokeVoidAsync("alert", "Not implemented");
+        return Task.CompletedTask;
     }
 
     private enum View

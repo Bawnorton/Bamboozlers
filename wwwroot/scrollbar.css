@@ -10,8 +10,7 @@
     .scrollbar-container {
         overflow-y: scroll;
         overflow-x: hidden;
-        background: var( --scrollbar-thumb-color );
-        scrollbar-gutter: stable;
+        background-color: var( --scrollbar-thumb-color );
     }
     
     .scrollbar-container:hover {
