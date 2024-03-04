@@ -23,7 +23,7 @@ public static class AuthHelper
     /// The current user.
     /// </returns>
     /// <param name="inculsionCallback">
-    /// What data to include in the query/>.
+    /// What data to include in the query.
     /// </param>
     /// <exception cref="Exception">
     /// If <see cref="IsAuthenticated"/> returns false.

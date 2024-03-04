@@ -7,12 +7,12 @@
 @code {
     private List<User> Friends = [];
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
-        if (!AuthHelper.IsAuthenticated()) return base.OnInitializedAsync();
-        
-        var self = AuthHelper.GetSelf();
-        using var db = Db.CreateDbContext();
+        if (!AuthHelper.IsAuthenticated()) return;
+
+        var self = await AuthHelper.GetSelf();
+        await using var db = await Db.CreateDbContextAsync();
         foreach (var friendship in db.FriendShips.Include(f => f.User1).Include(f => f.User2))
         {
             if (friendship.User1ID == self.Id)
@@ -24,6 +24,5 @@
                 Friends.Add(friendship.User1);
             }
         }
-        return base.OnInitializedAsync();
     }
 }
