@@ -1,0 +1,23 @@
+project
+
+1.2 Unit Testing
+
+We will be making use of the BUnit testing framework that leverages xUnit, NUnit and MSTests. It allows us to individually test Blazor components and the method within them.
+
+For each component, we will develop unit tests and strive for 80% coverage on our tests. To do so, we will highlight critical code paths prior to testing and ensure they are explored when performing testing.
+
+1.3 Integration Testing
+
+As we complete more components relevant to our different use cases, we will begin to do integration testing using the built in .dotnet workflow framework provided on github. The guidelines we shall follow are listed below:
+
+1.  Our Integration testing will follow the same guidelines as out unit testing requiring 80% coverage and will require us to highlight crucial interactions between component that must be covered in testing
+
+2.  For components within the same designated use case, continuous integration tests will be built to test their compatibility with each of the components for said use case
+
+3.  Once the components within a use case are shown to function with minimal issues, we shall create continuous integration tests across different use cases
+
+4.  Once inter-component testing is complete, we will begin testing UI interactions
+
+1.4 Future Testing
+
+After all the components have been completed we will begin more whitebox testing, focusing on ensuring our functional, non functional and user requirements are all met with all the necessary specifications.
