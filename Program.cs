@@ -1,11 +1,11 @@
 using Bamboozlers;
 using Bamboozlers.Classes.AppDbContext;
-using Microsoft.EntityFrameworkCore;
 using Blazorise;
-using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
+using Blazorise.Bootstrap5;
 using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -69,7 +69,6 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
-
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

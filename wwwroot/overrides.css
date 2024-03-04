@@ -1,0 +1,15 @@
+/* css file to override blazorise's default styles */
+/* !important is required to override the default styles */
+
+.b-bar-item { /* <BarItem> */
+    margin: 0 !important;
+    min-height: 0 !important;
+}
+
+.b-bar-menu { /* <BarMenu> */
+    flex: none !important;
+}
+
+.b-bar-vertical-inline { /* <Bar Mode="BarMode.VerticalInline"> */
+    height: calc(100% - calc(62px * 2)) !important;
+}
