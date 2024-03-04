@@ -6,8 +6,6 @@ namespace Bamboozlers.Components.Settings;
 
 public partial class CompAvatar : CompProfile
 {
-    public bool EditingAllowed { get; set; }
-
     private async Task OnFileUpload(FileUploadEventArgs e)
     {
         if (User == null)
@@ -61,6 +59,6 @@ public partial class CompAvatar : CompProfile
     // TODO: Remove this once database has Base64 strings for avatar
     private string GetBase64Avatar()
     {
-        return User?.Avatar == null ? "" : Convert.ToBase64String(User.Avatar);
+        return $"data:image/png;base64,{(User?.Avatar == null ? "" : Convert.ToBase64String(User.Avatar))}";
     }
 }

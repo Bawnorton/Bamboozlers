@@ -1,0 +1,17 @@
+@inherits CompSettings
+
+<Container Width="Width.Is100">
+    <Row>
+        <Column>
+            <Row>
+                <CompEditEmail UserUpdateCallback="@UserUpdateCallback" StatusCallback="@StatusCallback"/>  
+            </Row>
+            <Row><br/></Row>
+            <Row><Divider/></Row>
+            <Row><br/></Row>
+            <Row>
+                <CompEditPassword UserUpdateCallback="@UserUpdateCallback" StatusCallback="@StatusCallback"/>  
+            </Row>
+        </Column>
+    </Row>
+</Container>

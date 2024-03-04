@@ -1,0 +1,48 @@
+@inherits CompTabToggle
+
+@inject UserManager<User> UserManager
+@inject ILogger<CompEditDisplayName> Logger
+
+<Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="InteractionMode">
+    <Content>
+        <TabPanel Name="view">
+            <Row>
+                <Column ColumnSize="ColumnSize.Is8">
+                    <Div Class="form-floating mb-3">
+                        <input name="change-display" type="text" value="@DisplayName" class="form-control" disabled/>
+                        <Label for="displayname" class="form-label">Display Name</Label>
+                    </Div>
+                </Column>
+                <Column ColumnSize="ColumnSize.Is4">
+                    <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change Display Name</Button>
+                </Column>                
+            </Row>
+        </TabPanel>
+        <TabPanel Name="edit">
+            <Container>
+                <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post">
+                    <DataAnnotationsValidator/>
+                    <Container>
+                        <Container Width="Width.Is75">
+                            <Div Class="form-floating mb-3">
+                                <InputText @bind-Value="Input.DisplayName" class="form-control" autocomplete="new-username" aria-required="true" placeholder="Please enter new display name."/>
+                                <Label for="displayname" class="form-label">New Display Name</Label>
+                                <ValidationMessage For="() => Input.DisplayName" class="text-danger"/>
+                            </Div>
+                        </Container>
+                        <Container Width="Width.Is75">
+                            <Row>
+                                <Column>
+                                    <Button Width="Width.Is100" Color="Color.Danger" Clicked="Toggle">Cancel</Button>
+                                </Column>
+                                <Column>
+                                    <Button Width="Width.Is100" Color="Color.Success" Type="ButtonType.Submit">Confirm changes</Button>
+                                </Column>
+                            </Row>
+                        </Container>
+                    </Container>
+                </EditForm>
+            </Container>
+        </TabPanel>
+    </Content>
+</Tabs>

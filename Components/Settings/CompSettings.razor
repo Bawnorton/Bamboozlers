@@ -2,11 +2,16 @@
 
 @inherits ComponentBase
 
+@inject IDbContextFactory<AppDbContext> Db
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
 @inject IdentityRedirectManager IdentityRedirectManager
 
-<Modal @bind-Visible="@Visible">
+<Modal @bind-Visible="@Visible" Closed="@(async Task () =>
+                                         {
+                                             await OnStatusUpdate(new StatusCallbackArgs(Color.Default, false, "", "")); 
+                                             SectionName = "User Profile"; 
+                                         })">
     <ModalContent Centered Size="ModalSize.ExtraLarge">
         <ModalHeader>
             <h3>Account Settings</h3>
@@ -28,22 +33,18 @@
                 <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SectionName">
                     <Items>
                         <Tab Name="User Profile">Profile</Tab>
-                        <Tab Name="Email Address">Email Address</Tab>
-                        <Tab Name="Password">Password</Tab>
+                        <Tab Name="Login Details">Login Details</Tab>
                         <Tab Name="Delete">Account Management</Tab>
                     </Items>
                     <Content>
                         <TabPanel Name="User Profile" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompProfile StatusCallback="OnStatusUpdate" EditingAllowed="true"/>
+                            <CompProfile UserUpdateCallback="OnUserUpdate" StatusCallback="OnStatusUpdate" EditingAllowed="true"/>
                         </TabPanel>
-                        <TabPanel Name="Email Address" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompEditEmail StatusCallback="OnStatusUpdate"/>
-                        </TabPanel>
-                        <TabPanel Name="Password" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompEditPassword StatusCallback="OnStatusUpdate"/>
+                        <TabPanel Name="Login Details" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
+                            <CompLoginDetails UserUpdateCallback="OnUserUpdate" StatusCallback="OnStatusUpdate"/>
                         </TabPanel>
                         <TabPanel Name="Delete" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompDeleteAccount StatusCallback="OnStatusUpdate"/>
+                            <CompDeleteAccount UserUpdateCallback="OnUserUpdate" StatusCallback="OnStatusUpdate"/>
                         </TabPanel>
                     </Content>
                 </Tabs>

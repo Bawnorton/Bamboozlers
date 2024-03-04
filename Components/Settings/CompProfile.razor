@@ -1,19 +1,32 @@
 @inherits CompSettings
 
-<Container>
-@if (EditingAllowed)
-{
+<Container Width="Width.Is100">
     <Row>
         <Column ColumnSize="ColumnSize.Is4">
-            <CompAvatar/>
+            <CompAvatar StatusCallback="@StatusCallback" EditingAllowed="@EditingAllowed"/>
         </Column>
         <Column ColumnSize="ColumnSize.Is8">
-            
+            @if (EditingAllowed)
+            {
+                <Row>
+                    <CompEditUsername UserUpdateCallback="UserUpdateCallback" StatusCallback="@StatusCallback"/>  
+                </Row>
+                <Row><br/></Row>
+                <Row><Divider/></Row>
+                <Row><br/></Row>
+                <Row>
+                    <CompEditDisplayName UserUpdateCallback="UserUpdateCallback" StatusCallback="@StatusCallback"/>
+                </Row>
+            }
+            else
+            {
+                <Row>
+                    <Text>@Username</Text>
+                </Row>
+                <Row>
+                    <Text>@DisplayName</Text>
+                </Row>
+            }
         </Column>
     </Row>
-}
-else
-{
-     
-}   
 </Container>
