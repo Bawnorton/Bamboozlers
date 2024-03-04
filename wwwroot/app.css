@@ -49,3 +49,19 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+.sidebar-footer {
+    color: #BDBDBD;
+    background-color: #2C3333;
+    cursor: pointer;
+}
+
+.sidebar-footer > i {
+    float: right; 
+    margin-top: 4px;
+}
+
+.sidebar-footer:hover {
+    color: #2E4F4F;
+    background-color: #CBE4DE;
+}

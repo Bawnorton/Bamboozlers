@@ -1,31 +1,49 @@
 ﻿@page "/"
-
-@rendermode InteractiveServer
+@inherits LayoutComponentBase
 
 @using Microsoft.AspNetCore.Authorization
-@using Bamboozlers.Components.Settings
-@using Bamboozlers.Account
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
 
-@inject IdentityRedirectManager IdentityRedirectManager
-@inject ILogger<Home> Logger;
+@inject IDbContextFactory<AppDbContext> Db
+@inject AuthenticationStateProvider AuthStateProvider;
 
 @attribute [Authorize]
 
 <PageTitle>Bamboozlers</PageTitle>
 
-<h1>You are authenticated</h1>
-
-<AuthorizeView>
-    <CompSettings NavigatorCallback="Navigate"/>
-    Hello @context.User.Identity?.Name!
-</AuthorizeView>
+<ErrorBoundary>
+    <ChildContent>
+        <AuthorizeView> 
+            <NavLayout/>
+        </AuthorizeView>
+    </ChildContent>
+    <ErrorContent Context="exception">
+        <Layout>
+            <LayoutHeader Padding="Padding.Is3"
+                          TextSize="TextSize.Heading1"
+                          TextColor="TextColor.Danger"
+                          Background="Background.Dark">
+                Bamboozlers
+            </LayoutHeader>
+            <LayoutContent Padding="Padding.Is3"
+                           Background="Background.Primary"
+                           TextColor="TextColor.White">
+                <Div Class="h-100 d-flex justify-content-center align-items-center">
+                    <Div Class="rounded-3 border-3 border-warning text-warning p-5 fa-2x" 
+                         Background="Background.Dark">
+                        <p>Oops! Something went wrong.</p>
+                        <p>@exception.Message</p>
+                    </Div>
+                </Div>
+            </LayoutContent>
+        </Layout>
+    </ErrorContent>
+</ErrorBoundary>
 
 @code {
-
-    protected Task Navigate(string uri)
+    protected override void OnInitialized()
     {
-        Logger.LogInformation($"Attempt to redirect from Home page to {uri}.");
-        IdentityRedirectManager.RedirectTo(uri);
-        return Task.CompletedTask;
+        AuthHelper.Init(AuthStateProvider, Db);
     }
 }
