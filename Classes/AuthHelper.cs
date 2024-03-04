@@ -28,7 +28,7 @@ public static class AuthHelper
     /// <exception cref="Exception">
     /// If <see cref="IsAuthenticated"/> returns false.
     /// </exception>
-    public static async Task<User> GetSelf(Unary<IQueryable<User>>? inculsionCallback)
+    public static async Task<User> GetSelf(Unary<IQueryable<User>>? inculsionCallback = null)
     {
         if (_self is not null) return _self;
         
@@ -46,14 +46,6 @@ public static class AuthHelper
         }
 
         return _self;
-    }
-
-    /// <summary>
-    /// See <see cref="GetSelf(System.Func{System.Linq.IQueryable{Bamboozlers.Classes.AppDbContext.User},System.Linq.IQueryable{Bamboozlers.Classes.AppDbContext.User}}?)"/>.
-    /// </summary>
-    public static async Task<User> GetSelf()
-    {
-        return await GetSelf(null);
     }
 
     public static bool IsAuthenticated()
