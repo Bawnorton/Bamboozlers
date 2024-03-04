@@ -1,8 +1,29 @@
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
+@inject IDbContextFactory<AppDbContext> Db
 
 <h3>Friend Window</h3>
 
 @code {
-    [Parameter]
-    public List<User>? Friends { get; set; }
+    public List<User> Friends;
+
+    protected override Task OnInitializedAsync()
+    {
+        if (!AuthHelper.IsAuthenticated()) return base.OnInitializedAsync();
+        
+        var self = AuthHelper.GetSelf();
+        using var db = Db.CreateDbContext();
+        foreach (var friendship in db.FriendShips.Include(f => f.User1).Include(f => f.User2))
+        {
+            if (friendship.User1ID == self.Id)
+            {
+                Friends.Add(friendship.User2);
+            }
+            else if (friendship.User2ID == self.Id)
+            {
+                Friends.Add(friendship.User1);
+            }
+        }
+        return base.OnInitializedAsync();
+    }
 }

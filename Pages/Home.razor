@@ -2,6 +2,11 @@
 @inherits LayoutComponentBase
 
 @using Microsoft.AspNetCore.Authorization
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
+
+@inject IDbContextFactory<AppDbContext> Db
+@inject AuthenticationStateProvider AuthStateProvider;
 
 @attribute [Authorize]
 
@@ -35,3 +40,10 @@
         </Layout>
     </ErrorContent>
 </ErrorBoundary>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AuthHelper.Init(AuthStateProvider, Db);
+    }
+}

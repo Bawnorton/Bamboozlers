@@ -1,10 +1,11 @@
-@using Bamboozlers.Classes
 @using Bamboozlers.Classes.AppDbContext
-@using Blazorise.Extensions
+@using Bamboozlers.Classes
+
 @rendermode InteractiveServer
+
 @inject IDbContextFactory<AppDbContext> Db
-@inject IJSRuntime Js
 @inject AuthenticationStateProvider AuthStateProvider;
+@inject IJSRuntime Js
 
 @if (Self is null)
 {
@@ -85,7 +86,7 @@
                  Class="sidebar-footer"
                  @onclick="OpenProfilePopup">
                 <Text>
-                    @(Self.DisplayName ?? Self.UserName ?? "Self") 
+                    @(Self.DisplayName ?? Self.UserName) 
                 </Text>
                 <Icon Name="IconName.UserTie" IconSize="IconSize.Large"></Icon>
             </Div>
@@ -126,20 +127,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await using var db = await Db.CreateDbContextAsync();
-        var userIdentity = AuthStateProvider.GetAuthenticationStateAsync().Result.User.Identity;
-        if (userIdentity is { IsAuthenticated: true })
-        {
-            Self = await db.Users.Include(i => i.Chats).ThenInclude(c => c.Users).FirstOrDefaultAsync(f => f.UserName == userIdentity.Name);
-        }
-        if (Self is null)
-        {
-            throw new InvalidOperationException("User not authenticated");
-        }
-
+        Self = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
-        ChangeView(CurrentView);
+        ChangeView(CurrentView);       
     }
 
     private void ChangeView(View view, Chat? chat = null)
@@ -157,7 +148,7 @@
             case View.Dm:
             {
                 var other = chat!.Users.First(u => u.Id != Self!.Id);
-                Views[CurrentView].Name = other.DisplayName ?? other.UserName ?? "User";
+                Views[CurrentView].Name = other.DisplayName ?? other.UserName;
                 Views[CurrentView].Parameters = new Dictionary<string, object>
                 {
                     {"Chat", chat}
@@ -166,10 +157,6 @@
             }
             case View.Friends:
                 Views[CurrentView].Name = $"Friends ({DmChats.Count})"; 
-                Views[CurrentView].Parameters = new Dictionary<string, object>
-                {
-                    {"Friends", DmChats.Select(c => c.User).ToList()}
-                };
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -199,7 +186,7 @@
 
         public string? Name { get; set; }
         
-        public IDictionary<string, object> Parameters { get; set; }
+        public IDictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
         
         public Type HeldType => Held.GetType();
         
