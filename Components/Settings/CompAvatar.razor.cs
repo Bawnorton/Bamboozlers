@@ -7,12 +7,12 @@ namespace Bamboozlers.Components.Settings;
 public partial class CompAvatar : CompProfile
 {
     public bool EditingAllowed { get; set; }
-    
+
     private async Task OnFileUpload(FileUploadEventArgs e)
     {
         if (User == null)
         {
-            await OnStatusUpdate(StatusCallbackArgs.BasicStatusArgs);
+            await StatusCallback.InvokeAsync(StatusCallbackArgs.BasicStatusArgs);
             return;
         }
         MemoryStream result;
@@ -27,7 +27,7 @@ public partial class CompAvatar : CompProfile
             var success = result.TryGetBuffer(out rawImage);
             if (!success)
             {
-                await OnStatusUpdate(new StatusCallbackArgs(
+                await StatusCallback.InvokeAsync(new StatusCallbackArgs(
                     Color.Danger,
                     true,
                     "Could not change avatar.",
@@ -45,7 +45,7 @@ public partial class CompAvatar : CompProfile
         catch (Exception exc)
         {
             Logger.LogError(exc.Message);
-            await OnStatusUpdate(new StatusCallbackArgs(
+            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
                 Color.Danger,
                 true,
                 "Could not change avatar.",

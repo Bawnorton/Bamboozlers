@@ -4,7 +4,7 @@
 
 @inject UserManager<User> UserManager
 @inject SignInManager<User> SignInManager
-@inject IdentityRedirectManager RedirectManager
+@inject NavigationManager NavigationManager
 @inject ILogger<CompDeleteAccount> Logger
 
 <Container>
@@ -19,7 +19,7 @@
                     <Container Width="Width.Is75" TextAlignment="TextAlignment.Center">
                         <Form action="Account/Manage/DownloadPersonalData" method="post">
                             <AntiforgeryToken/>
-                            <Button Color="Color.Primary" Type="ButtonType.Submit">Download personal data</Button>
+                            <Button Color="Color.Primary" Type="ButtonType.Submit" Clicked="@(async Task () => await StatusCallback.InvokeAsync(new StatusCallbackArgs(Color.Success, true, "Success!", "Your information has been downloaded.")))">Download personal data</Button>
                         </Form>
                     </Container>
                     <br/>

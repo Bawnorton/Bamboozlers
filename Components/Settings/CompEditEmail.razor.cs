@@ -25,17 +25,17 @@ public partial class CompEditEmail : CompTabToggle
     {
         if (User is null)
         {
-            await OnStatusUpdate(StatusCallbackArgs.BasicStatusArgs);
+            await StatusCallback.InvokeAsync(StatusCallbackArgs.BasicStatusArgs);
             return;
         }
         
         if (Input.NewEmail is null || Input.NewEmail == User?.Email)
         {
-            await OnStatusUpdate(new StatusCallbackArgs(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Could not change your email.",
-                statusDescription: "A different, valid email must be entered to change email."
+            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
+                Color.Danger,
+                true,
+                "Could not change your email.",
+                "A different, valid email must be entered to change email."
                 ));
             return;
         }
@@ -49,11 +49,11 @@ public partial class CompEditEmail : CompTabToggle
 
         await EmailSender.SendConfirmationLinkAsync(User, Input.NewEmail, HtmlEncoder.Default.Encode(callbackUrl));
 
-        await OnStatusUpdate(new StatusCallbackArgs(
-            statusColor: Color.Secondary,
-            statusVisible: true,
-            statusMessage: "Confirmation link was sent to new email.",
-            statusDescription: "Please check your inbox to confirm changes."
+        await StatusCallback.InvokeAsync(new StatusCallbackArgs(
+            Color.Secondary,
+            true,
+            "Confirmation link was sent to new email.",
+            "Please check your inbox to confirm changes."
             ));
     }
 
@@ -70,11 +70,11 @@ public partial class CompEditEmail : CompTabToggle
 
         await EmailSender.SendConfirmationLinkAsync(User, User.Email, HtmlEncoder.Default.Encode(callbackUrl));
 
-        await OnStatusUpdate(new StatusCallbackArgs(
-            statusColor: Color.Secondary,
-            statusVisible: true,
-            statusMessage: "Confirmation link was sent to your new email.",
-            statusDescription: "Please check your inbox to confirm changes."
+        await StatusCallback.InvokeAsync(new StatusCallbackArgs(
+            Color.Secondary,
+            true,
+            "Confirmation link was sent to your new email.",
+            "Please check your inbox to confirm changes."
             ));
     }
 

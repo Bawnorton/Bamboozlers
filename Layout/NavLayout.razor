@@ -1,5 +1,7 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Components.Settings
 
 @rendermode InteractiveServer
 
@@ -12,6 +14,8 @@
     <p>Loading...</p>
     return;
 }
+
+<CompSettings @bind-Visible="ProfilePopupVisible"/>
 <Layout Sider>
     <LayoutSider>
         <LayoutSiderContent>
@@ -84,7 +88,7 @@
             <Div Padding="Padding.Is3"
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer"
-                 @onclick="OpenProfilePopup">
+                 @onclick="@(() => ProfilePopupVisible = true)">
                 <Text>
                     @(Self.DisplayName ?? Self.UserName) 
                 </Text>
@@ -109,7 +113,6 @@
 </Layout>
 
 @code {
-
     private User? Self { get; set; }
 
     private List<DmChat> DmChats { get; set; }
@@ -162,12 +165,12 @@
                 throw new ArgumentOutOfRangeException();
         }
     }
-    
-    
-    private Task OpenProfilePopup()
+
+    private bool ProfilePopupVisible { get; set; }
+
+    private Task ToggleProfilePopup()
     {
-        // TODO: Impl;
-        Js.InvokeVoidAsync("alert", "Not implemented");
+        ProfilePopupVisible = true;
         return Task.CompletedTask;
     }
 

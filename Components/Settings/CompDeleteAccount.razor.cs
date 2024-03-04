@@ -22,16 +22,16 @@ public partial class CompDeleteAccount : CompTabToggle
     {
         if (User == null)
         {
-            await OnStatusUpdate(StatusCallbackArgs.BasicStatusArgs);
+            await StatusCallback.InvokeAsync(StatusCallbackArgs.BasicStatusArgs);
             return;
         }
         
         if (HasPassword && !await UserManager.CheckPasswordAsync(User, Input.Password))
         {
-            await OnStatusUpdate(new StatusCallbackArgs(
+            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
                 Color.Danger,
                 true,
-                "Error occurred:",
+                "Error occurred while deleting account.",
                 "Incorrect password."
             ));
             return;
@@ -40,6 +40,12 @@ public partial class CompDeleteAccount : CompTabToggle
         var result = await UserManager.DeleteAsync(User);
         if (!result.Succeeded)
         {
+            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
+                Color.Danger,
+                true,
+                "Error occurred while deleting account.",
+                "Unexpected error occurred while deleting your account."
+            ));
             throw new InvalidOperationException("Unexpected error occurred deleting user.");
         }
 
@@ -48,7 +54,7 @@ public partial class CompDeleteAccount : CompTabToggle
         var userId = await UserManager.GetUserIdAsync(User);
         Logger.LogInformation("User with ID '{UserId}' deleted their account.", userId);
 
-        RedirectManager.RedirectTo("/Account/Login");
+        NavigationManager.NavigateTo("/Account/Login");
     }
 
     private sealed class InputModel

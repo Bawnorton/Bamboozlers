@@ -20,7 +20,7 @@ public partial class CompEditPassword : CompTabToggle
     {
         if (User == null)
         {
-            await OnStatusUpdate(new StatusCallbackArgs(
+            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
                 statusColor: Color.Danger,
                 statusVisible: true,
                 statusMessage: "Could not change your password.",
@@ -31,7 +31,7 @@ public partial class CompEditPassword : CompTabToggle
         var changePasswordResult = await UserManager.ChangePasswordAsync(User, Input.OldPassword, Input.NewPassword);
         if (!changePasswordResult.Succeeded)
         {
-            await OnStatusUpdate(new StatusCallbackArgs(
+            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
                 statusColor: Color.Danger,
                 statusVisible: true,
                 statusMessage: "Error occurred while changing password:",
@@ -39,10 +39,10 @@ public partial class CompEditPassword : CompTabToggle
                 ));
         }
 
-        await SignInManager.RefreshSignInAsync(User);
+        NavigationManager.NavigateTo("/");
         Logger.LogInformation("User changed their password successfully.");
 
-        await OnStatusUpdate(new StatusCallbackArgs(
+        await StatusCallback.InvokeAsync(new StatusCallbackArgs(
             statusColor: Color.Primary,
             statusVisible: true,
             statusMessage: "Success!",

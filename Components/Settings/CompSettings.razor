@@ -5,30 +5,27 @@
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
 @inject IdentityRedirectManager IdentityRedirectManager
-@inject UserService UserService
 
-<Modal @bind-Visible="@PopupEnabled">
+<Modal @bind-Visible="@Visible">
     <ModalContent Centered Size="ModalSize.ExtraLarge">
         <ModalHeader>
             <h3>Account Settings</h3>
-            <Container Width="Width.Is75">
-                <Alert ElementId="StatusMessage"
-                       Color="@alertStatus.StatusColor"
-                       Visible="@alertStatus.StatusVisible">
-                    <AlertMessage>
-                        @alertStatus.StatusMessage
-                    </AlertMessage>
-                    <AlertDescription>
-                        @alertStatus.StatusDescription
-                    </AlertDescription>
-                </Alert>
-            </Container>
             <CloseButton/>
         </ModalHeader>
         <ModalBody>
+            <Alert Color="@CallbackArgs.StatusColor"
+                   Visible="@CallbackArgs.StatusVisible">
+                <AlertMessage>
+                    @CallbackArgs.StatusMessage
+                </AlertMessage>
+                <AlertDescription>
+                    @CallbackArgs.StatusDescription
+                </AlertDescription>
+            </Alert>
+            <Divider/>
             @if (User != null)
             {
-                <Tabs @bind-SelectedTab="SectionName">
+                <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SectionName">
                     <Items>
                         <Tab Name="User Profile">Profile</Tab>
                         <Tab Name="Email Address">Email Address</Tab>
@@ -37,23 +34,29 @@
                     </Items>
                     <Content>
                         <TabPanel Name="User Profile" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompProfile EditingAllowed="true"/>
+                            <CompProfile StatusCallback="OnStatusUpdate" EditingAllowed="true"/>
                         </TabPanel>
                         <TabPanel Name="Email Address" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompEditEmail/>
+                            <CompEditEmail StatusCallback="OnStatusUpdate"/>
                         </TabPanel>
                         <TabPanel Name="Password" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompEditPassword/>
+                            <CompEditPassword StatusCallback="OnStatusUpdate"/>
                         </TabPanel>
                         <TabPanel Name="Delete" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompDeleteAccount/>
+                            <CompDeleteAccount StatusCallback="OnStatusUpdate"/>
                         </TabPanel>
                     </Content>
                 </Tabs>
             }
         </ModalBody>
         <ModalFooter>
-            <Button Color="Color.Primary" Clicked="LogOut">Log Out</Button>
+            <Form action="Account/Logout" method="post">
+                <AntiforgeryToken/>
+                <input type="hidden" name="ReturnUrl" value="Account/Login"/>
+                <Button Color="Color.Primary" Type="ButtonType.Submit">
+                    Log Out
+                </Button>
+            </Form>
         </ModalFooter>
     </ModalContent>
 </Modal>

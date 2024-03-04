@@ -1,4 +1,5 @@
 using Blazorise;
+using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components.Settings;
 public partial class CompTabToggle : CompSettings
