@@ -4,7 +4,7 @@ using Bamboozlers.Classes.Func;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bamboozlers.Classes;
+namespace Bamboozlers.Classes.Services;
 
 public static class AuthHelper
 {
