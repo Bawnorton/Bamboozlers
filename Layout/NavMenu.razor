@@ -1,5 +1,4 @@
-﻿@using System.Diagnostics.CodeAnalysis
-<div class="top-row ps-3 navbar navbar-dark">
+﻿<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Bamboozlers</a>
     </div>
@@ -15,18 +14,21 @@
                 <Icon Name="@(_show ? "fa-user" : "fa-users")"></Icon>
                 <Text>@(_show ? "Direct Messages" : "Groups")</Text>
             </Button>
+
             @code{
-                private bool _show = false;
+                private bool _show;
+
                 Task Toggle()
                 {
                     _show = !_show;
                     return Task.CompletedTask;
                 }
+
             }
+
             @* <NavLink class="nav-link" href="" Match="NavLinkMatch.All"> *@
             @*     <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home *@
             @* </NavLink> *@
         </div>
     </nav>
 </div>
-

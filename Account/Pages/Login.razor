@@ -93,7 +93,7 @@
         {
             if (!UserManager.IsEmailConfirmedAsync(user).Result)
             {
-                errorMessage = "Please Confirm your email before logging in.";
+                errorMessage = "Please confirm your email before logging in. ";
                 errorLink = "Account/ResendEmailConfirmation";
                 errorLinkText = "Resend Confirmation Email";
             }

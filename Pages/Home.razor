@@ -1,6 +1,13 @@
 ﻿@page "/"
 
+@rendermode InteractiveServer
+
 @using Microsoft.AspNetCore.Authorization
+@using Bamboozlers.Components.Settings
+@using Bamboozlers.Account
+
+@inject IdentityRedirectManager IdentityRedirectManager
+@inject ILogger<Home> Logger;
 
 @attribute [Authorize]
 
@@ -9,5 +16,16 @@
 <h1>You are authenticated</h1>
 
 <AuthorizeView>
+    <CompSettings NavigatorCallback="Navigate"/>
     Hello @context.User.Identity?.Name!
 </AuthorizeView>
+
+@code {
+
+    protected Task Navigate(string uri)
+    {
+        Logger.LogInformation($"Attempt to redirect from Home page to {uri}.");
+        IdentityRedirectManager.RedirectTo(uri);
+        return Task.CompletedTask;
+    }
+}

@@ -1,0 +1,14 @@
+@using System.IO;
+
+@inherits CompProfile
+
+@inject UserManager<User> UserManager
+@inject ILogger<CompAvatar> Logger;
+
+<FigureImage Source="@GetBase64Avatar()"/>
+<FigureCaption>
+    @if (EditingAllowed)
+    {
+        <FilePicker Upload="OnFileUpload" Filter="image/jpeg, image/png"/>  
+    }
+</FigureCaption>

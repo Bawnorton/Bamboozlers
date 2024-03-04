@@ -1,0 +1,59 @@
+@attribute [Authorize]
+
+@inherits ComponentBase
+
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+@inject IdentityRedirectManager IdentityRedirectManager
+@inject UserService UserService
+
+<Modal @bind-Visible="@PopupEnabled">
+    <ModalContent Centered Size="ModalSize.ExtraLarge">
+        <ModalHeader>
+            <h3>Account Settings</h3>
+            <Container Width="Width.Is75">
+                <Alert ElementId="StatusMessage"
+                       Color="@alertStatus.StatusColor"
+                       Visible="@alertStatus.StatusVisible">
+                    <AlertMessage>
+                        @alertStatus.StatusMessage
+                    </AlertMessage>
+                    <AlertDescription>
+                        @alertStatus.StatusDescription
+                    </AlertDescription>
+                </Alert>
+            </Container>
+            <CloseButton/>
+        </ModalHeader>
+        <ModalBody>
+            @if (User != null)
+            {
+                <Tabs @bind-SelectedTab="SectionName">
+                    <Items>
+                        <Tab Name="User Profile">Profile</Tab>
+                        <Tab Name="Email Address">Email Address</Tab>
+                        <Tab Name="Password">Password</Tab>
+                        <Tab Name="Delete">Account Management</Tab>
+                    </Items>
+                    <Content>
+                        <TabPanel Name="User Profile" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
+                            <CompProfile EditingAllowed="true"/>
+                        </TabPanel>
+                        <TabPanel Name="Email Address" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
+                            <CompEditEmail/>
+                        </TabPanel>
+                        <TabPanel Name="Password" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
+                            <CompEditPassword/>
+                        </TabPanel>
+                        <TabPanel Name="Delete" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
+                            <CompDeleteAccount/>
+                        </TabPanel>
+                    </Content>
+                </Tabs>
+            }
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Primary" Clicked="LogOut">Log Out</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>

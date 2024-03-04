@@ -1,0 +1,57 @@
+@inherits CompTabToggle
+
+@using Microsoft.AspNetCore.WebUtilities
+@using System.Text
+@using System.Text.Encodings.Web
+
+@inject UserManager<User> UserManager
+@inject IEmailSender<User> EmailSender
+@inject NavigationManager NavigationManager
+
+<Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="InteractionMode">
+    <Content>
+        <TabPanel Name="view">
+            <Container>
+                <Container Width="Width.Is75">
+                    <Div Class="form-floating mb-3">
+                        <input type="text" value="@Email" class="form-control" disabled/>
+                        <Label for="email" class="form-label">Email</Label>
+                    </Div>
+                </Container>
+                <Container Width="Width.Is25">
+                    <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change email</Button>
+                </Container>
+            </Container>
+        </TabPanel>
+        <TabPanel Name="edit">
+            <Container>
+                <EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post">
+                    <DataAnnotationsValidator/>
+                    <Container>
+                        <Container Width="Width.Is75">
+                            <Div class="form-floating mb-3">
+                                <input type="text" value="@Email" class="form-control" disabled/>
+                                <Label for="email" class="form-label">Email</Label>
+                            </Div>
+                            <Div Class="form-floating mb-3">
+                                <InputText @bind-Value="Input.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="Please enter new email."/>
+                                <Label for="new-email" class="form-label">New email</Label>
+                                <ValidationMessage For="() => Input.NewEmail" class="text-danger"/>
+                            </Div>
+                        </Container>
+                        <Container Width="Width.Is50">
+                            <Row>
+                                <Column>
+                                    <Button Width="Width.Is100" Color="Color.Danger" Clicked="Toggle">Cancel</Button>
+                                </Column>
+                                <Column>
+                                    <Button Width="Width.Is100" Color="Color.Success" Type="ButtonType.Submit">Confirm changes</Button>
+                                </Column>
+                            </Row>
+                        </Container>
+                    </Container>
+                </EditForm>
+            </Container>
+        </TabPanel>
+    </Content>
+</Tabs>
