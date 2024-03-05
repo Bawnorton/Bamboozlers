@@ -58,7 +58,7 @@
   </tr>
   <tr>
     <th>Sprint Theme</th>
-    <td>Development, Milestone 3 Completion</td>
+    <td>Further development, Milestone 3 Completion</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
@@ -66,7 +66,7 @@
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td>12 Issues</td>
+    <td>13 Issues</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
@@ -74,16 +74,16 @@
       Bridgette Hunt - 4 issues<br>
       MacKenzie Richards - 4 issues<br>
       Zahra Kagda - 2 issues<br>
-      Ben Norton - 2 issues<br>
+      Ben Norton - 3 issues<br>
       Ryan Osmond - 3 issues
     </td>
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td>N/A</td>
+    <td>Milestone 3 must be completed by Friday after the start of the Sprint.</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td>N/A</td>
+    <td>2 team members are assigned to the completion of Milestone 3 documentation.</td>
   </tr>
 </table>
