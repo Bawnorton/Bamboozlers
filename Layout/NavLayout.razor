@@ -47,15 +47,6 @@
                                         </BarLink>
                                     </BarItem>
                                 }
-                                @for (var i = 0; i < 100; i++)
-                                {
-                                    <BarItem>
-                                        <BarLink To="#">
-                                            <BarIcon IconName="IconName.Spa"></BarIcon>
-                                            Test
-                                        </BarLink>
-                                    </BarItem>
-                                }
                             </BarDropdownMenu>
                         </BarDropdown>
                     </BarItem>
@@ -109,7 +100,7 @@
 
 @code {
 
-    public User? Self { get; set; }
+    private User? Self { get; set; }
 
     private List<DmChat> DmChats { get; set; }
 
