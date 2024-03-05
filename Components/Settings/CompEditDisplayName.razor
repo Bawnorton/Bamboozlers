@@ -1,6 +1,5 @@
 @inherits CompTabToggle
 
-@inject UserManager<User> UserManager
 @inject ILogger<CompEditDisplayName> Logger
 
 <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="InteractionMode">
@@ -9,7 +8,7 @@
             <Row>
                 <Column ColumnSize="ColumnSize.Is8">
                     <Div Class="form-floating mb-3">
-                        <input name="change-display" type="text" value="@DisplayName" class="form-control" disabled/>
+                        <input name="change-display" type="text" value="@UserModel.U.DisplayName" class="form-control" disabled/>
                         <Label for="displayname" class="form-label">Display Name</Label>
                     </Div>
                 </Column>

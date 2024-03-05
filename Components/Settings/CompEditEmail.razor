@@ -4,7 +4,6 @@
 @using System.Text
 @using System.Text.Encodings.Web
 
-@inject UserManager<User> UserManager
 @inject IEmailSender<User> EmailSender
 @inject NavigationManager NavigationManager
 
@@ -14,7 +13,7 @@
             <Container>
                 <Container Width="Width.Is75">
                     <Div Class="form-floating mb-3">
-                        <input type="text" value="@Email" class="form-control" disabled/>
+                        <input type="text" value="@UserModel.U.Email" class="form-control" disabled/>
                         <Label for="email" class="form-label">Email</Label>
                     </Div>
                 </Container>
@@ -30,7 +29,7 @@
                     <Container>
                         <Container Width="Width.Is75">
                             <Div class="form-floating mb-3">
-                                <input type="text" value="@Email" class="form-control" disabled/>
+                                <input type="text" value="@UserModel.U.Email" class="form-control" disabled/>
                                 <Label for="email" class="form-label">Email</Label>
                             </Div>
                             <Div Class="form-floating mb-3">

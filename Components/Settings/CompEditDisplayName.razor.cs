@@ -13,33 +13,25 @@ public partial class CompEditDisplayName : CompTabToggle
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        if (User == null) return;
         ViewButtonText = "Change Password";
     }
+    
     private async Task OnValidSubmitAsync()
     {
-        if (User == null)
-        {
-            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Could not change your username.",
-                statusDescription: "Your user data could not be verified at this time."
-            ));
-            return;
-        }
-
-        User.DisplayName = Input.DisplayName;
+        var user = await GetUser();
+        user.DisplayName = Input.DisplayName;
         
-        await OnUserUpdateAsync();
+        await DataChangeCallback.InvokeAsync();
         Logger.LogInformation("User changed their display name successfully.");
 
-        await StatusCallback.InvokeAsync(new StatusCallbackArgs(
+        UpdateStatusArgs(new StatusArguments(
             statusColor: Color.Primary,
             statusVisible: true,
             statusMessage: "Success!",
             statusDescription: "Your display name has been changed."
             ));
+
+        await Toggle();
     }
     
     private sealed class InputModel

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Bamboozlers.Classes.Services;
 using Blazorise;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
@@ -13,41 +14,17 @@ public partial class CompEditPassword : CompTabToggle
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        if (User == null) return;
         ViewButtonText = "Change Password";
     }
     private async Task OnValidSubmitAsync()
     {
-        if (User == null)
+        var model = new UserModel
         {
-            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Could not change your password.",
-                statusDescription: "Your user data could not be verified at this time."
-                ));
-            return;
-        }
-        var changePasswordResult = await UserManager.ChangePasswordAsync(User, Input.OldPassword, Input.NewPassword);
-        if (!changePasswordResult.Succeeded)
-        {
-            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Error occurred while changing password:",
-                statusDescription: $"Error: {string.Join(",", changePasswordResult.Errors.Select(error => error.Description))}"
-                ));
-        }
-
-        NavigationManager.NavigateTo("/");
-        Logger.LogInformation("User changed their password successfully.");
-
-        await StatusCallback.InvokeAsync(new StatusCallbackArgs(
-            statusColor: Color.Primary,
-            statusVisible: true,
-            statusMessage: "Success!",
-            statusDescription: "Your password has been changed."
-            ));
+            Type = DataChangeType.Password,
+            Password = Input.OldPassword,
+            NewPassword = Input.NewPassword
+        };
+        await DataChangeCallback.InvokeAsync(model);
     }
 
     private sealed class InputModel

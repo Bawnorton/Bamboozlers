@@ -6,11 +6,17 @@ namespace Bamboozlers.Components.Settings;
 
 public partial class CompAvatar : CompProfile
 {
-    private async Task OnFileUpload(FileUploadEventArgs e)
+    private async Task OnFileUpload(FileChangedEventArgs e)
     {
-        if (User == null)
+        var user = await GetUser();
+        if (e.Files == null)
         {
-            await StatusCallback.InvokeAsync(StatusCallbackArgs.BasicStatusArgs);
+            UpdateStatusArgs(new StatusArguments(
+                Color.Danger,
+                true,
+                "Unable to change avatar.",
+                "No file was uploaded."
+            ));
             return;
         }
         MemoryStream result;
@@ -18,14 +24,21 @@ public partial class CompAvatar : CompProfile
         {
             using (result = new MemoryStream())
             {
-                await e.File.OpenReadStream(long.MaxValue).CopyToAsync(result);
+                try
+                {
+                    await e.Files.First().OpenReadStream(long.MaxValue).CopyToAsync(result);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Ignore this: there's one file, it returns the stream properly, but throws an exception unnecessarily
+                }
             }
             var rawImage = new ArraySegment<byte>();
             
             var success = result.TryGetBuffer(out rawImage);
             if (!success)
             {
-                await StatusCallback.InvokeAsync(new StatusCallbackArgs(
+                UpdateStatusArgs(new StatusArguments(
                     Color.Danger,
                     true,
                     "Could not change avatar.",
@@ -38,12 +51,13 @@ public partial class CompAvatar : CompProfile
             string b64 = Convert.ToBase64String(result.GetBuffer());
             User.Avatar = b64;
              */
-            User.Avatar = rawImage.ToArray();
+            user.Avatar = rawImage.ToArray();
+            await DataChangeCallback.InvokeAsync();
         }
         catch (Exception exc)
         {
-            Logger.LogError(exc.Message);
-            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
+            Logger.LogError(exc.ToString());
+            UpdateStatusArgs(new StatusArguments(
                 Color.Danger,
                 true,
                 "Could not change avatar.",
@@ -57,8 +71,10 @@ public partial class CompAvatar : CompProfile
     }
 
     // TODO: Remove this once database has Base64 strings for avatar
-    private string GetBase64Avatar()
+    
+    private static string GetBase64Avatar()
     {
-        return $"data:image/png;base64,{(User?.Avatar == null ? "" : Convert.ToBase64String(User.Avatar))}";
+        //return $"data:image/png;base64,{(user.Avatar == null ? "" : Convert.ToBase64String(user.Avatar))}";
+        return "";
     }
 }

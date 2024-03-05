@@ -1,3 +1,4 @@
+
 @attribute [Authorize]
 
 @inherits ComponentBase
@@ -5,55 +6,53 @@
 @inject IDbContextFactory<AppDbContext> Db
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
-@inject IdentityRedirectManager IdentityRedirectManager
+@inject IEmailSender<User> EmailSender
+@inject NavigationManager NavigationManager
+@inject ILogger<CompSettings> Logger
 
 <Modal @bind-Visible="@Visible" Closed="@(async Task () =>
-                                         {
-                                             await OnStatusUpdate(new StatusCallbackArgs(Color.Default, false, "", "")); 
-                                             SectionName = "User Profile"; 
-                                         })">
+                                        {
+                                            UpdateStatusArgs(new StatusArguments(Color.Default, false, "", "")); 
+                                            SectionName = "User Profile"; 
+                                        })">
     <ModalContent Centered Size="ModalSize.ExtraLarge">
         <ModalHeader>
             <h3>Account Settings</h3>
             <CloseButton/>
         </ModalHeader>
         <ModalBody>
-            <Alert Color="@CallbackArgs.StatusColor"
-                   Visible="@CallbackArgs.StatusVisible">
+            <Alert Color="@Arguments.StatusColor"
+                   Visible="@Arguments.StatusVisible">
                 <AlertMessage>
-                    @CallbackArgs.StatusMessage
+                    @Arguments.StatusMessage
                 </AlertMessage>
                 <AlertDescription>
-                    @CallbackArgs.StatusDescription
+                    @Arguments.StatusDescription
                 </AlertDescription>
             </Alert>
             <Divider/>
-            @if (User != null)
-            {
-                <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SectionName">
-                    <Items>
-                        <Tab Name="User Profile">Profile</Tab>
-                        <Tab Name="Login Details">Login Details</Tab>
-                        <Tab Name="Delete">Account Management</Tab>
-                    </Items>
-                    <Content>
-                        <TabPanel Name="User Profile" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompProfile UserUpdateCallback="OnUserUpdate" StatusCallback="OnStatusUpdate" EditingAllowed="true"/>
-                        </TabPanel>
-                        <TabPanel Name="Login Details" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompLoginDetails UserUpdateCallback="OnUserUpdate" StatusCallback="OnStatusUpdate"/>
-                        </TabPanel>
-                        <TabPanel Name="Delete" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                            <CompDeleteAccount UserUpdateCallback="OnUserUpdate" StatusCallback="OnStatusUpdate"/>
-                        </TabPanel>
-                    </Content>
-                </Tabs>
-            }
+            <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SectionName">
+                <Items>
+                    <Tab Name="User Profile">Profile</Tab>
+                    <Tab Name="Login Details">Login Details</Tab>
+                    <Tab Name="Delete">Account Management</Tab>
+                </Items>
+                <Content>
+                    <TabPanel Name="User Profile" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
+                        <CompProfile DataChangeCallback="OnDataChange" EditingAllowed="true"/>
+                    </TabPanel>
+                    <TabPanel Name="Login Details" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
+                        <CompLoginDetails DataChangeCallback="OnDataChange"/>
+                    </TabPanel>
+                    <TabPanel Name="Delete" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
+                        <CompDeleteAccount DataChangeCallback="OnDataChange"/>
+                    </TabPanel>
+                </Content>
+            </Tabs>
         </ModalBody>
         <ModalFooter>
-            <Form action="Account/Logout" method="post">
+            <Form id="logout-form" action="Account/Logout" method="post">
                 <AntiforgeryToken/>
-                <input type="hidden" name="ReturnUrl" value="Account/Login"/>
                 <Button Color="Color.Primary" Type="ButtonType.Submit">
                     Log Out
                 </Button>

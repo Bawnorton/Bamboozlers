@@ -2,13 +2,12 @@
 
 @inherits CompProfile
 
-@inject UserManager<User> UserManager
 @inject ILogger<CompAvatar> Logger;
 
-<FigureImage Source="@GetBase64Avatar()"/>
+<FigureImage Source="@*@UserModel.U.Avatar*@"/>
 <FigureCaption>
     @if (EditingAllowed)
     {
-        <FilePicker Upload="OnFileUpload" Filter="image/png"/>  
+        <FileEdit Changed="OnFileUpload" Filter="image/png"/>  
     }
 </FigureCaption>

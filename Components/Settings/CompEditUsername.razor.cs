@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Bamboozlers.Account;
+using Bamboozlers.Classes.Services;
 using Blazorise;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
@@ -15,56 +16,17 @@ public partial class CompEditUsername : CompTabToggle
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        if (User == null) return;
-        ViewButtonText = "Change Password";
+        ViewButtonText = "Change Username";
     }
     private async Task OnValidSubmitAsync()
     {
-        if (User == null)
+        var model = new UserModel
         {
-            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Could not change your username.",
-                statusDescription: "Your user data could not be verified at this time."
-                ));
-            return;
-        }
-
-        var passwordResult = await UserManager.CheckPasswordAsync(User, Input.Password);
-
-        if (passwordResult == false)
-        {
-            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Error occurred while changing username.",
-                statusDescription: "Password entered was incorrect."
-            ));
-            return;
-        }
-
-        var changeUsernameResult = await UserManager.SetUserNameAsync(User, Input.Username);
-        if (!changeUsernameResult.Succeeded)
-        {
-            await StatusCallback.InvokeAsync(new StatusCallbackArgs(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Error occurred while changing username.",
-                statusDescription: $"Error: {string.Join(",", changeUsernameResult.Errors.Select(error => error.Description))}"
-            ));
-            return;
-        }
-
-        await OnUserUpdateAsync();
-        Logger.LogInformation("User changed their username successfully.");
-
-        await StatusCallback.InvokeAsync(new StatusCallbackArgs(
-            statusColor: Color.Primary,
-            statusVisible: true,
-            statusMessage: "Success!",
-            statusDescription: "Your username has been changed."
-            ));
+            Type = DataChangeType.Username,
+            UserName = Input.Username,
+            Password = Input.Password
+        };
+        await DataChangeCallback.InvokeAsync(model);
     }
     
     private sealed class InputModel

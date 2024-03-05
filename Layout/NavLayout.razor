@@ -2,6 +2,7 @@
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Components.Settings
+@using Blazorise.Extensions
 
 @rendermode InteractiveServer
 
@@ -90,7 +91,7 @@
                  Class="sidebar-footer"
                  @onclick="@(() => ProfilePopupVisible = true)">
                 <Text>
-                    @(Self.DisplayName ?? Self.UserName) 
+                    @(Self.DisplayName.IsNullOrEmpty() ? Self.UserName : Self.DisplayName)
                 </Text>
                 <Icon Name="IconName.UserTie" IconSize="IconSize.Large"></Icon>
             </Div>

@@ -5,7 +5,6 @@
 @using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity.EntityFrameworkCore
 
-@inject UserManager<User> UserManager
 @inject ILogger<CompEditUsername> Logger
 
 <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="InteractionMode">
@@ -14,7 +13,7 @@
             <Row>
                   <Column ColumnSize="ColumnSize.Is8">
                       <Div Class="form-floating mb-3">
-                          <input type="text" value="@Username" class="form-control" disabled/>
+                          <input type="text" value="@UserModel.U.UserName" class="form-control" disabled/>
                           <Label for="username" class="form-label">Username</Label>
                       </Div>
                   </Column>
