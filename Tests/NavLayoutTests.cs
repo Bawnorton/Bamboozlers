@@ -9,11 +9,14 @@ public class NavLayoutTests : BlazoriseTestBase
 {
     private readonly MockDatabaseProvider _mockDatabaseProvider;
     private readonly MockAuthenticationProvider _mockAuthenticationProvider;
+
+    private readonly User _self;
     
     public NavLayoutTests()
     {
         _mockDatabaseProvider = new MockDatabaseProvider(Ctx);
-        _mockAuthenticationProvider = new MockAuthenticationProvider(Ctx);
+        _self = _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.First();
+        _mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, _self.UserName!);
 
         AuthHelper.Init(_mockAuthenticationProvider.GetAuthStateProvider(), _mockDatabaseProvider.GetDbContextFactory());
     }
@@ -33,11 +36,16 @@ public class NavLayoutTests : BlazoriseTestBase
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var self = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
-        var dms = self.Chats.Except(self.Chats.OfType<GroupChat>()).ToList();
-        var others = dms.SelectMany(c => c.Users).Where(u => u.Id != self.Id).ToList();
+        var dms = _self.Chats.Except(_self.Chats.OfType<GroupChat>()).ToList();
+        var others = dms.SelectMany(c => c.Users).Where(u => u.Id != _self.Id).ToList();
         
-        Assert.NotEmpty(others);
+        var expectedCount = others.Count;
+        var dmDropdown = component.Find("#dms_dropdown");
+        var actual = dmDropdown.ChildElementCount;
+
+        // Assert
+        Assert.Equal(expectedCount, actual);
+        
         foreach (var user in others)
         {
             component.Find("#user_" + user.Id).Click();
@@ -55,10 +63,15 @@ public class NavLayoutTests : BlazoriseTestBase
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var self = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
-        var groups = self.Chats.OfType<GroupChat>().ToList();
+        var groups = _self.Chats.OfType<GroupChat>().ToList();
         
-        Assert.NotEmpty(groups);
+        var expectedCount = groups.Count;
+        var groupDropdown = component.Find("#groups_dropdown");
+        var actual = groupDropdown.ChildElementCount;
+        
+        // Assert
+        Assert.Equal(expectedCount, actual);
+        
         foreach (var group in groups)
         {
             component.Find("#group_" + group.ID).Click();
@@ -77,10 +90,8 @@ public class NavLayoutTests : BlazoriseTestBase
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
-        var self = await AuthHelper.GetSelf();
-        var friends = friendships.Where(f => f.User1ID == self.Id || f.User2ID == self.Id).Select(f => f.User1ID == self.Id ? f.User2 : f.User1).ToList();
+        var friends = friendships.Where(f => f.User1ID == _self.Id || f.User2ID == _self.Id).Select(f => f.User1ID == _self.Id ? f.User2 : f.User1).ToList();
         
-        Assert.NotEmpty(friends);
         var count = friends.Count;
         component.Find("#friends").Click();
         var text = component.Find("#header-text");

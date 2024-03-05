@@ -37,7 +37,7 @@
                                 <BarIcon IconName="IconName.User"></BarIcon>
                                 Direct Messages
                             </BarDropdownToggle>
-                            <BarDropdownMenu>
+                            <BarDropdownMenu ElementId="dms_dropdown">
                                 @foreach (var chat in DmChats)
                                 {
                                     <BarItem>
@@ -56,7 +56,7 @@
                                 <BarIcon IconName="IconName.Users"></BarIcon>
                                 Group Chats
                             </BarDropdownToggle>
-                            <BarDropdownMenu>
+                            <BarDropdownMenu ElementId="groups_dropdown">
                                 @foreach (var chat in GroupChats)
                                 {
                                     <BarItem>
