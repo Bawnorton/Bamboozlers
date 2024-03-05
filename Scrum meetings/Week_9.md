@@ -1,9 +1,9 @@
 # Scrum Meeting (Week 9)
 
 ### Sprint Planning Checklist
-| Preparation | Meeting | Follow Up |
-| --- | --- | --- |
-| Complete | Complete | | 
+| Preparation | Meeting | Follow Up  |
+| --- | --- |------------|
+| Complete | Complete | 2024/03/08 | 
 
 ### Sprint Team Members
 | Name               | Role        |
@@ -66,28 +66,24 @@
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td>_ Issues</td>
+    <td>12 Issues</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      Bridgette Hunt - _ issues<br>
-      MacKenzie Richards - _ issues<br>
-      Zahra Kagda - _ issue<br>
-      Ben Norton - _ issues<br>
-      Ryan Osmond - _ issue
+      Bridgette Hunt - 4 issues<br>
+      MacKenzie Richards - 4 issues<br>
+      Zahra Kagda - 2 issues<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 3 issues
     </td>
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td></td>
+    <td>N/A</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td></td>
+    <td>N/A</td>
   </tr>
 </table>
-
-## Sprint Planning Resources
-- ...
-- ...
