@@ -23,7 +23,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<IIdentityRedirectManager, IdentityRedirectManager>();
+builder.Services.AddScoped<IdentityRedirectManagerWrapper>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 builder.Services.AddAuthentication(options =>
