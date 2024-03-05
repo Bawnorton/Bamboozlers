@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
 using Blazorise.Bootstrap5;
+using Blazorise.Tests.bUnit;
 using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -48,7 +49,6 @@ builder.Services.AddIdentityCore<User>(options =>
 
 builder.Services.AddTransient<IEmailSender<User>, EmailSender>();
 builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
-
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
