@@ -5,7 +5,6 @@
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject AuthenticationStateProvider AuthStateProvider;
-@inject IJSRuntime Js
 
 @if (Self is null)
 {
@@ -27,7 +26,7 @@
                  Class="scrollbar-container">
                 <BarMenu>
                     <BarItem>
-                        <BarLink @onclick="() => ChangeView(View.Friends)">
+                        <BarLink ElementId="friends" @onclick="() => ChangeView(View.Friends)">
                             <BarIcon IconName="IconName.Check"></BarIcon>
                             Friends
                         </BarLink>
@@ -38,22 +37,13 @@
                                 <BarIcon IconName="IconName.User"></BarIcon>
                                 Direct Messages
                             </BarDropdownToggle>
-                            <BarDropdownMenu>
+                            <BarDropdownMenu ElementId="dms_dropdown">
                                 @foreach (var chat in DmChats)
                                 {
                                     <BarItem>
-                                        <BarLink @onclick="() => ChangeView(View.Dm, chat.DbReference)">
+                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => ChangeView(View.Dm, chat.DbReference)">
                                             <BarIcon IconName="IconName.User"></BarIcon>
                                             @chat.User.DisplayName
-                                        </BarLink>
-                                    </BarItem>
-                                }
-                                @for (var i = 0; i < 100; i++)
-                                {
-                                    <BarItem>
-                                        <BarLink To="#">
-                                            <BarIcon IconName="IconName.Spa"></BarIcon>
-                                            Test
                                         </BarLink>
                                     </BarItem>
                                 }
@@ -66,11 +56,11 @@
                                 <BarIcon IconName="IconName.Users"></BarIcon>
                                 Group Chats
                             </BarDropdownToggle>
-                            <BarDropdownMenu>
+                            <BarDropdownMenu ElementId="groups_dropdown">
                                 @foreach (var chat in GroupChats)
                                 {
                                     <BarItem>
-                                        <BarLink @onclick="() => ChangeView(View.Group, chat)">
+                                        <BarLink ElementId="@("group_" + chat.ID)" @onclick="() => ChangeView(View.Group, chat)">
                                             <BarIcon IconName="IconName.Users"></BarIcon>
                                             @chat.Name
                                         </BarLink>
@@ -84,6 +74,7 @@
             <Div Padding="Padding.Is3"
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer"
+                 id="profile"
                  @onclick="OpenProfilePopup">
                 <Text>
                     @(Self.DisplayName ?? Self.UserName) 
@@ -98,7 +89,7 @@
                       TextSize="TextSize.Heading5"
                       TextColor="TextColor.Primary"
                       Background="Background.Dark">
-            <Text>@Views[CurrentView].Name</Text>
+            <Text ElementId="header-text">@Views[CurrentView].Name</Text>
         </LayoutHeader>
         <LayoutContent Padding="Padding.Is3"
                        Background="Background.Primary"
@@ -118,6 +109,8 @@
 
     private View CurrentView { get; set; } = View.Friends;
 
+    private int FriendCount { get; set; } = 0;
+
     private Dictionary<View, ViewHolder> Views { get; } = new()
     {
         {View.Friends, ViewHolder.Of(new CompFriendsView())},
@@ -130,6 +123,17 @@
         Self = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
+        
+        await using var db = await Db.CreateDbContextAsync();
+        var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
+        foreach (var friendship in friendships)
+        {
+            if (friendship.User1ID == Self.Id || friendship.User2ID == Self.Id)
+            {
+                FriendCount++;
+            }
+        }
+        
         ChangeView(CurrentView);       
     }
 
@@ -156,7 +160,7 @@
                 break;
             }
             case View.Friends:
-                Views[CurrentView].Name = $"Friends ({DmChats.Count})"; 
+                Views[CurrentView].Name = $"Friends ({FriendCount})"; 
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -167,7 +171,6 @@
     private Task OpenProfilePopup()
     {
         // TODO: Impl;
-        Js.InvokeVoidAsync("alert", "Not implemented");
         return Task.CompletedTask;
     }
 

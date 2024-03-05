@@ -9,13 +9,13 @@ public class AppDbContext:IdentityDbContext<User, IdentityRole<int>, int>
     {
     }
 
-    public DbSet<Chat> Chats { get; set; }
-    public DbSet<GroupChat> GroupChats { get; set; }
-    public DbSet<Message> Messages { get; set; }
-    public DbSet<Friendship> FriendShips { get; set; }
-    public DbSet<FriendRequest> FriendRequests { get; set; }
-    public DbSet<GroupInvite> GroupInvites { get; set; }
-    public DbSet<Block> BlockList { get; set; }
+    public virtual DbSet<Chat> Chats { get; set; }
+    public virtual DbSet<GroupChat> GroupChats { get; set; }
+    public virtual DbSet<Message> Messages { get; set; }
+    public virtual DbSet<Friendship> FriendShips { get; set; }
+    public virtual DbSet<FriendRequest> FriendRequests { get; set; }
+    public virtual DbSet<GroupInvite> GroupInvites { get; set; }
+    public virtual DbSet<Block> BlockList { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

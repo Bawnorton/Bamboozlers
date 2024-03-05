@@ -1,21 +1,18 @@
+using Bamboozlers.Account;
 using Bamboozlers.Account.Pages;
 using Bamboozlers.Classes.AppDbContext;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Identity;
-using Moq;
-using Bamboozlers.Account;
 using Bunit.TestDoubles;
 using HttpContextMoq;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
-using Bunit;
 
 namespace Tests;
 
 
-public class AuthenticationTests : IDisposable
+public class AuthenticationTests : TestBase
 {
-    private readonly TestContext ctx;
     private readonly Mock<SignInManager<User>> signInManagerMock;
     private readonly Mock<UserManager<User>> userManagerMock;
     private readonly Mock<IdentityRedirectManagerWrapper> redirectManagerMock;
@@ -28,17 +25,15 @@ public class AuthenticationTests : IDisposable
     public AuthenticationTests()
     {
         // Setup code that is shared across tests
-        ctx = new TestContext();
-        
         userManagerMock = new Mock<UserManager<User>>(Mock.Of<IUserStore<User>>(), null, null, null, null, null, null, null, null);
         signInManagerMock = new Mock<SignInManager<User>>(userManagerMock.Object, Mock.Of<IHttpContextAccessor>(), Mock.Of<IUserClaimsPrincipalFactory<User>>(), null, null, null, null);
         redirectManagerMock = new Mock<IdentityRedirectManagerWrapper>(Mock.Of<IIdentityRedirectManager>());
         httpContextMock = new HttpContextMock();
         
-        ctx.Services.AddSingleton(userManagerMock.Object);
-        ctx.Services.AddSingleton(signInManagerMock.Object);
-        ctx.Services.AddSingleton(redirectManagerMock.Object);
-        navMan = ctx.Services.GetRequiredService<FakeNavigationManager>();
+        Ctx.Services.AddSingleton(userManagerMock.Object);
+        Ctx.Services.AddSingleton(signInManagerMock.Object);
+        Ctx.Services.AddSingleton(redirectManagerMock.Object);
+        navMan = Ctx.Services.GetRequiredService<FakeNavigationManager>();
 
         user = new User { UserName = "testUser", Email = "testUser@example.com" };
         unconfirmedUser = new User { UserName = "unconfirmedUser", Email = "unconfirmed@example.com" };
@@ -66,7 +61,7 @@ public class AuthenticationTests : IDisposable
     [Fact]
     public void TestAuthenticationSuccessWUsername()
     {
-        var page = ctx.RenderComponent<Login>(
+        var page = Ctx.RenderComponent<Login>(
             p => p.AddCascadingValue<HttpContext>(httpContextMock));
         var uri = navMan.GetUriWithQueryParameter("ReturnUrl", "/");
         navMan.NavigateTo(uri);
@@ -90,7 +85,7 @@ public class AuthenticationTests : IDisposable
     [Fact]
     public void TestAuthenticationSuccessWEmail()
     {
-        var page = ctx.RenderComponent<Login>(
+        var page = Ctx.RenderComponent<Login>(
             p => p.AddCascadingValue<HttpContext>(httpContextMock));
         var uri = navMan.GetUriWithQueryParameter("ReturnUrl", "/");
         navMan.NavigateTo(uri);
@@ -114,7 +109,7 @@ public class AuthenticationTests : IDisposable
     [Fact]
     public void TestAuthenticationFailWUsername()
     {
-        var page = ctx.RenderComponent<Login>(
+        var page = Ctx.RenderComponent<Login>(
             p => p.AddCascadingValue<HttpContext>(httpContextMock));
         var uri = navMan.GetUriWithQueryParameter("ReturnUrl", "/");
         navMan.NavigateTo(uri);
@@ -150,7 +145,7 @@ public class AuthenticationTests : IDisposable
     [Fact]
     public void TestAuthenticationFailWPswd()
     {
-        var page = ctx.RenderComponent<Login>(
+        var page = Ctx.RenderComponent<Login>(
             p => p.AddCascadingValue<HttpContext>(httpContextMock));
         var uri = navMan.GetUriWithQueryParameter("ReturnUrl", "/");
         navMan.NavigateTo(uri);
@@ -176,7 +171,7 @@ public class AuthenticationTests : IDisposable
     [Fact]
     public void TestUnConfirmedEmail()
     {
-        var page = ctx.RenderComponent<Login>(
+        var page = Ctx.RenderComponent<Login>(
             p => p.AddCascadingValue<HttpContext>(httpContextMock));
         var uri = navMan.GetUriWithQueryParameter("ReturnUrl", "/");
         navMan.NavigateTo(uri);
@@ -201,7 +196,7 @@ public class AuthenticationTests : IDisposable
     [Fact]
     public void TestRedirectionAfterLogin()
     {
-        var page = ctx.RenderComponent<Login>(
+        var page = Ctx.RenderComponent<Login>(
             p => p.AddCascadingValue<HttpContext>(httpContextMock));
         var uri = navMan.GetUriWithQueryParameter("ReturnUrl", "/");
         navMan.NavigateTo(uri);
@@ -211,10 +206,5 @@ public class AuthenticationTests : IDisposable
         page.Find(".btn").Click();
         
         redirectManagerMock.Verify(r => r.RedirectTo("/"), Times.Once);
-    }
-
-    public void Dispose()
-    {
-        ctx.Dispose();
     }
 }
