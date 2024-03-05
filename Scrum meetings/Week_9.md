@@ -42,7 +42,10 @@
   </tr>
   <tr>
     <th>Summary</th>
-    <td>Registration and related issues completed. Milestone 3 mostly completed.</td>
+    <td>
+      Registration and related issues completed. Milestone 3 mostly completed.<br/>
+      Milestone 3 and related issues could not be resolved by the end of the sprint as it requires more work.<br/>
+    </td>
   </tr>
 </table>
 
