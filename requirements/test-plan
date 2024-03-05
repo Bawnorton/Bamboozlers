@@ -1,4 +1,8 @@
-project
+1 Test Strategies
+
+1.1 Testing Techniques:
+
+We will be primarily focusing on whitebox testing for the moment and will start to integrate more blackbox testing when we are closer to the end of the project
 
 1.2 Unit Testing
 
