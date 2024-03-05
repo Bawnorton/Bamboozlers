@@ -51,24 +51,33 @@ public class MockDatabaseProvider
         {
             new()
             {
+                Id = 0,
                 AccessFailedCount = 0,
                 Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
                 UserName = "TestUser",
                 Email = "test_user@gmail.com",
                 EmailConfirmed = true
             },
             new()
             {
+                Id = 1,
                 AccessFailedCount = 0,
                 Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
                 UserName = "TestUser2",
                 Email = "test_user2@gmail.com",
                 EmailConfirmed = true
             },
             new()
             {
+                Id = 2,
                 AccessFailedCount = 0,
                 Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
                 UserName = "TestUser3",
                 Email = "test_user3@gmail.com",
                 EmailConfirmed = true
@@ -82,23 +91,31 @@ public class MockDatabaseProvider
         var user2 = users.Skip(1).First();
         var user3 = users.Last();
 
-        return SetupMockDbSet(new List<Chat>
+        var dm = new Chat
         {
-            new()
-            {
-                ID = 1,
-                Users = new List<User> { user1, user2 },
-            },
-            new GroupChat
-            {
-                ID = 2,
-                Name = "TestGroupChat",
-                Owner = user1,
-                OwnerID = user1.Id,
-                Moderators = new List<User> { user2 },
-                Users = new List<User> { user1, user2, user3 }
-            }
-        });
+            ID = 1,
+            Users = new List<User> { user1, user2 }
+        };
+        
+        var groupChat = new GroupChat
+        {
+            ID = 2,
+            Name = "TestGroupChat",
+            Owner = user1,
+            OwnerID = user1.Id,
+            Moderators = new List<User> { user2 },
+            Users = new List<User> { user1, user2, user3 }
+        };
+        
+        user1.Chats.Add(dm);
+        user1.Chats.Add(groupChat);
+        user1.OwnedChats.Add(groupChat);
+        user2.Chats.Add(dm);
+        user2.Chats.Add(groupChat);
+        user2.ModeratedChats.Add(groupChat);
+        user3.Chats.Add(groupChat);
+        
+        return SetupMockDbSet(new List<Chat> { dm, groupChat });
     }
 
     private Mock<DbSet<Block>> SetupMockBlocks(IQueryable<User> users)
