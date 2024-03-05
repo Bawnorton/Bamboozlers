@@ -28,7 +28,7 @@
   </tr>
   <tr>
     <th>Issues Left</th>
-    <td>13 Issues</td>
+    <td>2 Issues</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
