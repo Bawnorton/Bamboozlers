@@ -9,7 +9,6 @@
 
 @inject UserManager<User> UserManager
 @inject IUserStore<User> UserStore
-@inject SignInManager<User> SignInManager
 @inject IEmailSender<User> EmailSender
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
@@ -23,7 +22,7 @@
             <h2>Create a new account.</h2>
             <hr/>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="email" aria-required="true" placeholder="name@example.com"/>
+                <InputText @bind-Value="Input.Email" id="email" class="form-control" autocomplete="email" aria-required="true" placeholder="name@example.com"/>
                 <label for="email">Email <label class="text-danger">*</label></label>
                 <ValidationMessage For="() => Input.Email" class="text-danger"/>
             </div>
@@ -32,17 +31,17 @@
                 <label for="displayName">Display Name</label>
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Username" class="form-control" autocomplete="username" aria-required="true" placeholder="username"/>
+                <InputText @bind-Value="Input.Username" id="username" class="form-control" autocomplete="username" aria-required="true" placeholder="username"/>
                 <label for="username">Username <label class="text-danger">*</label></label>
                 <ValidationMessage For="() => Input.Username" class="text-danger"/>
             </div>
             <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password"/>
+                <InputText type="password" @bind-Value="Input.Password" id="password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password"/>
                 <label for="password">Password <label class="text-danger">*</label></label>
                 <ValidationMessage For="() => Input.Password" class="text-danger"/>
             </div>
             <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password"/>
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="confirmPswd" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password"/>
                 <label for="confirm-password">Confirm Password <label class="text-danger">*</label></label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger"/>
             </div>
@@ -61,14 +60,13 @@
 
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
-    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
     private ValidationMessageStore? validationMessageStore;
     public async Task RegisterUser(EditContext editContext)
     {
         var user = CreateUser();
 
         await UserStore.SetUserNameAsync(user, Input.Username, CancellationToken.None);
-        var emailStore = GetEmailStore();
+        var emailStore = (IUserEmailStore<User>)UserStore;
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
         user.DisplayName = Input.DisplayName;
         var result = await UserManager.CreateAsync(user, Input.Password);
@@ -108,15 +106,9 @@
 
         await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
 
-        if (UserManager.Options.SignIn.RequireConfirmedAccount)
-        {
-            RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
-                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
-        }
-
-        await SignInManager.SignInAsync(user, isPersistent: false);
-        RedirectManager.RedirectTo(ReturnUrl);
+        RedirectManager.RedirectTo(
+            "Account/RegisterConfirmation",
+            new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
     }
 
     private User CreateUser()
@@ -130,16 +122,6 @@
             throw new InvalidOperationException($"Can't create an instance of '{nameof(User)}'. " +
                                                 $"Ensure that '{nameof(User)}' is not an abstract class and has a parameterless constructor.");
         }
-    }
-
-    private IUserEmailStore<User> GetEmailStore()
-    {
-        if (!UserManager.SupportsUserEmail)
-        {
-            throw new NotSupportedException("The default UI requires a user store with email support.");
-        }
-
-        return (IUserEmailStore<User>)UserStore;
     }
 
     private sealed class InputModel
