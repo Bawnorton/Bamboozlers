@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Bamboozlers.Components.Settings;
 
-public partial class CompEditPassword : CompTabToggle
+public partial class CompEditPassword : TabToggle
 {
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();

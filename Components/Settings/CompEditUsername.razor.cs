@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace Bamboozlers.Components.Settings;
 
-public partial class CompEditUsername : CompTabToggle
+public partial class CompEditUsername : TabToggle
 {
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components.Settings;
 
-public partial class CompEditEmail : CompTabToggle
+public partial class CompEditEmail : TabToggle
 {
     [SupplyParameterFromForm(FormName = "change-email")]
     private InputModel Input { get; set; } = new();

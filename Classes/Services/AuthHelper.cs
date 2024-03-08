@@ -10,7 +10,7 @@ public static class AuthHelper
 {
     private static AuthenticationStateProvider _authStateProvider;
     private static IDbContextFactory<AppDbContext.AppDbContext> _db;
-    private static User? _self;
+    //private static User? _self;
     private static IIdentity? _identity;
     
     public static void Init(AuthenticationStateProvider authStateProvider, IDbContextFactory<AppDbContext.AppDbContext> db)
@@ -30,22 +30,23 @@ public static class AuthHelper
     /// </exception>
     public static async Task<User> GetSelf(Unary<IQueryable<User>>? inculsionCallback = null)
     {
-        if (_self is not null) return _self;
-        
+        //if (_self is not null) return _self;
+
+        User self;
         var identity = GetIdentity();
         if (identity is { IsAuthenticated: true })
         {
             await using var db = await _db.CreateDbContextAsync();
             var query = db.Users.AsQueryable();
             query = inculsionCallback?.Invoke(query) ?? query;
-            _self = await query.FirstAsync(u => u.UserName == identity.Name);
+            self = await query.FirstAsync(u => u.UserName == identity.Name);
         }
         else
         {
             throw new Exception("User is not authenticated");
         }
 
-        return _self;
+        return self;
     }
 
     public static bool IsAuthenticated()

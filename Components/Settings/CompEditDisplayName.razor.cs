@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components.Settings;
 
-public partial class CompEditDisplayName : CompTabToggle
+public partial class CompEditDisplayName : TabToggle
 {
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
@@ -18,10 +18,13 @@ public partial class CompEditDisplayName : CompTabToggle
     
     private async Task OnValidSubmitAsync()
     {
-        var user = await GetUser();
-        user.DisplayName = Input.DisplayName;
+        var model = new UserModel
+        {
+            Type = DataChangeType.Visual,
+            DisplayName = Input.DisplayName
+        };
+        await DataChangeCallback.InvokeAsync(model);
         
-        await DataChangeCallback.InvokeAsync();
         Logger.LogInformation("User changed their display name successfully.");
 
         UpdateStatusArgs(new StatusArguments(

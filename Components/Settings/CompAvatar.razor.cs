@@ -8,7 +8,6 @@ public partial class CompAvatar : CompProfile
 {
     private async Task OnFileUpload(FileChangedEventArgs e)
     {
-        var user = await GetUser();
         if (e.Files == null)
         {
             UpdateStatusArgs(new StatusArguments(
@@ -51,8 +50,12 @@ public partial class CompAvatar : CompProfile
             string b64 = Convert.ToBase64String(result.GetBuffer());
             User.Avatar = b64;
              */
-            user.Avatar = rawImage.ToArray();
-            await DataChangeCallback.InvokeAsync();
+            var model = new UserModel
+            {
+                Type = DataChangeType.Visual,
+                Avatar = rawImage.ToArray()
+            };
+            await DataChangeCallback.InvokeAsync(model);
         }
         catch (Exception exc)
         {

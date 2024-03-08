@@ -1,8 +1,7 @@
 using Blazorise;
-using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components.Settings;
-public partial class CompTabToggle : CompSettings
+public class TabToggle : CompSettings
 {
     protected bool Editing { get; set; }
     protected string? InteractionMode { get; set; } = "view";

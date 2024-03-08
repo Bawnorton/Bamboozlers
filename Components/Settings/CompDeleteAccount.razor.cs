@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components.Settings;
 
-public partial class CompDeleteAccount : CompTabToggle
+public partial class CompDeleteAccount : TabToggle
 {
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();

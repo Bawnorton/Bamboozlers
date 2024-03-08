@@ -11,6 +11,7 @@ using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Components.Settings;
 using Blazorise;
+using Blazorise.Extensions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -39,7 +40,7 @@ public partial class CompSettings : ComponentBase
         }
     }
     
-    private static StatusArguments Arguments { get; set; }  = new();
+    private static StatusArguments Arguments { get; set; }  = new(Color.Default,false,"","");
     
     protected static void UpdateStatusArgs(StatusArguments arguments)
     {
@@ -65,21 +66,25 @@ public partial class CompSettings : ComponentBase
             case DataChangeType.Email:
                 await ChangeEmail(userModel.Email);
                 break;
-            case DataChangeType.Visual:
+            default:
                 var user = await GetUser();
+                if (user is null) 
+                    break;
                 user.DisplayName = userModel.DisplayName != null && userModel.DisplayName != user.DisplayName ? userModel.DisplayName : user.DisplayName;
                 user.Avatar = userModel.Avatar != null && userModel.Avatar != user.Avatar ? userModel.Avatar : user.Avatar;
                 user.Bio = userModel.Bio != null && userModel.Bio != user.Bio ? userModel.Bio : user.Bio;
                 await UserManager.UpdateAsync(user);
-                UserManager.Dispose();
                 break;
         }
         await LoadValuesFromStorage();
     }
 
+    private static int UserId { get; set; } = -1;
+    
     protected override async Task OnInitializedAsync()
     {
         SectionName ??= "User Profile";
+        UserId = await GetUserId();
         await LoadValuesFromStorage();
     }
 
@@ -89,14 +94,43 @@ public partial class CompSettings : ComponentBase
         await UserModel.UpdateUserModel(user);
     }
 
-    protected async Task<User> GetUser()
+    private async Task<User?> GetUser()
     {
-        return await AuthHelper.GetSelf();
+        return await UserManager.FindByIdAsync(UserId.ToString());
+    }
+    
+    private static async Task<int> GetUserId()
+    {
+        if (UserId != -1) return UserId;
+        var temp = await AuthHelper.GetSelf();
+        return temp.Id;
     }
 
-    private async Task ChangeUsername(string input, string pass)
+    private async Task ChangeUsername(string? input, string? pass)
     {
         var user = await GetUser();
+        if (user is null)
+        {
+            UpdateStatusArgs(new StatusArguments(
+                Color.Danger,
+                true,
+                "Could not change your username.",
+                "Could not verify your account data."
+            ));
+            return;
+        }
+        
+        if (input.IsNullOrEmpty())
+        {
+            UpdateStatusArgs(new StatusArguments(
+                Color.Danger,
+                true,
+                "Could not change your username.",
+                "New username must not be an empty field."
+            ));
+            return;
+        }
+        
         if (input == user.UserName)
         {
             UpdateStatusArgs(new StatusArguments(
@@ -107,8 +141,8 @@ public partial class CompSettings : ComponentBase
             ));
             return;  
         }
-        
-        var passwordResult = await UserManager.CheckPasswordAsync(user, pass);
+
+        var passwordResult = pass is not null && await UserManager.CheckPasswordAsync(user, pass);
         if (passwordResult == false)
         {
             UpdateStatusArgs(new StatusArguments(
@@ -138,14 +172,35 @@ public partial class CompSettings : ComponentBase
             statusColor: Color.Success,
             statusVisible: true,
             statusMessage: "Success! ",
-            statusDescription: $"Your username has been changed successfully."
+            statusDescription: "Your username has been changed successfully."
         ));
-        UserManager.Dispose();
     }
 
-    private async Task ChangePassword(string curp, string newp)
+    private async Task ChangePassword(string? curp, string? newp)
     {
         var user = await GetUser();
+        if (user is null)
+        {
+            UpdateStatusArgs(new StatusArguments(
+                Color.Danger,
+                true,
+                "Could not change your username.",
+                "Could not verify your account data."
+            ));
+            return;
+        }
+        
+        if (curp is null || newp is null)
+        {
+            UpdateStatusArgs(new StatusArguments(
+                statusColor: Color.Danger,
+                statusVisible: true,
+                statusMessage: "Error occurred while changing password.",
+                statusDescription: "Current and new password are required."
+            ));
+            return;
+        }
+        
         var result = await UserManager.ChangePasswordAsync(user, curp, newp);
         if (!result.Succeeded)
         {
@@ -166,12 +221,21 @@ public partial class CompSettings : ComponentBase
             statusMessage: "Success! ",
             statusDescription: "Your password has been changed successfully."
         ));
-        UserManager.Dispose();
     }
 
     private async Task ChangeEmail(string? newEmail)
     {
         var user = await GetUser();
+        if (user is null)
+        {
+            UpdateStatusArgs(new StatusArguments(
+                Color.Danger,
+                true,
+                "Could not change your username.",
+                "Could not verify your account data."
+            ));
+            return;
+        }
         
         if (newEmail is null || newEmail == user.Email)
         {
@@ -199,14 +263,23 @@ public partial class CompSettings : ComponentBase
             "Confirmation link was sent to new email.",
             "Please check your inbox to confirm changes."
         ));
-        UserManager.Dispose();
     }
 
-    private async Task DeleteAccount(string pass)
+    private async Task DeleteAccount(string? pass)
     {
         var user = await GetUser();
+        if (user is null)
+        {
+            UpdateStatusArgs(new StatusArguments(
+                Color.Danger,
+                true,
+                "Could not change your username.",
+                "Could not verify your account data."
+            ));
+            return;
+        }
 
-        if (!await UserManager.CheckPasswordAsync(user, pass))
+        if (!(pass is not null && await UserManager.CheckPasswordAsync(user, pass)))
         {
             UpdateStatusArgs(new StatusArguments(
                 Color.Danger,
@@ -233,7 +306,6 @@ public partial class CompSettings : ComponentBase
         Logger.LogInformation("User with ID '{UserId}' deleted their account.", userId);
         await UserManager.UpdateAsync(user);
         await UserManager.UpdateSecurityStampAsync(user);
-        UserManager.Dispose();
     }
 }
 
@@ -259,12 +331,11 @@ public sealed class UserModel
 
     public DataChangeType? Type { get; set; }
     public string? Password { get; set; }
-
     public string? NewPassword { get; set; }
-    public UserModel() { }
 
-    public static async Task UpdateUserModel(User user)
+    public static async Task UpdateUserModel(User? user)
     {
+        if (user is null) return;
         U.UserName = user.UserName;
         U.Email = user.Email;
         U.DisplayName = user.DisplayName;
@@ -273,7 +344,7 @@ public sealed class UserModel
     }
 }
 
-public sealed class StatusArguments
+public sealed class StatusArguments(Color statusColor, bool statusVisible, string statusMessage, string statusDescription)
 {
     public static readonly StatusArguments BasicStatusArgs = new (
         Color.Danger,
@@ -282,24 +353,8 @@ public sealed class StatusArguments
         "Your user data could not be verified at this time."
     );
     
-    public readonly Color StatusColor;
-    public readonly string StatusDescription;
-    public readonly string StatusMessage;
-    public readonly bool StatusVisible;
-
-    public StatusArguments()
-    {
-        StatusColor = Color.Default;
-        StatusVisible = false;
-        StatusMessage = "";
-        StatusDescription = "";
-    }
-
-    public StatusArguments(Color statusColor, bool statusVisible, string statusMessage, string statusDescription)
-    {
-        StatusColor = statusColor;
-        StatusVisible = statusVisible;
-        StatusMessage = statusMessage;
-        StatusDescription = statusDescription;
-    }
+    public readonly Color StatusColor = statusColor;
+    public readonly bool StatusVisible = statusVisible;
+    public readonly string StatusMessage = statusMessage;
+    public readonly string StatusDescription = statusDescription;
 }
