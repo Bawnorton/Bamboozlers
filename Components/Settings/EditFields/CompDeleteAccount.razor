@@ -67,9 +67,9 @@
     
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
         ViewButtonText = "Delete Account";
         ViewButtonColor = Color.Danger;
+        await base.OnInitializedAsync();
     }
 
     private async Task OnValidSubmitAsync()

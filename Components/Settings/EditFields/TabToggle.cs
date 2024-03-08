@@ -1,11 +1,18 @@
-/* BASE CLASS FOR FIELDS WITH TOGGLE-ABLE MODES (e.g., Edit Fields) */
 
 using Blazorise;
 
 namespace Bamboozlers.Components.Settings.EditFields;
-public class TabToggle : SettingsComponentBase
+
+/// <class>
+/// TabToggle
+/// </class>
+/// <summary>
+/// Abstract class inherited by fields that toggle between "view" and "edit" modes
+/// Includes necessary methods that do not need to be repeated in inheriting claes
+/// </summary>
+public abstract class TabToggle : SettingsComponentBase
 {
-    protected bool Editing { get; set; }
+    private bool Editing { get; set; }
     protected string? InteractionMode { get; set; } = "view";
     protected string EditButtonText { get; set; } = "Cancel";
     protected string ViewButtonText { get; set; } = "Toggle";
@@ -18,17 +25,17 @@ public class TabToggle : SettingsComponentBase
     protected Task Toggle()
     {
         Editing = !Editing;
-        ChangeViewContext();
+        SetViewContext();
         return Task.CompletedTask;
     }
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        ChangeViewContext();
+        SetViewContext();
     }
 
-    protected void ChangeViewContext()
+    private void SetViewContext()
     {
         InteractionMode = Editing ? "edit" : "view";
         ToggleButtonText = Editing ? EditButtonText : ViewButtonText;

@@ -52,7 +52,7 @@ public sealed class UserModel
     public string? Bio { get; set; }
     public /*string?*/ byte[]? Avatar { get; set; }
     
-    /* Alarming, I know, but these fields are for the purposes of transferring via a callback from earlier components */
+    /* Alarming, I know, but these fields are for the purposes of transferring via a callback from subclass components */
 
     public DataChangeType? Type { get; set; }
     public string? Password { get; set; }

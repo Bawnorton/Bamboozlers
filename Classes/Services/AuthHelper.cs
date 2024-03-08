@@ -16,6 +16,7 @@ public static class AuthHelper
     public static void Init(AuthenticationStateProvider authStateProvider, IDbContextFactory<AppDbContext.AppDbContext> db)
     {
         _authStateProvider = authStateProvider;
+        _authStateProvider.AuthenticationStateChanged += Invalidate;
         _db = db;
     } 
     
@@ -64,5 +65,17 @@ public static class AuthHelper
         var authState = _authStateProvider.GetAuthenticationStateAsync().Result;
         _identity = authState.User.Identity;
         return _identity;
+    }
+
+    /// <summary>
+    /// Invalidate the previously cached identity of the user when changes to
+    /// authentication state are made.
+    /// </summary>
+    /// <param name="authStateTask">
+    /// Task wrapped with information about the user.
+    /// </param>
+    private static void Invalidate(Task<AuthenticationState> authStateTask)
+    {
+        _identity = null;
     }
 }

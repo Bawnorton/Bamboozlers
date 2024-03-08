@@ -142,8 +142,9 @@ public partial class CompSettings : SettingsComponentBase
                 statusDescription: $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}"
             ));
         }
-        await UserManager.UpdateAsync(user);
-        await UserManager.UpdateSecurityStampAsync(user);
+        
+        await UpdateUser(user);
+        
         Logger.LogInformation("User changed their username successfully.");
         
         UpdateStatusArgs(new StatusArguments(
@@ -189,8 +190,9 @@ public partial class CompSettings : SettingsComponentBase
                 statusDescription: $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}"
             ));
         }
-        await UserManager.UpdateAsync(user);
-        await UserManager.UpdateSecurityStampAsync(user);
+        
+        await UpdateUser(user);
+        
         Logger.LogInformation("User changed their password successfully.");
         
         UpdateStatusArgs(new StatusArguments(
@@ -282,6 +284,11 @@ public partial class CompSettings : SettingsComponentBase
         }
         
         Logger.LogInformation("User with ID '{UserId}' deleted their account.", userId);
+        await UpdateUser(user);
+    }
+
+    private async Task UpdateUser(User user)
+    {
         await UserManager.UpdateAsync(user);
         await UserManager.UpdateSecurityStampAsync(user);
     }

@@ -13,7 +13,7 @@
                     </Div>
                 </Container>
                 <Container Width="Width.Is25">
-                    <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change email</Button>
+                    <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change Email</Button>
                 </Container>
             </Container>
         </TabPanel>
@@ -29,7 +29,7 @@
                             </Div>
                             <Div Class="form-floating mb-3">
                                 <InputText @bind-Value="Input.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="Please enter new email."/>
-                                <Label for="new-email" class="form-label">New email</Label>
+                                <Label for="new-email" class="form-label">New Email</Label>
                                 <ValidationMessage For="() => Input.NewEmail" class="text-danger"/>
                             </Div>
                         </Container>
@@ -56,9 +56,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
-        ChangeViewContext();
         ViewButtonText = "Change Email";
+        await base.OnInitializedAsync();
     }
 
     private async Task OnValidSubmitAsync()

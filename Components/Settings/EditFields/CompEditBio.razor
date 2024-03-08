@@ -8,12 +8,12 @@
             <Row>
                 <Column ColumnSize="ColumnSize.Is8">
                     <Div Class="form-floating mb-3">
-                        <input name="change-display" type="text" value="@UserModel.U.DisplayName" class="form-control" disabled/>
-                        <Label for="displayname" class="form-label">Display Name</Label>
+                        <InputTextArea name="change-display" type="text" @bind-Value="@UserModel.U.Bio" class="form-control" disabled/>
+                        <Label for="bio" class="form-label">Description</Label>
                     </Div>
                 </Column>
                 <Column ColumnSize="ColumnSize.Is4">
-                    <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change Display Name</Button>
+                    <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change Description</Button>
                 </Column>                
             </Row>
         </TabPanel>
@@ -24,9 +24,9 @@
                     <Container>
                         <Container Width="Width.Is75">
                             <Div Class="form-floating mb-3">
-                                <InputText @bind-Value="Input.DisplayName" class="form-control" autocomplete="new-username" aria-required="true" placeholder="Please enter new display name."/>
-                                <Label for="displayname" class="form-label">New Display Name</Label>
-                                <ValidationMessage For="() => Input.DisplayName" class="text-danger"/>
+                                <InputTextArea @bind-Value="Input.Bio" class="form-control" autocomplete="new-username" aria-required="true" placeholder="Please enter new display name."/>
+                                <Label for="displayname" class="form-label">New Description (@($"{Input.Bio.Length}/{MaxLength}"))</Label>
+                                <ValidationMessage For="() => Input.Bio" class="text-danger"/>
                             </Div>
                         </Container>
                         <Container Width="Width.Is75">
@@ -50,9 +50,11 @@
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
 
+    private static readonly int MaxLength = 1000;
+    
     protected override async Task OnInitializedAsync()
     {
-        ViewButtonText = "Change Display Name";
+        ViewButtonText = "Change Description";
         await base.OnInitializedAsync();
     }
     
@@ -60,27 +62,26 @@
     {
         var model = new UserModel
         {
-            Type = DataChangeType.Visual,
-            DisplayName = Input.DisplayName
+            Type = DataChangeType.Visual, 
+            Bio = Input.Bio
         };
         await DataChangeCallback.InvokeAsync(model);
         
-        Logger.LogInformation("User changed their display name successfully.");
+        Logger.LogInformation("User changed their biography successfully.");
 
         UpdateStatusArgs(new StatusArguments(
             statusColor: Color.Primary,
             statusVisible: true,
             statusMessage: "Success!",
-            statusDescription: "Your display name has been changed."
+            statusDescription: "Your description has been changed."
         ));
-
-        await Toggle();
     }
     
     private sealed class InputModel
     {
         [DataType(DataType.Text)]
-        [Display(Name = "Display Name")]
-        public string DisplayName { get; set; } = "";
+        [StringLength(1000, ErrorMessage = "Description must be less than 180 characters.")]
+        [Display(Name = "Description")]
+        public string Bio { get; set; } = "";
     }
 }
