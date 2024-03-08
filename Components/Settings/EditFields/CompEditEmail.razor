@@ -1,11 +1,6 @@
 @inherits TabToggle
 
-@using Microsoft.AspNetCore.WebUtilities
-@using System.Text
-@using System.Text.Encodings.Web
-
 @inject IEmailSender<User> EmailSender
-@inject NavigationManager NavigationManager
 
 <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="InteractionMode">
     <Content>
@@ -54,3 +49,28 @@
         </TabPanel>
     </Content>
 </Tabs>
+
+@code {
+    [SupplyParameterFromForm(FormName = "change-email")]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        ChangeViewContext();
+        ViewButtonText = "Change Email";
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        await DataChangeCallback.InvokeAsync(new UserModel { Type = DataChangeType.Email, Email = Input.NewEmail });
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "New email")]
+        public string? NewEmail { get; set; }
+    }
+}

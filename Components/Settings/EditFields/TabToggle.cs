@@ -1,7 +1,9 @@
+/* BASE CLASS FOR FIELDS WITH TOGGLE-ABLE MODES (e.g., Edit Fields) */
+
 using Blazorise;
 
-namespace Bamboozlers.Components.Settings;
-public class TabToggle : CompSettings
+namespace Bamboozlers.Components.Settings.EditFields;
+public class TabToggle : SettingsComponentBase
 {
     protected bool Editing { get; set; }
     protected string? InteractionMode { get; set; } = "view";

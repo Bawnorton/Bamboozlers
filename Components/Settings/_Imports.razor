@@ -1,14 +1,28 @@
-﻿@using Bamboozlers.Components.Settings
-@using Bamboozlers.Classes
-@using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes.Services
-@using Bamboozlers.Account
+﻿<!--
 
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.Identity.EntityFrameworkCore
-@using Microsoft.AspNetCore.Authorization
+Imports for Bamboozlers.Components.Settings.*, .EditFields.*, .VisualUtility.*
+
+-->
+@using System.ComponentModel.DataAnnotations;
+@using System.Data.Common;
+@using System.Reflection;
+@using System.Runtime.CompilerServices;
+@using System.Text;
+@using System.Text.Encodings.Web;
+
+@using Azure.Identity;
+
+@using Bamboozlers.Account;
+@using Bamboozlers.Classes;
+@using Bamboozlers.Classes.AppDbContext;
+@using Bamboozlers.Classes.Services;
+@using Bamboozlers.Components.Settings;
+
+@using Blazorise;
+@using Blazorise.Extensions;
+
 @using Microsoft.AspNetCore.Components;
-
-@using System.ComponentModel.DataAnnotations
-
-@using Blazorise
+@using Microsoft.AspNetCore.Identity;
+@using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+@using Microsoft.AspNetCore.WebUtilities;
+@using Microsoft.EntityFrameworkCore;

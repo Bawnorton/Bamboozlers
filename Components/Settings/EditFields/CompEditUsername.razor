@@ -1,25 +1,18 @@
 @inherits TabToggle;
 
-@using Microsoft.AspNetCore.WebUtilities
-@using System.Text
-@using System.Text.Encodings.Web
-@using Microsoft.AspNetCore.Identity.EntityFrameworkCore
-
-@inject ILogger<CompEditUsername> Logger
-
 <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="InteractionMode">
     <Content>
         <TabPanel Name="view">
             <Row>
-                  <Column ColumnSize="ColumnSize.Is8">
-                      <Div Class="form-floating mb-3">
-                          <input type="text" value="@UserModel.U.UserName" class="form-control" disabled/>
-                          <Label for="username" class="form-label">Username</Label>
-                      </Div>
-                  </Column>
-                  <Column ColumnSize="ColumnSize.Is4">
-                      <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change Username</Button>
-                  </Column>  
+                <Column ColumnSize="ColumnSize.Is8">
+                    <Div Class="form-floating mb-3">
+                        <input type="text" value="@UserModel.U.UserName" class="form-control" disabled/>
+                        <Label for="username" class="form-label">Username</Label>
+                    </Div>
+                </Column>
+                <Column ColumnSize="ColumnSize.Is4">
+                    <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change Username</Button>
+                </Column>  
             </Row>
         </TabPanel>
         <TabPanel Name="edit">
@@ -55,3 +48,38 @@
         </TabPanel>
     </Content>
 </Tabs>
+
+@code {
+    [SupplyParameterFromForm] 
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        ViewButtonText = "Change Username";
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        var model = new UserModel
+        {
+            Type = DataChangeType.Username,
+            UserName = Input.Username,
+            Password = Input.Password
+        };
+        await DataChangeCallback.InvokeAsync(model);
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [ValidUsername(ErrorMessage = "Username is invalid. It can only contain letters, numbers, and underscores. There can only be 1 underscore in a row.")]
+        [Display(Name = "Username")]
+        public string Username { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+    }
+}

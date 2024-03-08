@@ -1,11 +1,13 @@
-using Bamboozlers.Classes.AppDbContext;
-using Blazorise;
-using Microsoft.AspNetCore.Components;
+@inherits SettingsComponentBase
 
-namespace Bamboozlers.Components.Settings;
+@inject ILogger<CompEditAvatar> Logger;
 
-public partial class CompAvatar : CompProfile
-{
+<FigureImage Source="@*@UserModel.U.Avatar*@"/>
+<FigureCaption>
+    <FileEdit Changed="OnFileUpload" Filter="image/png"/>  
+</FigureCaption>
+
+@code {
     private async Task OnFileUpload(FileChangedEventArgs e)
     {
         if (e.Files == null)

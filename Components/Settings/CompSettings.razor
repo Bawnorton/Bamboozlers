@@ -1,7 +1,6 @@
-
-@attribute [Authorize]
-
-@inherits ComponentBase
+@using Bamboozlers.Classes.AppDbContext
+@using Microsoft.AspNetCore.Identity
+@inherits SettingsComponentBase
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject SignInManager<User> SignInManager
@@ -39,10 +38,44 @@
                 </Items>
                 <Content>
                     <TabPanel Name="User Profile" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                        <CompProfile DataChangeCallback="OnDataChange" EditingAllowed="true"/>
+                        <Container Width="Width.Is100">
+                            <Row>
+                                <Column>
+                                    <Row>
+                                        <CompEditEmail DataChangeCallback="OnDataChange"/>  
+                                    </Row>
+                                    <CompSimpleDivider/>
+                                    <Row>
+                                        <CompEditPassword DataChangeCallback="OnDataChange"/>  
+                                    </Row>
+                                </Column>
+                            </Row>
+                        </Container>
                     </TabPanel>
                     <TabPanel Name="Login Details" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                        <CompLoginDetails DataChangeCallback="OnDataChange"/>
+                        <Container Width="Width.Is100">
+                            <Row>
+                                <Column ColumnSize="ColumnSize.Is4">
+                                    <Row>
+                                        <CompEditAvatar DataChangeCallback="OnDataChange"/> 
+                                    </Row>
+                                </Column>
+                                <Column ColumnSize="ColumnSize.Is8">
+                                    <Row>
+                                        <CompEditUsername DataChangeCallback="OnDataChange"/>  
+                                    </Row>
+                                    <CompSimpleDivider/>
+                                    <Row>
+                                        <CompEditDisplayName DataChangeCallback="OnDataChange"/>
+                                    </Row>
+                                    <CompSimpleDivider/>
+                                    <Row>
+                                        <Label class="form-label">Description</Label>
+                                        <InputTextArea type="text" @bind-Value="@UserModel.U.Bio" class="form-control"/>
+                                    </Row>
+                                </Column>
+                            </Row>
+                        </Container>
                     </TabPanel>
                     <TabPanel Name="Delete" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
                         <CompDeleteAccount DataChangeCallback="OnDataChange"/>

@@ -1,26 +1,14 @@
-using System.ComponentModel.DataAnnotations;
-using System.Data.Common;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Encodings.Web;
-using Azure.Identity;
-using Bamboozlers.Account;
-using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
-using Bamboozlers.Components.Settings;
 using Blazorise;
-using Blazorise.Extensions;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Components.Settings;
 
-public partial class CompSettings : ComponentBase
+public partial class CompSettings : SettingsComponentBase
 {
     [Parameter]
     public string? SectionName { get; set; }
@@ -39,16 +27,6 @@ public partial class CompSettings : ComponentBase
             VisibleChanged.InvokeAsync(value);
         }
     }
-    
-    private static StatusArguments Arguments { get; set; }  = new(Color.Default,false,"","");
-    
-    protected static void UpdateStatusArgs(StatusArguments arguments)
-    {
-        Arguments = arguments;
-    }
-    
-    [Parameter] 
-    public EventCallback<UserModel> DataChangeCallback { get; set; }
 
     private async Task OnDataChange(UserModel userModel)
     {
@@ -120,7 +98,7 @@ public partial class CompSettings : ComponentBase
             return;
         }
         
-        if (input.IsNullOrEmpty())
+        if (string.IsNullOrEmpty(input))
         {
             UpdateStatusArgs(new StatusArguments(
                 Color.Danger,
@@ -307,54 +285,4 @@ public partial class CompSettings : ComponentBase
         await UserManager.UpdateAsync(user);
         await UserManager.UpdateSecurityStampAsync(user);
     }
-}
-
-public enum DataChangeType
-{
-    Password,
-    Username,
-    Deletion,
-    Email,
-    Visual
-}
-
-public sealed class UserModel
-{
-    public static UserModel U { get; private set; } = new();
-    public string? UserName { get; set; }
-    public string? Email { get; set; }
-    public string? DisplayName { get; set; }
-    public string? Bio { get; set; }
-    public /*string?*/ byte[]? Avatar { get; set; }
-    
-    /* Alarming, I know, but these fields are for the purposes of transferring via a callback from earlier components */
-
-    public DataChangeType? Type { get; set; }
-    public string? Password { get; set; }
-    public string? NewPassword { get; set; }
-
-    public static async Task UpdateUserModel(User? user)
-    {
-        if (user is null) return;
-        U.UserName = user.UserName;
-        U.Email = user.Email;
-        U.DisplayName = user.DisplayName;
-        U.Bio = user.Bio;
-        U.Avatar = user.Avatar;
-    }
-}
-
-public sealed class StatusArguments(Color statusColor, bool statusVisible, string statusMessage, string statusDescription)
-{
-    public static readonly StatusArguments BasicStatusArgs = new (
-        Color.Danger,
-        true,
-        "Could not find your account details.",
-        "Your user data could not be verified at this time."
-    );
-    
-    public readonly Color StatusColor = statusColor;
-    public readonly bool StatusVisible = statusVisible;
-    public readonly string StatusMessage = statusMessage;
-    public readonly string StatusDescription = statusDescription;
 }

@@ -1,8 +1,4 @@
-@attribute [Authorize]
-
 @inherits TabToggle
-
-@inject ILogger<CompDeleteAccount> Logger
 
 <Container>
     <Tabs @bind-SelectedTab="InteractionMode">
@@ -64,3 +60,26 @@
         </Content>
     </Tabs>
 </Container>
+
+@code {
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        ViewButtonText = "Delete Account";
+        ViewButtonColor = Color.Danger;
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        await DataChangeCallback.InvokeAsync(new UserModel{Type=DataChangeType.Deletion, Password=Input.Password});
+    }
+
+    private sealed class InputModel
+    {
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+    }
+}
