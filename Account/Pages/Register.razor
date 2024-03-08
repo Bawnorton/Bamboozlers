@@ -54,8 +54,6 @@
 </div>
 
 @code {
-    private IEnumerable<IdentityError>? identityErrors;
-
     [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }

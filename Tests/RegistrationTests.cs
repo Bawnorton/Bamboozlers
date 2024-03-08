@@ -16,14 +16,12 @@ public class RegistrationTests: TestBase
     private readonly Mock<IdentityRedirectManagerWrapper> redirectManagerMock;
     private readonly Mock<IEmailSender<User>> emailSenderMock;
     private readonly FakeNavigationManager navMan;
-    private readonly Mock<IUserStore<User>> userStoreMock;
-    private readonly Mock<IUserEmailStore<User>> userEmailStoreMock;
     private readonly User user;
     private readonly string fakePswd;
     
     public RegistrationTests(){
-        userStoreMock = new Mock<IUserStore<User>>();
-        userEmailStoreMock = userStoreMock.As<IUserEmailStore<User>>();
+        Mock<IUserStore<User>> userStoreMock = new Mock<IUserStore<User>>();
+        Mock<IUserEmailStore<User>> userEmailStoreMock = userStoreMock.As<IUserEmailStore<User>>();
         userManagerMock = new Mock<UserManager<User>>(userStoreMock.Object, null, null, null, null, null, null, null, null);
         redirectManagerMock = new Mock<IdentityRedirectManagerWrapper>(Mock.Of<IIdentityRedirectManager>());
         emailSenderMock = new Mock<IEmailSender<User>>();
@@ -36,6 +34,21 @@ public class RegistrationTests: TestBase
         Ctx.Services.AddSingleton(emailSenderMock.Object);
         Ctx.Services.AddSingleton<IUserStore<User>>(userEmailStoreMock.Object);
         navMan = Ctx.Services.GetRequiredService<FakeNavigationManager>();
+    }
+    
+    // Helper method to perform common setup tasks
+    private void SetupPageAndEnterValues(IRenderedComponent<Register> page, string username, string email, string password, string confirmPassword)
+    {
+        page.Find("#email").Change(email);
+        page.Find("#username").Change(username);
+        page.Find("#password").Change(password);
+        page.Find("#confirmPswd").Change(confirmPassword);
+        page.Find(".btn").Click();
+    }
+
+    private void SetupPageAndEnterUserValues(IRenderedComponent<Register> page)
+    {
+        SetupPageAndEnterValues(page, user.UserName!, user.Email!, fakePswd, fakePswd);
     }
 
     [Fact]
@@ -59,11 +72,7 @@ public class RegistrationTests: TestBase
         var uri = navMan.GetUriWithQueryParameter("ReturnUrl", "Account/Login");
         navMan.NavigateTo(uri);
         
-        page.Find("#email").Change(user.Email);
-        page.Find("#username").Change(user.UserName);
-        page.Find("#password").Change(fakePswd);
-        page.Find("#confirmPswd").Change(fakePswd);
-        page.Find(".btn").Click();
+        SetupPageAndEnterUserValues(page);
         
         Assert.Empty(page.FindAll("div.text-danger"));
         userManagerMock.Verify(x => x.CreateAsync(It.IsAny<User>(), fakePswd), Times.Once);
@@ -75,111 +84,89 @@ public class RegistrationTests: TestBase
             "Redirect was not called with the expected parameters.");
     }
     
-    [Fact]
-    public void TestInvalidUsername()
+    [Theory]
+    [InlineData("", "The Username field is required.")]
+    [InlineData("invalid__username!", "Username is invalid. It can only contain letters, numbers, and underscores. There can only be 1 underscore in a row.")]
+    public void TestBasicInvalidUsername(string username, string errorMsg)
     {
-        //empty username
         var page = Ctx.RenderComponent<Register>();
-        page.Find("#email").Change(user.Email);
-        page.Find("#password").Change(fakePswd);
-        page.Find("#confirmPswd").Change(fakePswd);
-        page.Find(".btn").Click();
-        page.Find(".btn").Click();
+        SetupPageAndEnterValues(page, username, user.Email!, fakePswd, fakePswd);;
         var expected = page.FindAll("div.text-danger");
         Assert.Single(expected);
-        Assert.Equal("The Username field is required.", expected[0].InnerHtml);
-        
-        //invalid username
-        page.Find("#username").Change("invalid__username!");
-        page.Find(".btn").Click();
-        expected = page.FindAll("div.text-danger");
-        Assert.Single(expected);
-        Assert.Equal("Username is invalid. It can only contain letters, numbers, and underscores. " +
-                     "There can only be 1 underscore in a row.", expected[0].InnerHtml);
-        
-        //username already in use
+        Assert.Equal(errorMsg, expected[0].InnerHtml);
+    }
+
+    [Fact]
+    public void TestUserNameInUse()
+    {
+        var page = Ctx.RenderComponent<Register>();
         userManagerMock.Setup(x => x.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError
             {
                 Code = "DuplicateUserName", Description = "Username is already in use."
             }));
-        page.Find("#username").Change(user.UserName);
-        page.Find(".btn").Click();
-        expected = page.FindAll("div.text-danger");
+        
+        SetupPageAndEnterUserValues(page);
+        
+        var expected = page.FindAll("div.text-danger");
         Assert.Single(expected);
         Assert.Equal("Username is already in use.", expected[0].InnerHtml);
     }
     
-    [Fact]
-    public void TestInvalidEmail()
+    [Theory]
+    [InlineData("", "The Email field is required.")]
+    [InlineData("invalidEmail", "Provided email address is invalid.")]
+    public void TestInvalidEmail(string email, string errorMsg)
     {
-        //empty email
         var page = Ctx.RenderComponent<Register>();
-        page.Find("#username").Change(user.UserName);
-        page.Find("#password").Change(fakePswd);
-        page.Find("#confirmPswd").Change(fakePswd);
-        page.Find(".btn").Click();
+        SetupPageAndEnterValues(page, user.UserName!, email, fakePswd, fakePswd);
         var expected = page.FindAll("div.text-danger");
         Assert.Single(expected);
-        Assert.Equal("The Email field is required.", expected[0].InnerHtml);
-        
-        //invalid email
-        page.Find("#email").Change("invalidEmail");
-        page.Find(".btn").Click();
-        expected = page.FindAll("div.text-danger");
-        Assert.Single(expected);
-        Assert.Equal("Provided email address is invalid.", expected[0].InnerHtml);
-        
-        //email already in use
+        Assert.Equal(errorMsg, expected[0].InnerHtml);
+    }
+
+    [Fact]
+    public void TestEmailInUse()
+    {
+        var page = Ctx.RenderComponent<Register>();
         userManagerMock.Setup(x => x.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError
             {
                 Code = "DuplicateEmail", Description = "Email is already in use."
             }));
-        page.Find("#email").Change(user.Email);
-        page.Find(".btn").Click();
-        expected = page.FindAll("div.text-danger");
+        SetupPageAndEnterUserValues(page);
+        var expected = page.FindAll("div.text-danger");
         Assert.Single(expected);
         Assert.Equal("Email is already in use.", expected[0].InnerHtml);
-            
+    }
+
+    [Theory]
+    [InlineData("", "", "The Password field is required.")]
+    [InlineData("invalidPswd", "", "The password and confirmation password do not match.")]
+    public void TestBasicPasswordValidation(string password, string confirmPassword, string expectedErrorMessage)
+    {
+        var page = Ctx.RenderComponent<Register>();
+        SetupPageAndEnterValues(page, user.UserName!, user.Email!, password, confirmPassword);
+    
+        var expected = page.FindAll("div.text-danger");
+        Assert.Single(expected);
+        Assert.Equal(expectedErrorMessage, expected[0].InnerHtml);
     }
     
     [Fact]
-    public void TestInvalidPassword()
+    public void TestComplexPasswordValidation()
     {
-        var invalidPswd = "invalidPswd";
-        //empty password
+        userManagerMock.Setup(x => x.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError
+            {
+                Code = "PasswordRequiresNonAlphanumeric",
+                Description = "Passwords must have at least one non-alphanumeric character."
+            }));
+    
         var page = Ctx.RenderComponent<Register>();
-        page.Find("#email").Change(user.Email);
-        page.Find("#username").Change(user.UserName);
-        page.Find(".btn").Click();
+        SetupPageAndEnterUserValues(page);
         var expected = page.FindAll("div.text-danger");
         Assert.Single(expected);
-        Assert.Equal("The Password field is required.", expected[0].InnerHtml);
-        
-        //passwords do not match
-        page.Find("#password").Change(invalidPswd);
-        page.Find(".btn").Click();
-        expected = page.FindAll("div.text-danger");
-        Assert.Single(expected);
-        Assert.Equal("The password and confirmation password do not match.", expected[0].InnerHtml);
-        
-        
-        //invalid password (no non-alphanumeric character)
-        userManagerMock.Setup(x => x.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
-            .ReturnsAsync(IdentityResult.Failed( 
-                new IdentityError
-                {
-                    Code = "PasswordRequiresNonAlphanumeric", 
-                    Description = "Passwords must have at least one non-alphanumeric character."
-                }));
-        
-        page.Find("#confirmPswd").Change(invalidPswd);
-        page.Find(".btn").Click();
-        expected = page.FindAll("div.text-danger");
-        Assert.Single(expected);
         Assert.Equal("Passwords must have at least one non-alphanumeric character.", expected.FirstOrDefault()?.InnerHtml);
-        
-        
     }
 }
