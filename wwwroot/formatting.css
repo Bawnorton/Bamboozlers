@@ -1,5 +1,8 @@
-.centre-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.message-input:empty:before {
+    content: attr(data-placeholder);
+    color: rgba(200, 201, 206, 0.5) !important;
+}
+
+.message-input:focus {
+    outline: none;
 }

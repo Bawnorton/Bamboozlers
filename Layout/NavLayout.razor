@@ -133,6 +133,27 @@
                 FriendCount++;
             }
         }
+
+        var other = new User
+        {
+            Id = 3421,
+            UserName = "TestUser1",
+            Email = "test@gmail.com",
+            EmailConfirmed = true,
+            AccessFailedCount = 0,
+            DisplayName = "Test User 1",
+            Chats = [],
+            ModeratedChats = [],
+            OwnedChats = []
+        };
+        var chat = new Chat
+        {
+            ID = 1342,
+            Users = [Self, other],
+            Messages = []
+        };
+        other.Chats.Add(chat);
+        DmChats.Add(new DmChat(chat, other));
         
         ChangeView(CurrentView);       
     }
