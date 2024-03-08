@@ -1,5 +1,6 @@
 using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Services;
 using Bamboozlers.Layout;
 using Microsoft.EntityFrameworkCore;
 
