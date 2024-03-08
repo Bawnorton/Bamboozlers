@@ -66,19 +66,24 @@
     public async void OnKeydown(InputEvent inputEvent)
     {
         var keyReference = inputEvent.KeyReference;
-        if (keyReference is not { Key: "Enter", Shift: false }) return;
-        
-        SendMessage();
-        await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
+        if (keyReference is { Key: "Enter", Shift: false })
+        {
+            SendMessage();
+            await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
+        } 
     }
     
     /// <summary>
     /// After text is inserted into the contenteditable element
     /// </summary>
     [JSInvokable]
-    public void OnKeyup(InputEvent inputEvent)
+    public async void OnKeyup(InputEvent inputEvent)
     {
         Message = inputEvent.Text;
+        if (inputEvent.KeyReference is { Key: "Backspace" } && Message.Equals("\n"))
+        {
+            await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
+        }
     }
 
     private void SendMessage()

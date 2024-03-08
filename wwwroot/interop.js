@@ -3,7 +3,6 @@ window.messageInputInterop = {
         const element = document.getElementById(elementId);
 
         const disallowedKeys = await dotNetReference.invokeMethodAsync("GetDisallowedKeys");
-        console.log(disallowedKeys);
         let passed = true;
         // Impl Note: Determining if the event should be prevented from the "OnKeydown" event is too slow and causes the event to be missed. 
         element.addEventListener("keydown", async function (event) {
@@ -47,6 +46,6 @@ window.messageInputInterop = {
     },
     clear: async function (elementId) {
         const element = document.getElementById(elementId);
-        element.innerText = "";
+        element.innerHTML = "";
     }
 }
