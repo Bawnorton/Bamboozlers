@@ -4,12 +4,11 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using Bamboozlers.Classes.AppDbContext
-@using System.ComponentModel
 
 @inject SignInManager<User> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
-@inject IdentityRedirectManager RedirectManager
+@inject IdentityRedirectManagerWrapper RedirectManager
 @inject UserManager<User> UserManager;
 
 <PageTitle>Log in</PageTitle>
@@ -23,12 +22,12 @@
                 <h2>Welcome Back!</h2>
                 <hr/>
                 <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.UserNameOrEmail" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com or username"/>
+                    <InputText @bind-Value="Input.UserNameOrEmail" id="email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com or username"/>
                     <label for="email" class="form-label">Email or Username</label>
                     <ValidationMessage For="() => Input.UserNameOrEmail" class="text-danger"/>
                 </div>
                 <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password"/>
+                    <InputText type="password" @bind-Value="Input.Password" id="password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password"/>
                     <label for="password" class="form-label">Password</label>
                     <ValidationMessage For="() => Input.Password" class="text-danger"/>
                     <p>
@@ -54,6 +53,7 @@
 </div>
 
 @code {
+    
     private string? errorMessage;
     private string? errorLink;
     private string? errorLinkText;
@@ -75,8 +75,6 @@
 
     public async Task LoginUser()
     {
-        // This doesn't count login failures towards account lockout
-        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
         var user = await UserManager.FindByNameAsync(Input.UserNameOrEmail) ?? await UserManager.FindByEmailAsync(Input.UserNameOrEmail);
         if (user is null)
         {
