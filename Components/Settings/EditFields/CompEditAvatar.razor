@@ -2,17 +2,30 @@
 
 @inject ILogger<CompEditAvatar> Logger;
 
-<FigureImage Source="@*@UserModel.U.Avatar*@"/>
+<FigureImage Source="@UserDisplayRecord.Avatar"/>
 <FigureCaption>
-    <FileEdit Changed="OnFileUpload" Filter="image/png"/>  
+    <FileEdit Changed="OnFileUpload" Filter="image/*"/>  
 </FigureCaption>
 
-@code {
-    private async Task OnFileUpload(FileChangedEventArgs e)
+@code
+{
+    private async Task OnFileUpload(FileChangedEventArgs args)
     {
-        if (e.Files == null)
+        if (DataChangeFunction is null)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            return;
+        }
+
+        IFileEntry? file;
+        
+        try
+        {
+            file = args.Files.Single();
+        }
+        catch (ArgumentNullException)
+        {
+            await StatusChangeEvent.InvokeAsync(new StatusArguments(
                 Color.Danger,
                 true,
                 "Unable to change avatar.",
@@ -20,66 +33,46 @@
             ));
             return;
         }
-        MemoryStream result;
-        try
+        catch (InvalidOperationException)
         {
-            using (result = new MemoryStream())
-            {
-                try
-                {
-                    await e.Files.First().OpenReadStream(long.MaxValue).CopyToAsync(result);
-                }
-                catch (InvalidOperationException)
-                {
-                    // Ignore this: there's one file, it returns the stream properly, but throws an exception unnecessarily
-                }
-            }
-            var rawImage = new ArraySegment<byte>();
-            
-            var success = result.TryGetBuffer(out rawImage);
-            if (!success)
-            {
-                UpdateStatusArgs(new StatusArguments(
-                    Color.Danger,
-                    true,
-                    "Could not change avatar.",
-                    "An error was encountered while processing uploaded avatar."
-                    ));
-                return;
-            }
-            /* I'm assuming we're going to be changing to base64 strings at some point, makes it easier to use in image elements
-             
-            string b64 = Convert.ToBase64String(result.GetBuffer());
-            User.Avatar = b64;
-             */
-            var model = new UserModel
-            {
-                Type = DataChangeType.Visual,
-                Avatar = rawImage.ToArray()
-            };
-            await DataChangeCallback.InvokeAsync(model);
+            await StatusChangeEvent.InvokeAsync(new StatusArguments(
+                Color.Danger,
+                true,
+                "Unable to change avatar.",
+                "More than one file was uploaded. Exactly one file must be uploaded."
+            ));
+            return;
         }
-        catch (Exception exc)
+
+        var image = new ArraySegment<byte>(); 
+        var result = false;
+        using (var stream = new MemoryStream())
         {
-            Logger.LogError(exc.ToString());
-            UpdateStatusArgs(new StatusArguments(
+            try
+            {
+                await file.WriteToStreamAsync(stream);
+                result = stream.TryGetBuffer(out image);
+            }
+            catch (Exception exc)
+            {
+                Logger.LogError(exc.ToString());
+            }
+        }
+
+        if (!result || image.IsNullOrEmpty())
+        {
+            await StatusChangeEvent.InvokeAsync(new StatusArguments(
                 Color.Danger,
                 true,
                 "Could not change avatar.",
-                "An error was encountered while changing avatar."
-                ));
+                "An error was encountered while processing uploaded avatar."
+            ));
         }
-        finally
+        
+        await DataChangeFunction.Invoke(new UserDataRecord
         {
-            StateHasChanged();
-        }
-    }
-
-    // TODO: Remove this once database has Base64 strings for avatar
-    
-    private static string GetBase64Avatar()
-    {
-        //return $"data:image/png;base64,{(user.Avatar == null ? "" : Convert.ToBase64String(user.Avatar))}";
-        return "";
+            DataType = UserDataType.Visual,
+            Avatar = image.ToArray()
+        });
     }
 }

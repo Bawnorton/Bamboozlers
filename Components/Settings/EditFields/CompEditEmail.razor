@@ -1,14 +1,12 @@
 @inherits TabToggle
 
-@inject IEmailSender<User> EmailSender
-
 <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="InteractionMode">
     <Content>
         <TabPanel Name="view">
             <Container>
                 <Container Width="Width.Is75">
                     <Div Class="form-floating mb-3">
-                        <input type="text" value="@UserModel.U.Email" class="form-control" disabled/>
+                        <input type="text" value="@UserDisplayRecord.Email" class="form-control" disabled/>
                         <Label for="email" class="form-label">Email</Label>
                     </Div>
                 </Container>
@@ -24,7 +22,7 @@
                     <Container>
                         <Container Width="Width.Is75">
                             <Div class="form-floating mb-3">
-                                <input type="text" value="@UserModel.U.Email" class="form-control" disabled/>
+                                <input type="text" value="@UserDisplayRecord.Email" class="form-control" disabled/>
                                 <Label for="email" class="form-label">Email</Label>
                             </Div>
                             <Div Class="form-floating mb-3">
@@ -62,7 +60,19 @@
 
     private async Task OnValidSubmitAsync()
     {
-        await DataChangeCallback.InvokeAsync(new UserModel { Type = DataChangeType.Email, Email = Input.NewEmail });
+        if (DataChangeFunction is null)
+        {
+            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            return;
+        }
+        
+        var result = await DataChangeFunction.Invoke(new UserDataRecord 
+        { 
+            DataType = UserDataType.Email, 
+            Email = Input.NewEmail 
+        });
+        if (result)
+            await Toggle();
     }
 
     private sealed class InputModel

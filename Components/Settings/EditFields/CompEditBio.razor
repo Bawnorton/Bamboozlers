@@ -8,7 +8,7 @@
             <Row>
                 <Column ColumnSize="ColumnSize.Is8">
                     <Div Class="form-floating mb-3">
-                        <InputTextArea name="change-display" type="text" @bind-Value="@UserModel.U.Bio" class="form-control" disabled/>
+                        <textarea name="bio" type="text" class="form-control" disabled>@UserDisplayRecord.Bio</textarea>
                         <Label for="bio" class="form-label">Description</Label>
                     </Div>
                 </Column>
@@ -60,16 +60,21 @@
     
     private async Task OnValidSubmitAsync()
     {
-        var model = new UserModel
+        if (DataChangeFunction is null)
         {
-            Type = DataChangeType.Visual, 
+            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            return;
+        }
+        
+        await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Visual,
             Bio = Input.Bio
-        };
-        await DataChangeCallback.InvokeAsync(model);
+        });
         
         Logger.LogInformation("User changed their biography successfully.");
 
-        UpdateStatusArgs(new StatusArguments(
+        await StatusChangeEvent.InvokeAsync(new StatusArguments(
             statusColor: Color.Primary,
             statusVisible: true,
             statusMessage: "Success!",

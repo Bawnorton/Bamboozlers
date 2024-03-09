@@ -6,7 +6,7 @@
             <Row>
                 <Column ColumnSize="ColumnSize.Is8">
                     <Div Class="form-floating mb-3">
-                        <input type="text" value="@UserModel.U.UserName" class="form-control" disabled/>
+                        <input type="text" value="@UserDisplayRecord.UserName" class="form-control" disabled/>
                         <Label for="username" class="form-label">Username</Label>
                     </Div>
                 </Column>
@@ -61,13 +61,18 @@
 
     private async Task OnValidSubmitAsync()
     {
-        var model = new UserModel
+        if (DataChangeFunction is null)
         {
-            Type = DataChangeType.Username,
+            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            return;
+        }
+        
+        await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Username,
             UserName = Input.Username,
-            Password = Input.Password
-        };
-        await DataChangeCallback.InvokeAsync(model);
+            CurrentPassword = Input.Password
+        });
     }
 
     private sealed class InputModel

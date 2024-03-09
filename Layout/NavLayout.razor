@@ -15,7 +15,6 @@
     return;
 }
 
-<CompSettings @bind-Visible="ProfilePopupVisible"/>
 <Layout Sider>
     <LayoutSider>
         <LayoutSiderContent>
@@ -79,6 +78,7 @@
             <Div Padding="Padding.Is3"
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer"
+                 id="profile"
                  @onclick="@(() => ProfilePopupVisible = true)">
                 <Text>
                     @(Self.DisplayName ?? Self.UserName) 
@@ -103,7 +103,27 @@
     </Layout>
 </Layout>
 
+
+@if (!Testing)
+{
+    /*
+     * The Settings pop-up component requires a lot of services that are unnecessary for the unit testing of the
+     * navigation layout. I've made it so that the NavLayout has a parameter that is applied only when its unit
+     * tests are being run, which disables the Settings component from being rendered, and thus, causing those
+     * tests to unnecessarily fail.
+     *
+     * bhunt02 (2024/03/08)
+     */
+    <CompSettings @bind-Visible="ProfilePopupVisible"/>
+}
+else
+{
+    // Mock of the Settings pop-up component
+    <Modal ElementId="test-settings" @bind-Visible="@ProfilePopupVisible"></Modal>
+}
+
 @code {
+    [Parameter] public bool Testing { get; set; }
 
     private User? Self { get; set; }
 
@@ -171,7 +191,7 @@
         }
     }
 
-    private bool ProfilePopupVisible { get; set; }
+    public bool ProfilePopupVisible { get; set; }
 
     private enum View
     {

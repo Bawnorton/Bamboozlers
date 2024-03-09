@@ -74,7 +74,17 @@
 
     private async Task OnValidSubmitAsync()
     {
-        await DataChangeCallback.InvokeAsync(new UserModel{Type=DataChangeType.Deletion, Password=Input.Password});
+        if (DataChangeFunction is null)
+        {
+            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            return;
+        }
+        
+        await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Deletion,
+            CurrentPassword = Input.Password
+        });
     }
 
     private sealed class InputModel

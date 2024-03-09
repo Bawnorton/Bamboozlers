@@ -1,290 +1,301 @@
 using System.Text;
 using System.Text.Encodings.Web;
+using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
 using Blazorise;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.JSInterop;
 
 namespace Bamboozlers.Components.Settings;
 
 public partial class CompSettings : SettingsComponentBase
 {
-    [Parameter]
-    public string? SectionName { get; set; }
+    [Parameter] public bool Testing { get; set; }
+
+    [Parameter] public string? SectionName { get; set; }
+
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
     
-    [Parameter] 
-    public EventCallback<bool> VisibleChanged { get; set; }
     private bool _visible;
+    [Parameter] public bool Visible { get => _visible; set { if (_visible == value) return; _visible = value; VisibleChanged.InvokeAsync(value); } }
     
-    [Parameter]
-    public bool Visible { 
-        get => _visible;
-        set
-        {
-            if (_visible == value) return;
-            _visible = value;
-            VisibleChanged.InvokeAsync(value);
-        }
+    private static StatusArguments Arguments { get; set; }  = new();
+
+    private static async Task OnStatusUpdate(StatusArguments arguments)
+    {
+        Arguments = arguments;
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        Arguments = new StatusArguments();
     }
 
-    private async Task OnDataChange(UserModel userModel)
+    private async Task<bool> OnDataChange(UserDataRecord userDataRecord)
     {
-        switch (userModel.Type)
+        var result = false;
+        switch (userDataRecord.DataType)
         {
-            case DataChangeType.Username: 
-                await ChangeUsername(userModel.UserName, userModel.Password);
+            case UserDataType.Username: 
+                result = await ChangeUsername(userDataRecord.UserName, userDataRecord.CurrentPassword);
                 break;
-            case DataChangeType.Password:
-                await ChangePassword(userModel.Password, userModel.NewPassword);
+            case UserDataType.Password:
+                result = await ChangePassword(userDataRecord.CurrentPassword, userDataRecord.NewPassword);
                 break;
-            case DataChangeType.Deletion:
-                await DeleteAccount(userModel.Password);
+            case UserDataType.Deletion:
+                result = await DeleteAccount(userDataRecord.CurrentPassword);
+                if (result) return result;
                 break;
-            case DataChangeType.Email:
-                await ChangeEmail(userModel.Email);
+            case UserDataType.Email:
+                result = await ChangeEmail(userDataRecord.Email);
                 break;
-            default:
+            case UserDataType.Visual: case null: default:
                 var user = await GetUser();
-                if (user is null) 
-                    break;
-                user.DisplayName = userModel.DisplayName != null && userModel.DisplayName != user.DisplayName ? userModel.DisplayName : user.DisplayName;
-                user.Avatar = userModel.Avatar != null && userModel.Avatar != user.Avatar ? userModel.Avatar : user.Avatar;
-                user.Bio = userModel.Bio != null && userModel.Bio != user.Bio ? userModel.Bio : user.Bio;
+                if (user is null) break;
+                
+                user.DisplayName = userDataRecord.DisplayName != null && userDataRecord.DisplayName != user.DisplayName ? userDataRecord.DisplayName : user.DisplayName;
+                user.Avatar = userDataRecord.Avatar != null && userDataRecord.Avatar != user.Avatar ? userDataRecord.Avatar : user.Avatar;
+                user.Bio = userDataRecord.Bio != null && userDataRecord.Bio != user.Bio ? userDataRecord.Bio : user.Bio;
+                
                 await UserManager.UpdateAsync(user);
+                result = true;
                 break;
         }
-        await LoadValuesFromStorage();
+        
+        if (result)
+            await LoadValuesFromStorage();
+        return result;
     }
 
-    private static int UserId { get; set; } = -1;
-    
-    protected override async Task OnInitializedAsync()
-    {
-        SectionName ??= "User Profile";
-        UserId = await GetUserId();
-        await LoadValuesFromStorage();
-    }
-
-    private async Task LoadValuesFromStorage()
-    {
-        var user = await GetUser();
-        await UserModel.UpdateUserModel(user);
-    }
-
+    private static int? UserId { get; set; } = null;
     private async Task<User?> GetUser()
     {
-        return await UserManager.FindByIdAsync(UserId.ToString());
+        return await UserManager.FindByIdAsync((await GetUserId()).ToString());
     }
     
     private static async Task<int> GetUserId()
     {
-        if (UserId != -1) return UserId;
-        var temp = await AuthHelper.GetSelf();
-        return temp.Id;
+        return UserId ?? (await AuthHelper.GetSelf()).Id;
     }
-
-    private async Task ChangeUsername(string? input, string? pass)
+    protected override async Task OnInitializedAsync()
+    {
+        SectionName ??= "User Profile";
+        await LoadValuesFromStorage();
+    }
+    
+    private async Task<bool> LoadValuesFromStorage()
+    {
+        var user = await GetUser();
+        if (user is null) return false;
+        
+        UserDisplayRecord.UpdateDisplayRecord(user);
+        
+        return true;
+    }
+    
+    private async Task<bool> ChangeUsername(string? input, string? pass)
     {
         var user = await GetUser();
         if (user is null)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
                 "Could not verify your account data."
             ));
-            return;
+            return false;
         }
         
         if (string.IsNullOrEmpty(input))
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
                 "New username must not be an empty field."
             ));
-            return;
+            return false;
         }
         
         if (input == user.UserName)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 statusColor: Color.Danger,
                 statusVisible: true,
                 statusMessage: "Could not change your username.",
                 statusDescription: "New username was the same as current username."
             ));
-            return;  
+            return false;  
         }
 
         var passwordResult = pass is not null && await UserManager.CheckPasswordAsync(user, pass);
         if (passwordResult == false)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 statusColor: Color.Danger,
                 statusVisible: true,
                 statusMessage: "Error occurred while changing username.",
                 statusDescription: "Password entered was incorrect."
             ));
-            return;
+            return false;
         }
 
         var result = await UserManager.SetUserNameAsync(user, input);
         if (!result.Succeeded)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 statusColor: Color.Danger,
                 statusVisible: true,
                 statusMessage: "Error occurred while changing username. ",
                 statusDescription: $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}"
             ));
+            return false;
         }
         
         await UpdateUser(user);
         
         Logger.LogInformation("User changed their username successfully.");
         
-        UpdateStatusArgs(new StatusArguments(
+        await OnStatusUpdate(new StatusArguments(
             statusColor: Color.Success,
             statusVisible: true,
             statusMessage: "Success! ",
             statusDescription: "Your username has been changed successfully."
         ));
+        
+        return true;
     }
 
-    private async Task ChangePassword(string? curp, string? newp)
+    private async Task<bool> ChangePassword(string? curp, string? newp)
     {
         var user = await GetUser();
         if (user is null)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
                 "Could not verify your account data."
             ));
-            return;
+            return false;
         }
         
         if (curp is null || newp is null)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 statusColor: Color.Danger,
                 statusVisible: true,
                 statusMessage: "Error occurred while changing password.",
                 statusDescription: "Current and new password are required."
             ));
-            return;
+            return false;
         }
         
         var result = await UserManager.ChangePasswordAsync(user, curp, newp);
         if (!result.Succeeded)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 statusColor: Color.Danger,
                 statusVisible: true,
                 statusMessage: "Error occurred while changing password:",
                 statusDescription: $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}"
             ));
+            return false;
         }
         
         await UpdateUser(user);
         
         Logger.LogInformation("User changed their password successfully.");
         
-        UpdateStatusArgs(new StatusArguments(
+        await OnStatusUpdate(new StatusArguments(
             statusColor: Color.Success,
             statusVisible: true,
             statusMessage: "Success! ",
             statusDescription: "Your password has been changed successfully."
         ));
+        return true;
     }
 
-    private async Task ChangeEmail(string? newEmail)
+    private async Task<bool> ChangeEmail(string? newEmail)
     {
         var user = await GetUser();
         if (user is null)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
                 "Could not verify your account data."
             ));
-            return;
+            return false;
         }
         
         if (newEmail is null || newEmail == user.Email)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
                 "Could not change your email.",
                 "A different, valid email must be entered to change email."
             ));
-            return;
+            return false;
         }
 
-        var userId = await UserManager.GetUserIdAsync(user);
-        var code = await UserManager.GenerateChangeEmailTokenAsync(user, newEmail);
-        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-            NavigationManager.ToAbsoluteUri("Account/ConfirmEmailChange").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = userId, ["email"] = newEmail, ["code"] = code });
+        await JsRuntime.InvokeVoidAsync("sendNewEmailConfirmation", user.Id, newEmail);
 
-        await EmailSender.SendConfirmationLinkAsync(user, newEmail, HtmlEncoder.Default.Encode(callbackUrl));
-
-        UpdateStatusArgs(new StatusArguments(
+        await OnStatusUpdate(new StatusArguments(
             Color.Secondary,
             true,
             "Confirmation link was sent to new email.",
             "Please check your inbox to confirm changes."
         ));
+        
+        return true;
     }
 
-    private async Task DeleteAccount(string? pass)
+    private async Task<bool> DeleteAccount(string? pass)
     {
         var user = await GetUser();
         if (user is null)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
                 "Could not verify your account data."
             ));
-            return;
+            return false;
         }
 
         if (!(pass is not null && await UserManager.CheckPasswordAsync(user, pass)))
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
                 "Error occurred while deleting account.",
                 "Incorrect password."
             ));
-            return;
+            return false;
         }
         
         var userId = await UserManager.GetUserIdAsync(user);
         var result = await UserManager.DeleteAsync(user);
         if (!result.Succeeded)
         {
-            UpdateStatusArgs(new StatusArguments(
+            await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
                 "Error occurred while deleting account.",
                 "Unexpected error occurred while deleting your account."
             ));
-            throw new InvalidOperationException("Unexpected error occurred deleting user.");
+            return false;
         }
         
+        await JsRuntime.InvokeVoidAsync("forceLogout");
+        
         Logger.LogInformation("User with ID '{UserId}' deleted their account.", userId);
-        await UpdateUser(user);
+        
+        return true;
     }
 
     private async Task UpdateUser(User user)

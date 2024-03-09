@@ -8,7 +8,7 @@
             <Row>
                 <Column ColumnSize="ColumnSize.Is8">
                     <Div Class="form-floating mb-3">
-                        <input name="change-display" type="text" value="@UserModel.U.DisplayName" class="form-control" disabled/>
+                        <input name="change-display" type="text" value="@UserDisplayRecord.DisplayName" class="form-control" disabled/>
                         <Label for="displayname" class="form-label">Display Name</Label>
                     </Div>
                 </Column>
@@ -58,16 +58,21 @@
     
     private async Task OnValidSubmitAsync()
     {
-        var model = new UserModel
+        if (DataChangeFunction is null)
         {
-            Type = DataChangeType.Visual,
+            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            return;
+        }
+        
+        await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Visual,
             DisplayName = Input.DisplayName
-        };
-        await DataChangeCallback.InvokeAsync(model);
+        });
         
         Logger.LogInformation("User changed their display name successfully.");
 
-        UpdateStatusArgs(new StatusArguments(
+        await StatusChangeEvent.InvokeAsync(new StatusArguments(
             statusColor: Color.Primary,
             statusVisible: true,
             statusMessage: "Success!",

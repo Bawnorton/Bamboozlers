@@ -1,8 +1,15 @@
+using AngleSharp.Dom;
+using Bamboozlers.Account;
 using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Layout;
+using Bamboozlers.Pages;
+using Blazorise.Modules;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Tests;
 
@@ -10,7 +17,7 @@ public class NavLayoutTests : BlazoriseTestBase
 {
     private readonly MockDatabaseProvider _mockDatabaseProvider;
     private readonly MockAuthenticationProvider _mockAuthenticationProvider;
-
+    
     private readonly User _self;
     
     public NavLayoutTests()
@@ -19,22 +26,33 @@ public class NavLayoutTests : BlazoriseTestBase
         _self = _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.First();
         _mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, _self.UserName!);
 
+        Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
         AuthHelper.Init(_mockAuthenticationProvider.GetAuthStateProvider(), _mockDatabaseProvider.GetDbContextFactory());
     }
-
+    
     [Fact]
     public void NavLayoutTests_FindAndOpenProfile()
     {
-        var component = Ctx.RenderComponent<NavLayout>();
+        var component = Ctx.RenderComponent<NavLayout>(
+            parameters => parameters.Add(p => p.Testing, true)
+        );
         
         component.Find("#profile").Click();
-        /* TODO: Verify that the profile page is open, blocked by implementation of the profile page */
+        var popup = component.Find("#test-settings");
+        
+        // Assert
+        Assert.NotNull(popup);
+        
+        // Assert
+        Assert.True(component.Instance.ProfilePopupVisible);
     }
 
     [Fact]
     public async Task NavLayoutTests_FindAndOpenDms()
     {
-        var component = Ctx.RenderComponent<NavLayout>();
+        var component = Ctx.RenderComponent<NavLayout>(
+            parameters => parameters.Add(p => p.Testing, true)
+        );
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var dms = _self.Chats.Except(_self.Chats.OfType<GroupChat>()).ToList();
@@ -61,7 +79,9 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenGroups()
     {
-        var component = Ctx.RenderComponent<NavLayout>();
+        var component = Ctx.RenderComponent<NavLayout>(
+            parameters => parameters.Add(p => p.Testing, true)
+        );
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var groups = _self.Chats.OfType<GroupChat>().ToList();
@@ -87,7 +107,9 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenFriends()
     {
-        var component = Ctx.RenderComponent<NavLayout>();
+        var component = Ctx.RenderComponent<NavLayout>(
+            parameters => parameters.Add(p => p.Testing, true)
+        );
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
