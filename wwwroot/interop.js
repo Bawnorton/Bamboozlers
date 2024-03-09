@@ -11,6 +11,7 @@ window.messageInputInterop = {
                 if(key === event.key && code === event.code && ctrl === event.ctrlKey && shift === event.shiftKey && alt === event.altKey && meta === event.metaKey) {
                     passed = false;
                     event.preventDefault();
+                    break;
                 }
             }
             const data = {
