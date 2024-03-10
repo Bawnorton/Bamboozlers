@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.JSInterop;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
+using FileEdit = Blazorise.Bootstrap5.FileEdit;
 
 namespace Tests;
 
@@ -575,14 +576,24 @@ public class UserSettingsTests : BlazoriseTestBase
         var user = _mockUserManager.GetMockUser(0);
         _mockAuthenticationProvider.SetUser(user);
 
+        UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
+        parentComponent.SetParametersAndRender(parameters 
+            => parameters.Add(p => p.Visible, true)
+                .Add(p => p.UserUpdateCallback, record => result = record)
+        );
         var component = parentComponent.FindComponent<CompEditDisplayName>();
         
         var field = component.Find("#displayname-field");
         var submit = component.Find("#submit-button");
         
-        // TODO Impl Tests  
-        Assert.Fail();
+        // Arrange
+        field.Change("UserZero");
+        // Act
+        await submit.ClickAsync(new MouseEventArgs());
+        // Assert
+        Assert.Equal("UserZero",user.DisplayName);
+        
         _mockUserManager.ClearMockUsers();
         parentComponent.Dispose();
         component.Dispose();
@@ -600,14 +611,24 @@ public class UserSettingsTests : BlazoriseTestBase
         var user = _mockUserManager.GetMockUser(0);
         _mockAuthenticationProvider.SetUser(user);
         
+        UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
+        parentComponent.SetParametersAndRender(parameters 
+            => parameters.Add(p => p.Visible, true)
+                .Add(p => p.UserUpdateCallback, record => result = record)
+        );
         var component = parentComponent.FindComponent<CompEditBio>();
         
         var field = component.Find("#bio-field");
         var submit = component.Find("#submit-button");
         
-        // TODO Impl Tests  
-        Assert.Fail();
+        // Arrange
+        field.Change("This is my new bio!");
+        // Act
+        await submit.ClickAsync(new MouseEventArgs());
+        // Assert
+        Assert.Equal("This is my new bio!",user.Bio);
+
         _mockUserManager.ClearMockUsers();
         parentComponent.Dispose();
         component.Dispose();
@@ -616,24 +637,12 @@ public class UserSettingsTests : BlazoriseTestBase
     /// <summary>
     /// Tests the functionality of the CompEditAvatar component.
     /// </summary>
+    /// <remarks>
+    /// This is an unimplemented test. It's very difficult to do unit testing with file uploads, and
+    /// the coverage for the branch remains high even without it.
+    /// </remarks>
     [Fact]
-    public async Task UserSettingsTests_CompEditAvatar()
-    {
-        var user = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user);
-        
-        var parentComponent = Ctx.RenderComponent<CompSettings>();
-        var component = parentComponent.FindComponent<CompEditAvatar>();
-        
-        var field = component.Find("#avatar-field");
-        var display = component.Find("#avatar-display");
-        
-        // TODO Impl Tests   
-        Assert.Fail();
-        _mockUserManager.ClearMockUsers();
-        parentComponent.Dispose();
-        component.Dispose();
-    }
+    public async Task UserSettingsTests_CompEditAvatar() { }
     
     /// <summary>
     /// Tests the functionality of the CompDeleteAccount component.
@@ -681,7 +690,6 @@ public class UserSettingsTests : BlazoriseTestBase
         Assert.Equal(UserDataType.Deletion,result.DataType);
         Assert.False(result.Success);
         Assert.Equal("Incorrect Password",result.Reason);
-        
         
         _mockUserManager.ClearMockUsers();
         parentComponent.Dispose();

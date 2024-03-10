@@ -11,7 +11,7 @@
 
 @code
 {
-    private async Task OnFileUpload(FileChangedEventArgs args)
+    public async Task OnFileUpload(FileChangedEventArgs args)
     {
         if (DataChangeFunction is null)
         {
@@ -27,6 +27,7 @@
         }
         catch (ArgumentNullException)
         {
+            
             Logger.LogInformation("User unsuccessfully attempted to change their avatar. No file was uploaded.");
             await StatusChangeEvent.InvokeAsync(new StatusArguments(
                 Color.Danger,
@@ -47,7 +48,7 @@
             ));
             return;
         }
-
+        
         var image = new ArraySegment<byte>(); 
         var success = false;
         using (var stream = new MemoryStream())
@@ -62,8 +63,19 @@
                 Logger.LogError(exc.ToString());
             }
         }
+        if (success) 
+            await ProcessFile(image.ToArray());
+    }
 
-        if (!success || image.IsNullOrEmpty())
+    public async Task ProcessFile(byte[] image)
+    {
+        if (DataChangeFunction is null)
+        {
+            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            return;
+        }
+        
+        if (image.IsNullOrEmpty())
         {
             Logger.LogInformation("User unsuccessfully attempted to change their avatar. Image produced was null or empty.");
             
