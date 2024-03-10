@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bamboozlers.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240303001456_Initial")]
+    [Migration("20240310214717_Initial")]
     partial class Initial
     {
         /// <inheritdoc />

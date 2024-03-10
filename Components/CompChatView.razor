@@ -3,43 +3,61 @@
 @inject IJSRuntime JsRuntime
 @implements IDisposable
 
-<Layout Height="Height.Is100">
+<Layout Style="height: 92%" Class="scrollbar-container">
     <LayoutContent>
-        @Message
-    </LayoutContent>
-    <LayoutFooter Fixed Background="Background.Secondary" TextColor="TextColor.Light">
-        <Div Display="Display.Flex" Overflow="Overflow.Hidden">
-            <Div @ref="MessageInput" contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
-                 id="message-input" class="message-input" data-placeholder="@($"Message {ChatName}")">
-            </Div>
+        <Div>
+            @foreach (var message in Messages)
+            {
+                <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()"></CompMessageView>
+            }
         </Div>
-    </LayoutFooter>
+    </LayoutContent>
 </Layout>
+<Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Style="bottom: 0">
+    <Div Display="Display.Flex" Overflow="Overflow.Hidden">
+        <Div @ref="MessageInput" contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
+             id="message-input" class="message-input" data-placeholder="@($"Message {ChatName}")">
+        </Div>
+    </Div>
+</Div>
 
 @code {
     [Parameter]
     public Chat? Chat { get; set; }
+    
+    private User Self { get; set; }
 
     private Div MessageInput { get; set; }
         
     private string ChatName { get; set; }
     
-    private string Message { get; set; }
+    private string TypedMessage { get; set; }
+
+    private List<LinkedMessage> Messages { get; set; } = [];
     
     private DotNetObjectReference<CompChatView> Reference { get; set; }
     
     protected override async Task OnInitializedAsync()
     {
+        Self = await AuthHelper.GetSelf();
         if (Chat is GroupChat groupChat)
         {
             ChatName = groupChat.Name;
         }
         else if (Chat is not null)
         {
-            var self = await AuthHelper.GetSelf();
-            var other = Chat.Users.First(u => u.Id != self.Id);
+            var other = Chat.Users.First(u => u.Id != Self.Id);
             ChatName = (other.DisplayName ?? other.UserName)!;
         }
+        else
+        {
+            throw new InvalidOperationException("Chat is null");
+        }
+
+        var messages = new List<Message>(Chat?.Messages ?? []);
+        messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
+        var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
+        Messages = linkedMessages;
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -68,8 +86,8 @@
         var keyReference = inputEvent.KeyReference;
         if (keyReference is { Key: "Enter", Shift: false })
         {
-            SendMessage();
             await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
+            SendMessage();
         } 
     }
     
@@ -79,8 +97,8 @@
     [JSInvokable]
     public async void OnKeyup(InputEvent inputEvent)
     {
-        Message = inputEvent.Text;
-        if (inputEvent.KeyReference is { Key: "Backspace" } && Message.Equals("\n"))
+        TypedMessage = inputEvent.Text;
+        if (inputEvent.KeyReference is { Key: "Backspace" } && TypedMessage.Equals("\n"))
         {
             await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
         }
@@ -88,7 +106,19 @@
 
     private void SendMessage()
     {
-        Console.WriteLine(Message);
+        if (string.IsNullOrWhiteSpace(TypedMessage))
+        {
+            return;
+        }
+        var message = new Message
+        {
+            Sender = Self,
+            SenderID = Self.Id,
+            SentAt = DateTime.Now,
+            Content = TypedMessage
+        };
+        Messages.Add(new LinkedMessage(message, Messages.Last().Message));
+        StateHasChanged();
     }
     
     public void Dispose()
@@ -101,5 +131,19 @@
     public record KeyReference(string Key, string Code, bool Ctrl, bool Shift, bool Alt, bool Meta)
     {
         public static KeyReference Normal(string key, string code) => new(key, code, false, false, false, false);
+    }
+    
+    public class LinkedMessage(Message message, Message? previous)
+    {
+        public MessageState GetMessageState()
+        {
+            if (previous is null)
+            {
+                return MessageState.First;
+            }
+            return previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
+        }
+        
+        public Message Message { get; } = message;
     }
 }

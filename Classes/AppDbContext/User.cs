@@ -7,8 +7,7 @@ public class User:IdentityUser<int>
     public string? DisplayName { get; set; }
     public string? Bio { get; set; }
     
-    //TODO: Migrate to cdn 
-    public byte[]? Avatar { get; set; }
+    public string? Avatar { get; set; } = "https://via.placeholder.com/150";
     public ICollection<Chat> Chats { get; set; }
     public ICollection<GroupChat> ModeratedChats { get; set; }
     public ICollection<GroupChat> OwnedChats { get; set; }

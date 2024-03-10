@@ -1,0 +1,31 @@
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
+
+@if (MessageState != MessageState.SameUser)
+{
+    <Div Class="message-header" Style="@(MessageState == MessageState.First ? "" : "margin-top: 15px;")">
+        <Div Class="message-info">
+            @if (Message.Sender.Avatar != null)
+            {
+                <Image Source="@Message.Sender.Avatar" Class="message-avatar" alt=""/>
+            }
+            <Div Class="message-username" onclick="alert('Not Implemented')">
+                @(Message.Sender.DisplayName ?? Message.Sender.UserName)
+            </Div>
+            <Div Class="message-timestamp">
+                @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
+            </Div>
+        </Div>
+    </Div>
+}
+<Div Class="message-content">
+    <Div>@Message.Content</Div>
+</Div>
+
+@code {
+    [Parameter]
+    public Message Message { get; set; }
+
+    [Parameter]
+    public MessageState MessageState { get; set; }
+}

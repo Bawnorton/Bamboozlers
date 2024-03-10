@@ -1,5 +1,6 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
+@using AngleSharp.Diffing.Extensions
 
 @rendermode InteractiveServer
 
@@ -93,7 +94,8 @@
         </LayoutHeader>
         <LayoutContent Padding="Padding.Is3"
                        Background="Background.Primary"
-                       TextColor="TextColor.Primary">
+                       TextColor="TextColor.Primary"
+                       Class="scrollbar-container">
             <DynamicComponent Type="@Views[CurrentView].HeldType" Parameters="@Views[CurrentView].Parameters"/>
         </LayoutContent>
     </Layout>
@@ -123,7 +125,7 @@
         Self = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
-        
+
         await using var db = await Db.CreateDbContextAsync();
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
         foreach (var friendship in friendships)
@@ -133,6 +135,8 @@
                 FriendCount++;
             }
         }
+
+        Self.Avatar = "https://cdn.discordapp.com/avatars/430678754931507201/a_9c7355d2677417a89361a75efa686217.webp?size=240";
 
         var other = new User
         {
@@ -152,6 +156,70 @@
             Users = [Self, other],
             Messages = []
         };
+        var messages = new List<Message>
+        {
+            new()
+            {
+                ID = 0,
+                Chat = chat,
+                ChatID = chat.ID,
+                Sender = Self,
+                SenderID = Self.Id,
+                Content = "Hello, World!",
+                Attachment = null,
+                IsPinned = false,
+                SentAt = DateTime.Now.AddMinutes(-1)
+            },
+            new()
+            {
+                ID = 1,
+                Chat = chat,
+                ChatID = chat.ID,
+                Sender = other,
+                SenderID = other.Id,
+                Content = "Hi, there!",
+                Attachment = null,
+                IsPinned = false,
+                SentAt = DateTime.Now.AddSeconds(-30)
+            },
+            new()
+            {
+                ID = 2,
+                Chat = chat,
+                ChatID = chat.ID,
+                Sender = Self,
+                SenderID = Self.Id,
+                Content = "How are you?",
+                Attachment = null,
+                IsPinned = false,
+                SentAt = DateTime.Now.AddSeconds(-15)
+            },
+            new()
+            {
+                ID = 3,
+                Chat = chat,
+                ChatID = chat.ID,
+                Sender = other,
+                SenderID = other.Id,
+                Content = "I'm good, thanks!",
+                Attachment = null,
+                IsPinned = false,
+                SentAt = DateTime.Now
+            },
+            new()
+            {
+                ID = 4,
+                Chat = chat,
+                ChatID = chat.ID,
+                Sender = other,
+                SenderID = other.Id,
+                Content = "How about you?",
+                Attachment = null,
+                IsPinned = false,
+                SentAt = DateTime.Now.AddSeconds(15)
+            }
+        };
+        chat.Messages.AddRange(messages);
         other.Chats.Add(chat);
         DmChats.Add(new DmChat(chat, other));
         
