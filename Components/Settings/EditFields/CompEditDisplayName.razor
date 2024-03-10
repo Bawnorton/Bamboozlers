@@ -49,12 +49,6 @@
 @code {
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
-
-    protected override async Task OnInitializedAsync()
-    {
-        ViewButtonText = "Change Display Name";
-        await base.OnInitializedAsync();
-    }
     
     private async Task OnValidSubmitAsync()
     {

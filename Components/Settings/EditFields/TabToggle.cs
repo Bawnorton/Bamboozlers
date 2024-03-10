@@ -14,13 +14,6 @@ public abstract class TabToggle : SettingsComponentBase
 {
     private bool Editing { get; set; }
     protected string? InteractionMode { get; set; } = "view";
-    protected string EditButtonText { get; set; } = "Cancel";
-    protected string ViewButtonText { get; set; } = "Toggle";
-
-    protected Color EditButtonColor { get; set; } = Color.Secondary;
-    protected Color ViewButtonColor { get; set; } = Color.Primary;
-    protected string? ToggleButtonText { get; set; }
-    protected Color? ToggleButtonColor { get; set; }
 
     protected Task Toggle()
     {
@@ -38,7 +31,5 @@ public abstract class TabToggle : SettingsComponentBase
     private void SetViewContext()
     {
         InteractionMode = Editing ? "edit" : "view";
-        ToggleButtonText = Editing ? EditButtonText : ViewButtonText;
-        ToggleButtonColor = Editing ? EditButtonColor : ViewButtonColor;
     }
 }

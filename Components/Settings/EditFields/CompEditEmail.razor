@@ -52,12 +52,6 @@
     [SupplyParameterFromForm(FormName = "change-email")]
     private InputModel Input { get; set; } = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        ViewButtonText = "Change Email";
-        await base.OnInitializedAsync();
-    }
-
     private async Task OnValidSubmitAsync()
     {
         if (DataChangeFunction is null)

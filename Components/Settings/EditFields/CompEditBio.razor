@@ -52,12 +52,6 @@
 
     private static readonly int MaxLength = 1000;
     
-    protected override async Task OnInitializedAsync()
-    {
-        ViewButtonText = "Change Description";
-        await base.OnInitializedAsync();
-    }
-    
     private async Task OnValidSubmitAsync()
     {
         if (DataChangeFunction is null)

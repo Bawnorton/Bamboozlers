@@ -3,7 +3,7 @@
 <Container>
     <Tabs @bind-SelectedTab="InteractionMode">
         <Content>
-            <TabPanel Name="view">
+            <TabPanel id="view-panel" Name="view">
                 <Container Width="Width.Is75">
                     <p>
                         We store data you provided to us as part of creating and updating your account as well as data that was generated as part of this process.
@@ -20,11 +20,11 @@
                         You can delete your account and its associated data from our application permanently at any time.
                     </p>
                     <Container Width="Width.Is25">
-                        <Button Width="Width.Is100" Color="Color.Danger" Clicked="Toggle">Delete Account</Button>
+                        <Button id="toggle-edit" Width="Width.Is100" Color="Color.Danger" Clicked="Toggle">Delete Account</Button>
                     </Container>
                 </Container>
             </TabPanel>
-            <TabPanel Name="edit">
+            <TabPanel id="edit-panel" Name="edit">
                 <Container>
                     <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post">
                         <DataAnnotationsValidator/>
@@ -34,7 +34,7 @@
                                     Please confirm your password to delete your account.
                                 </p>
                                 <Div class="form-floating mb-3">
-                                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Please enter your password."/>
+                                    <InputText id="password" type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Please enter your password."/>
                                     <label for="password" class="form-label">Password</label>
                                     <ValidationMessage For="() => Input.Password" class="text-danger"/>
                                 </Div>
@@ -46,10 +46,10 @@
                                 </p>
                                 <Row>
                                     <Column>
-                                        <Button Width="Width.Is100" Color="Color.Secondary" Clicked="Toggle">Cancel</Button>
+                                        <Button id="toggle-view" Width="Width.Is100" Color="Color.Secondary" Clicked="Toggle">Cancel</Button>
                                     </Column>
                                     <Column>
-                                        <Button Width="Width.Is100" Color="Color.Danger" Type="ButtonType.Submit">Delete my Account</Button>
+                                        <Button id="submit-button" Width="Width.Is100" Color="Color.Danger" Type="ButtonType.Submit">Delete my Account</Button>
                                     </Column>
                                 </Row>
                             </Container>
@@ -61,30 +61,25 @@
     </Tabs>
 </Container>
 
-@code {
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
-    
-    protected override async Task OnInitializedAsync()
-    {
-        ViewButtonText = "Delete Account";
-        ViewButtonColor = Color.Danger;
-        await base.OnInitializedAsync();
-    }
+@code
+{
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
 
-    private async Task OnValidSubmitAsync()
+    public async Task<bool> OnValidSubmitAsync()
     {
         if (DataChangeFunction is null)
         {
             await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
-            return;
+            return false;
         }
         
-        await DataChangeFunction.Invoke(new UserDataRecord
+        var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Deletion,
             CurrentPassword = Input.Password
         });
+        
+        return result;
     }
 
     private sealed class InputModel
