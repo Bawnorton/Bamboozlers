@@ -3,16 +3,22 @@
 <Container>
     <Tabs @bind-SelectedTab="InteractionMode">
         <Content>
-            <TabPanel id="view-panel" Name="view">
+            <TabPanel id="view-panel" 
+                      Name="view">
                 <Container Width="Width.Is75">
                     <p>
                         We store data you provided to us as part of creating and updating your account as well as data that was generated as part of this process.
                         You can download this data at any time.
                     </p>
-                    <Container Width="Width.Is75" TextAlignment="TextAlignment.Center">
-                        <Form action="Account/DownloadPersonalData" method="post">
+                    <Container Width="Width.Is75" 
+                               TextAlignment="TextAlignment.Center">
+                        <Form action="Account/DownloadPersonalData" 
+                              method="post">
                             <AntiforgeryToken/>
-                            <Button Color="Color.Primary" Type="ButtonType.Submit">Download personal data</Button>
+                            <Button Color="Color.Primary"
+                                    Type="ButtonType.Submit">
+                                Download personal data
+                            </Button>
                         </Form>
                     </Container>
                     <br/>
@@ -20,7 +26,12 @@
                         You can delete your account and its associated data from our application permanently at any time.
                     </p>
                     <Container Width="Width.Is25">
-                        <Button id="toggle-edit" Width="Width.Is100" Color="Color.Danger" Clicked="Toggle">Delete Account</Button>
+                        <Button id="toggle-edit"
+                                Width="Width.Is100"
+                                Color="Color.Danger"
+                                Clicked="Toggle">
+                            Delete Account
+                        </Button>
                     </Container>
                 </Container>
             </TabPanel>
@@ -34,8 +45,17 @@
                                     Please confirm your password to delete your account.
                                 </p>
                                 <Div class="form-floating mb-3">
-                                    <InputText id="password" type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Please enter your password."/>
-                                    <label for="password" class="form-label">Password</label>
+                                    <InputText id="password-field" 
+                                               type="password" 
+                                               @bind-Value="Input!.Password" 
+                                               class="form-control" 
+                                               autocomplete="current-password" 
+                                               aria-required="true" 
+                                               placeholder="Please enter your password."/>
+                                    <label for="password-field"
+                                           class="form-label">
+                                        Password
+                                    </label>
                                     <ValidationMessage For="() => Input.Password" class="text-danger"/>
                                 </Div>
                             </Container>
@@ -46,10 +66,20 @@
                                 </p>
                                 <Row>
                                     <Column>
-                                        <Button id="toggle-view" Width="Width.Is100" Color="Color.Secondary" Clicked="Toggle">Cancel</Button>
+                                        <Button id="toggle-view"
+                                                Width="Width.Is100"
+                                                Color="Color.Secondary"
+                                                Clicked="Toggle">
+                                            Cancel
+                                        </Button>
                                     </Column>
                                     <Column>
-                                        <Button id="submit-button" Width="Width.Is100" Color="Color.Danger" Type="ButtonType.Submit">Delete my Account</Button>
+                                        <Button id="submit-button"
+                                                Width="Width.Is100"
+                                                Color="Color.Danger"
+                                                Type="ButtonType.Submit">
+                                            Delete my Account
+                                        </Button>
                                     </Column>
                                 </Row>
                             </Container>
@@ -63,10 +93,17 @@
 
 @code
 {
-    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    [SupplyParameterFromForm] private InputModel? Input { get; set; }
 
-    public async Task<bool> OnValidSubmitAsync()
+    protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+        Input = new InputModel();
+    }
+    
+    public override async Task<bool> OnValidSubmitAsync()
+    {
+        await base.OnValidSubmitAsync();
         if (DataChangeFunction is null)
         {
             await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
@@ -76,7 +113,7 @@
         var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Deletion,
-            CurrentPassword = Input.Password
+            CurrentPassword = Input!.Password
         });
         
         return result;

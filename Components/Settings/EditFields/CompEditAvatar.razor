@@ -1,10 +1,12 @@
-@inherits SettingsComponentBase
+@inherits EditField
 
 @inject ILogger<CompEditAvatar> Logger;
 
-<FigureImage Source="@UserDisplayRecord.Avatar"/>
+<FigureImage ElementId="avatar-display" Source="@UserDisplayRecord.Avatar"/>
 <FigureCaption>
-    <FileEdit Changed="OnFileUpload" Filter="image/*"/>  
+    <FileEdit ElementId="avatar-field" 
+              Changed="OnFileUpload" 
+              Filter="image/png"/>  
 </FigureCaption>
 
 @code
@@ -25,6 +27,7 @@
         }
         catch (ArgumentNullException)
         {
+            Logger.LogInformation("User unsuccessfully attempted to change their avatar. No file was uploaded.");
             await StatusChangeEvent.InvokeAsync(new StatusArguments(
                 Color.Danger,
                 true,
@@ -35,6 +38,7 @@
         }
         catch (InvalidOperationException)
         {
+            Logger.LogInformation("User unsuccessfully attempted to change their avatar. More than one file was uploaded.");
             await StatusChangeEvent.InvokeAsync(new StatusArguments(
                 Color.Danger,
                 true,
@@ -45,13 +49,13 @@
         }
 
         var image = new ArraySegment<byte>(); 
-        var result = false;
+        var success = false;
         using (var stream = new MemoryStream())
         {
             try
             {
                 await file.WriteToStreamAsync(stream);
-                result = stream.TryGetBuffer(out image);
+                success = stream.TryGetBuffer(out image);
             }
             catch (Exception exc)
             {
@@ -59,20 +63,35 @@
             }
         }
 
-        if (!result || image.IsNullOrEmpty())
+        if (!success || image.IsNullOrEmpty())
         {
+            Logger.LogInformation("User unsuccessfully attempted to change their avatar. Image produced was null or empty.");
+            
             await StatusChangeEvent.InvokeAsync(new StatusArguments(
                 Color.Danger,
                 true,
                 "Could not change avatar.",
                 "An error was encountered while processing uploaded avatar."
             ));
+            return;
         }
         
-        await DataChangeFunction.Invoke(new UserDataRecord
+        var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Visual,
             Avatar = image.ToArray()
         });
+
+        if (result)
+        {
+            Logger.LogInformation("User changed their avatar successfully.");
+            
+            await StatusChangeEvent.InvokeAsync(new StatusArguments(
+                Color.Danger,
+                true,
+                "Success!",
+                "Your avatar has been changed."
+            ));
+        }
     }
 }

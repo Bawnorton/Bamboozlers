@@ -9,7 +9,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!AuthHelper.IsAuthenticated()) return;
+        if (!await AuthHelper.IsAuthenticated()) return;
 
         var self = await AuthHelper.GetSelf();
         await using var db = await Db.CreateDbContextAsync();

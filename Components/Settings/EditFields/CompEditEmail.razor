@@ -1,43 +1,66 @@
 @inherits TabToggle
 
-<Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="InteractionMode">
+<Tabs @bind-SelectedTab="InteractionMode">
     <Content>
-        <TabPanel Name="view">
+        <TabPanel ElementId="view-panel"
+                  Name="view">
             <Container>
                 <Container Width="Width.Is75">
                     <Div Class="form-floating mb-3">
-                        <input type="text" value="@UserDisplayRecord.Email" class="form-control" disabled/>
-                        <Label for="email" class="form-label">Email</Label>
+                        <input type="text" value="@UserDisplayRecord.Email" 
+                               class="form-control" 
+                               disabled/>
+                        <Label class="form-label">
+                            Email
+                        </Label>
                     </Div>
                 </Container>
                 <Container Width="Width.Is25">
-                    <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change Email</Button>
+                    <Button id="toggle-edit"
+                            Width="Width.Is100"
+                            Color="Color.Primary"
+                            Clicked="Toggle">
+                        Change Email
+                    </Button>
                 </Container>
             </Container>
         </TabPanel>
-        <TabPanel Name="edit">
+        <TabPanel ElementId="edit-panel" 
+                  Name="edit">
             <Container>
-                <EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post">
+                <EditForm Model="Input" FormName="change-email" 
+                          OnValidSubmit="OnValidSubmitAsync" 
+                          method="post">
                     <DataAnnotationsValidator/>
                     <Container>
                         <Container Width="Width.Is75">
                             <Div class="form-floating mb-3">
-                                <input type="text" value="@UserDisplayRecord.Email" class="form-control" disabled/>
+                                <input id="email" type="text" value="@UserDisplayRecord.Email" class="form-control" disabled/>
                                 <Label for="email" class="form-label">Email</Label>
                             </Div>
                             <Div Class="form-floating mb-3">
-                                <InputText @bind-Value="Input.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="Please enter new email."/>
-                                <Label for="new-email" class="form-label">New Email</Label>
+                                <InputText id="email-field" @bind-Value="Input!.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="Please enter new email."/>
+                                <Label for="email-field" class="form-label">New Email</Label>
                                 <ValidationMessage For="() => Input.NewEmail" class="text-danger"/>
                             </Div>
                         </Container>
                         <Container Width="Width.Is50">
                             <Row>
                                 <Column>
-                                    <Button Width="Width.Is100" Color="Color.Danger" Clicked="Toggle">Cancel</Button>
+                                    <Button id="toggle-view"
+                                            Width="Width.Is100"
+                                            Color="Color.Danger"
+                                            Clicked="Toggle">
+                                        Cancel
+                                    </Button>
                                 </Column>
                                 <Column>
-                                    <Button Width="Width.Is100" Color="Color.Success" Type="ButtonType.Submit">Confirm changes</Button>
+                                    <Button id="submit-button"
+                                            Width="Width.Is100"
+                                            Color="Color.Success"
+                                            Type="ButtonType.Submit">
+                                        Confirm changes
+                                    </Button>
                                 </Column>
                             </Row>
                         </Container>
@@ -49,11 +72,17 @@
 </Tabs>
 
 @code {
-    [SupplyParameterFromForm(FormName = "change-email")]
-    private InputModel Input { get; set; } = new();
+    private InputModel? Input { get; set; }
 
-    private async Task OnValidSubmitAsync()
+    protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+        Input = new InputModel();
+    }
+    
+    public override async Task OnValidSubmitAsync()
+    {
+        await base.OnValidSubmitAsync();
         if (DataChangeFunction is null)
         {
             await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
@@ -63,8 +92,9 @@
         var result = await DataChangeFunction.Invoke(new UserDataRecord 
         { 
             DataType = UserDataType.Email, 
-            Email = Input.NewEmail 
+            Email = Input!.NewEmail 
         });
+        
         if (result)
             await Toggle();
     }
@@ -73,7 +103,7 @@
     {
         [Required]
         [EmailAddress]
-        [Display(Name = "New email")]
+        [Display(Name = "New Email")]
         public string? NewEmail { get; set; }
     }
 }

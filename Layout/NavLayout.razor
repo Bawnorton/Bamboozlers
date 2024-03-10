@@ -78,7 +78,7 @@
             <Div Padding="Padding.Is3"
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer"
-                 id="profile"
+                 id="profile-button"
                  @onclick="@(() => ProfilePopupVisible = true)">
                 <Text>
                     @(Self.DisplayName ?? Self.UserName) 
@@ -111,8 +111,6 @@
      * navigation layout. I've made it so that the NavLayout has a parameter that is applied only when its unit
      * tests are being run, which disables the Settings component from being rendered, and thus, causing those
      * tests to unnecessarily fail.
-     *
-     * bhunt02 (2024/03/08)
      */
     <CompSettings @bind-Visible="ProfilePopupVisible"/>
 }
@@ -129,7 +127,7 @@ else
 
     private List<DmChat> DmChats { get; set; }
 
-    private List<GroupChat> GroupChats { get; set; }
+    private List<GroupChat>? GroupChats { get; set; }
 
     private View CurrentView { get; set; } = View.Friends;
 

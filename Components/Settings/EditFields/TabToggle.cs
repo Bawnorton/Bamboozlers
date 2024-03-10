@@ -1,6 +1,3 @@
-
-using Blazorise;
-
 namespace Bamboozlers.Components.Settings.EditFields;
 
 /// <class>
@@ -10,7 +7,7 @@ namespace Bamboozlers.Components.Settings.EditFields;
 /// Abstract class inherited by fields that toggle between "view" and "edit" modes
 /// Includes necessary methods that do not need to be repeated in inheriting claes
 /// </summary>
-public abstract class TabToggle : SettingsComponentBase
+public abstract class TabToggle : EditField
 {
     private bool Editing { get; set; }
     protected string? InteractionMode { get; set; } = "view";

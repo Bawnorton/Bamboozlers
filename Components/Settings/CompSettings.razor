@@ -7,7 +7,7 @@
 @inject ILogger<CompSettings> Logger
 @inject IJSRuntime JsRuntime
 
-<Modal @bind-Visible="@Visible" Closed="@(async Task () =>
+<Modal ElementId="container" @bind-Visible="@Visible" Closed="@(async Task () =>
                                         {
                                             await OnStatusUpdate(new StatusArguments()); 
                                             SectionName = "User Profile"; 
@@ -18,17 +18,17 @@
             <CloseButton/>
         </ModalHeader>
         <ModalBody>
-            <Alert Color="@Arguments.StatusColor"
+            <Alert ElementId="status-alert" Color="@Arguments.StatusColor"
                    Visible="@Arguments.StatusVisible">
-                <AlertMessage>
+                <AlertMessage ElementId="status-message">
                     @Arguments.StatusMessage
                 </AlertMessage>
-                <AlertDescription>
+                <AlertDescription ElementId="status-description">
                     @Arguments.StatusDescription
                 </AlertDescription>
             </Alert>
             <Divider/>
-            <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SectionName">
+            <Tabs @bind-SelectedTab="SectionName">
                 <Items>
                     <Tab Name="User Profile">Profile</Tab>
                     <Tab Name="Login Details">Login Details</Tab>

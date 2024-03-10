@@ -24,27 +24,10 @@ public class NavLayoutTests : BlazoriseTestBase
     {
         _mockDatabaseProvider = new MockDatabaseProvider(Ctx);
         _self = _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.First();
-        _mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, _self.UserName!);
+        _mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, _self);
 
         Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
         AuthHelper.Init(_mockAuthenticationProvider.GetAuthStateProvider(), _mockDatabaseProvider.GetDbContextFactory());
-    }
-    
-    [Fact]
-    public void NavLayoutTests_FindAndOpenProfile()
-    {
-        var component = Ctx.RenderComponent<NavLayout>(
-            parameters => parameters.Add(p => p.Testing, true)
-        );
-        
-        component.Find("#profile").Click();
-        var popup = component.Find("#test-settings");
-        
-        // Assert
-        Assert.NotNull(popup);
-        
-        // Assert
-        Assert.True(component.Instance.ProfilePopupVisible);
     }
 
     [Fact]

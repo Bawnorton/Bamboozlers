@@ -16,7 +16,7 @@ public class SettingsComponentBase : ComponentBase
     public Func<UserDataRecord, Task<bool>>? DataChangeFunction { get; init; }
 }
 
-public sealed class StatusArguments(Color statusColor, bool statusVisible, string statusMessage, string statusDescription)
+public sealed class StatusArguments(Color? statusColor = null, bool statusVisible = false, string statusMessage = "", string statusDescription = "")
 {
     public static readonly StatusArguments BasicStatusArgs = new (
         Color.Danger,
@@ -25,10 +25,8 @@ public sealed class StatusArguments(Color statusColor, bool statusVisible, strin
         "An unexpected error occurred."
     );
 
-    public StatusArguments() : this(Color.Default, false, "", "") { }
-
-    public readonly Color StatusColor = statusColor;
-    public readonly bool StatusVisible = statusVisible;
-    public readonly string StatusMessage = statusMessage;
-    public readonly string StatusDescription = statusDescription;
+    public Color StatusColor { get; } = statusColor ?? Color.Default;
+    public bool StatusVisible { get; } = statusVisible;
+    public string StatusMessage { get; } = statusMessage;
+    public string StatusDescription { get; } = statusDescription;
 }

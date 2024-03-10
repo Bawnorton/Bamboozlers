@@ -2,40 +2,74 @@
 
 @inject ILogger<CompEditDisplayName> Logger
 
-<Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="InteractionMode">
+<Tabs @bind-SelectedTab="InteractionMode">
     <Content>
-        <TabPanel Name="view">
+        <TabPanel ElementId="view-panel" 
+                  Name="view">
             <Row>
                 <Column ColumnSize="ColumnSize.Is8">
                     <Div Class="form-floating mb-3">
-                        <textarea name="bio" type="text" class="form-control" disabled>@UserDisplayRecord.Bio</textarea>
-                        <Label for="bio" class="form-label">Description</Label>
+                        <textarea name="bio" 
+                                  type="text" 
+                                  class="form-control" 
+                                  disabled>
+                            @UserDisplayRecord.Bio
+                        </textarea>
+                        <Label class="form-label">
+                            Description
+                        </Label>
                     </Div>
                 </Column>
                 <Column ColumnSize="ColumnSize.Is4">
-                    <Button Width="Width.Is100" Color="Color.Primary" Clicked="Toggle">Change Description</Button>
+                    <Button id="toggle-edit" 
+                            Width="Width.Is100" 
+                            Color="Color.Primary" 
+                            Clicked="Toggle">
+                        Change Description
+                    </Button>
                 </Column>                
             </Row>
         </TabPanel>
-        <TabPanel Name="edit">
+        <TabPanel ElementId="edit-panel" 
+                  Name="edit">
             <Container>
-                <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" method="post">
+                <EditForm Model="Input" 
+                          OnValidSubmit="OnValidSubmitAsync" 
+                          method="post">
                     <DataAnnotationsValidator/>
                     <Container>
                         <Container Width="Width.Is75">
                             <Div Class="form-floating mb-3">
-                                <InputTextArea @bind-Value="Input.Bio" class="form-control" autocomplete="new-username" aria-required="true" placeholder="Please enter new display name."/>
-                                <Label for="displayname" class="form-label">New Description (@($"{Input.Bio.Length}/{MaxLength}"))</Label>
+                                <InputTextArea id="bio-field" 
+                                               @bind-Value="Input!.Bio" 
+                                               class="form-control" 
+                                               autocomplete="new-username" 
+                                               aria-required="true" 
+                                               placeholder="Please enter new display name."/>
+                                <Label for="bio-field"
+                                       class="form-label">
+                                    New Description (@($"{Input.Bio.Length}/{MaxLength}"))
+                                </Label>
                                 <ValidationMessage For="() => Input.Bio" class="text-danger"/>
                             </Div>
                         </Container>
                         <Container Width="Width.Is75">
                             <Row>
                                 <Column>
-                                    <Button Width="Width.Is100" Color="Color.Danger" Clicked="Toggle">Cancel</Button>
+                                    <Button id="toggle-view"
+                                            Width="Width.Is100"
+                                            Color="Color.Danger"
+                                            Clicked="Toggle">
+                                        Cancel
+                                    </Button>
                                 </Column>
                                 <Column>
-                                    <Button Width="Width.Is100" Color="Color.Success" Type="ButtonType.Submit">Confirm changes</Button>
+                                    <Button id="submit-button"
+                                            Width="Width.Is100"
+                                            Color="Color.Success"
+                                            Type="ButtonType.Submit">
+                                        Confirm changes
+                                    </Button>
                                 </Column>
                             </Row>
                         </Container>
@@ -48,32 +82,44 @@
 
 @code {
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel? Input { get; set; }
 
     private static readonly int MaxLength = 1000;
     
-    private async Task OnValidSubmitAsync()
+    protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+        Input = new InputModel();
+    }
+    
+    public override async Task OnValidSubmitAsync()
+    {
+        await base.OnValidSubmitAsync();
         if (DataChangeFunction is null)
         {
             await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
             return;
         }
         
-        await DataChangeFunction.Invoke(new UserDataRecord
+        var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Visual,
-            Bio = Input.Bio
+            Bio = Input!.Bio
         });
-        
-        Logger.LogInformation("User changed their biography successfully.");
 
-        await StatusChangeEvent.InvokeAsync(new StatusArguments(
-            statusColor: Color.Primary,
-            statusVisible: true,
-            statusMessage: "Success!",
-            statusDescription: "Your description has been changed."
-        ));
+        if (result)
+        {
+            Logger.LogInformation("User changed their biography successfully.");
+
+            await StatusChangeEvent.InvokeAsync(new StatusArguments(
+                Color.Primary,
+                true,
+                "Success!",
+                "Your description has been changed."
+            ));
+
+            await Toggle();
+        }
     }
     
     private sealed class InputModel

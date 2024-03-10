@@ -1,23 +1,50 @@
 
+using Bamboozlers;
 using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
+using Bunit.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MockQueryable.Moq;
+using Xunit.Abstractions;
 
 namespace Tests;
 
 public class MockUserManager
 {
     private readonly Mock<UserManager<User>> _mockUserManager;
-    private readonly IUserStore<User> _mockUserStore;
-
-    private readonly List<User> MockUsers = [];
     
-    public MockUserManager(TestContextBase ctx)
+    private readonly Mock<IDbContextFactory<AppDbContext>> _mockDbContextFactory;
+    
+    private readonly List<User> _mockUsers = [];
+
+    private readonly ITestOutputHelper _output;
+    
+    public MockUserManager(TestContextBase ctx, ITestOutputHelper output)
     {
+        _output = output;
+        // Initialize a mock backing database
+        _mockDbContextFactory = new Mock<IDbContextFactory<AppDbContext>>();
+        var options = new DbContextOptions<AppDbContext>();
+        var mockDbContext = new Mock<AppDbContext>(options);
+        
+        _mockDbContextFactory.Setup(x => x.CreateDbContext()).Returns(mockDbContext.Object);
+        _mockDbContextFactory.Setup(x => x.CreateDbContextAsync(default)).ReturnsAsync(mockDbContext.Object);
+        
+        /* Build test user data entries */
+        mockDbContext.Setup(x => x.Users).Returns(_mockUsers.AsQueryable().BuildMockDbSet().Object);
+        
+        /* Build false data sets */
+        mockDbContext.Setup(x => x.Chats).Returns(new List<Chat>().AsQueryable().BuildMockDbSet().Object);
+        mockDbContext.Setup(x => x.BlockList).Returns(new List<Block>().AsQueryable().BuildMockDbSet().Object);
+        mockDbContext.Setup(x => x.FriendRequests).Returns(new List<FriendRequest>().AsQueryable().BuildMockDbSet().Object);
+        mockDbContext.Setup(x => x.FriendShips).Returns(new List<Friendship>().AsQueryable().BuildMockDbSet().Object);
+        mockDbContext.Setup(x => x.GroupInvites).Returns(new List<GroupInvite>().AsQueryable().BuildMockDbSet().Object);
+        
+        ctx.Services.AddSingleton(_mockDbContextFactory.Object);
+        
         _mockUserManager = new Mock<UserManager<User>>(
             Mock.Of<IUserStore<User>>(), 
             Mock.Of<IOptions<IdentityOptions>>(), 
@@ -53,85 +80,100 @@ public class MockUserManager
         _mockUserManager.Setup(x 
             => x.FindByEmailAsync(It.IsAny<string>())
         ).ReturnsAsync((string? email) 
-            => MockUsers.FirstOrDefault(m => m.Email == email)
+            => _mockUsers.FirstOrDefault(m => m.Email == email)
         );
         
         _mockUserManager.Setup(x 
             => x.FindByIdAsync(It.IsAny<string>())
         ).ReturnsAsync((string? userId) 
-            => userId is not null ? MockUsers.FirstOrDefault(m => m.Id == int.Parse(userId)) : null
+            => userId is not null ? _mockUsers.FirstOrDefault(m => m.Id == int.Parse(userId)) : null
         );
         
         _mockUserManager.Setup(x 
             => x.FindByNameAsync(It.IsAny<string>())
         ).ReturnsAsync((string? userName) 
-            => MockUsers.FirstOrDefault(m => m.UserName == userName)
+            => _mockUsers.FirstOrDefault(m => m.UserName == userName)
         );
 
         _mockUserManager.Setup(x 
             => x.CheckPasswordAsync(It.IsAny<User>(), It.IsAny<string>())
-        ).ReturnsAsync((User user, string? password) => CheckPassword(user, password));
+        ).ReturnsAsync((User user, string? password) => password is not null && password.Equals(user.PasswordHash));
 
         _mockUserManager.Setup(x
             => x.ChangePasswordAsync(It.IsAny<User>(),It.IsAny<string>(),It.IsAny<string>())
         ).ReturnsAsync((User user, string? password, string? newPassword) 
-            => CheckPassword(user,password) ? IdentityResult.Success : IdentityResult.Failed()
-        );
+            => {
+            if (password.IsNullOrEmpty())
+                return IdentityResult.Failed([new IdentityError{Description="Password entered was null or empty."}]);
+            return password.Equals(user.PasswordHash) ? IdentityResult.Success : IdentityResult.Failed([new IdentityError{Description="Password does not match."}]);
+        });
         
         _mockUserManager.Setup(x 
             => x.ChangeEmailAsync(It.IsAny<User>(), It.IsAny<string>(), It.IsAny<string>())
         ).ReturnsAsync((User user, string? newEmail, string? token) 
-            => newEmail is not null && MockUsers.FirstOrDefault(m => m.Email == newEmail) is null ? IdentityResult.Success : IdentityResult.Failed()
-        );
+            => {
+            if (newEmail.IsNullOrEmpty())
+                return IdentityResult.Failed([new IdentityError { Description = "Email entered was null or empty." }]);
+            return _mockUsers.FirstOrDefault(m => m.Email == newEmail) is null 
+                    ? IdentityResult.Success : 
+                      IdentityResult.Failed([new IdentityError { Description = "Email is already in use." }]);
+        });
 
         _mockUserManager.Setup(x
             => x.SetUserNameAsync(It.IsAny<User>(), It.IsAny<string>())
         ).ReturnsAsync((User user, string? newUsername)
-            => newUsername is not null && MockUsers.FirstOrDefault(m => m.UserName == newUsername)  is null ? IdentityResult.Success : IdentityResult.Failed()
-        );
+            => {
+            if (newUsername.IsNullOrEmpty())
+                return IdentityResult.Failed([new IdentityError { Description = "Username entered was null or empty." }]);
+            return _mockUsers.FirstOrDefault(m => m.UserName == newUsername) is null 
+                ? IdentityResult.Success : 
+                  IdentityResult.Failed([new IdentityError { Description = "Username is already in use." }]);
+        });
     }
 
-    public User CreateMockUser(int idx = -1, 
+    public User CreateMockUser(
+        int idx = -1, 
         bool emailConfirmed = true, 
         string? displayName = null, 
         string? description = null, 
         byte[]? avatar = null)
     {
-        if (idx == -1) idx = MockUsers.Count;
-        User tuser = new User
+        _output.WriteLine($"Created user {idx}.");
+        if (idx == -1) idx = _mockUsers.Count;
+        var tuser = new User
         {
             Id = idx,
             UserName = $"TestUser{idx}",
             Email = $"test.user{idx}@gmail.com",
             EmailConfirmed = emailConfirmed,
+            PasswordHash = $"@Password{idx}",
+            DisplayName = displayName,
+            Bio = description,
+            Avatar = avatar
         };
-        // Avoid
-        tuser.PasswordHash =  $"@Password{idx}";
-        tuser.DisplayName ??= displayName;
-        tuser.Bio ??= description;
-        tuser.Avatar ??= avatar;
         
-        MockUsers.Add(tuser);
+        _mockUsers.Add(tuser);
         return tuser;
     }
 
     public User GetMockUser(int idx)
     {
-        return MockUsers.Find(u => u.Id == idx) ?? CreateMockUser(idx);
+        return _mockUsers.Find(u => u.Id == idx) ?? CreateMockUser(idx);
     }
 
     public void ClearMockUsers()
-    {
-        MockUsers.Clear();    
-    }
-    
-    private bool CheckPassword(User user, string? password)
-    {
-        return password is not null && password.Equals(user.PasswordHash);
+    { 
+        _output.WriteLine($"Cleared all users.");
+        _mockUsers.Clear();    
     }
     
     public UserManager<User> GetUserManager()
     {
         return _mockUserManager.Object;
+    }
+
+    public IDbContextFactory<AppDbContext> GetDbContextFactory()
+    {
+        return _mockDbContextFactory.Object;
     }
 }

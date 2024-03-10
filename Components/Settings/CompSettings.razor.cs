@@ -12,25 +12,23 @@ namespace Bamboozlers.Components.Settings;
 
 public partial class CompSettings : SettingsComponentBase
 {
-    [Parameter] public bool Testing { get; set; }
-
     [Parameter] public string? SectionName { get; set; }
 
     [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
     
     private bool _visible;
     [Parameter] public bool Visible { get => _visible; set { if (_visible == value) return; _visible = value; VisibleChanged.InvokeAsync(value); } }
-    
-    private static StatusArguments Arguments { get; set; }  = new();
 
-    private static async Task OnStatusUpdate(StatusArguments arguments)
+    [Parameter] public EventCallback<UserUpdateResult> UserUpdateCallback { get; set; }
+    public StatusArguments Arguments { get; set; }  = new();
+
+    public Task OnStatusUpdate(StatusArguments arguments)
     {
         Arguments = arguments;
-        await Task.Delay(TimeSpan.FromSeconds(5));
-        Arguments = new StatusArguments();
+        return Task.CompletedTask;
     }
 
-    private async Task<bool> OnDataChange(UserDataRecord userDataRecord)
+    public async Task<bool> OnDataChange(UserDataRecord userDataRecord)
     {
         var result = false;
         switch (userDataRecord.DataType)
@@ -57,6 +55,13 @@ public partial class CompSettings : SettingsComponentBase
                 user.Bio = userDataRecord.Bio != null && userDataRecord.Bio != user.Bio ? userDataRecord.Bio : user.Bio;
                 
                 await UserManager.UpdateAsync(user);
+                
+                await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                    UserDataType.Visual, 
+                    true, 
+                    "")
+                );
+                
                 result = true;
                 break;
         }
@@ -65,8 +70,7 @@ public partial class CompSettings : SettingsComponentBase
             await LoadValuesFromStorage();
         return result;
     }
-
-    private static int? UserId { get; set; } = null;
+    
     private async Task<User?> GetUser()
     {
         return await UserManager.FindByIdAsync((await GetUserId()).ToString());
@@ -74,7 +78,8 @@ public partial class CompSettings : SettingsComponentBase
     
     private static async Task<int> GetUserId()
     {
-        return UserId ?? (await AuthHelper.GetSelf()).Id;
+        var user = await AuthHelper.GetSelf();
+        return user?.Id ?? -1;
     }
     protected override async Task OnInitializedAsync()
     {
@@ -82,14 +87,11 @@ public partial class CompSettings : SettingsComponentBase
         await LoadValuesFromStorage();
     }
     
-    private async Task<bool> LoadValuesFromStorage()
+    public async Task LoadValuesFromStorage()
     {
         var user = await GetUser();
-        if (user is null) return false;
-        
+        if (user is null) return;
         UserDisplayRecord.UpdateDisplayRecord(user);
-        
-        return true;
     }
     
     private async Task<bool> ChangeUsername(string? input, string? pass)
@@ -97,6 +99,12 @@ public partial class CompSettings : SettingsComponentBase
         var user = await GetUser();
         if (user is null)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Username, 
+                false, 
+                "User not found")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
@@ -108,6 +116,12 @@ public partial class CompSettings : SettingsComponentBase
         
         if (string.IsNullOrEmpty(input))
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Username, 
+                false, 
+                "Invalid Or Empty")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
@@ -119,11 +133,17 @@ public partial class CompSettings : SettingsComponentBase
         
         if (input == user.UserName)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Username, 
+                false, 
+                "Same Username")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Could not change your username.",
-                statusDescription: "New username was the same as current username."
+                Color.Danger,
+                true,
+                "Could not change your username.",
+                "New username was the same as current username."
             ));
             return false;  
         }
@@ -131,11 +151,17 @@ public partial class CompSettings : SettingsComponentBase
         var passwordResult = pass is not null && await UserManager.CheckPasswordAsync(user, pass);
         if (passwordResult == false)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Username, 
+                false, 
+                "Incorrect Password")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Error occurred while changing username.",
-                statusDescription: "Password entered was incorrect."
+                Color.Danger,
+                true,
+                "Error occurred while changing username.",
+                "Password entered was incorrect."
             ));
             return false;
         }
@@ -143,24 +169,36 @@ public partial class CompSettings : SettingsComponentBase
         var result = await UserManager.SetUserNameAsync(user, input);
         if (!result.Succeeded)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Username, 
+                false, 
+                "Error Occurred")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Error occurred while changing username. ",
-                statusDescription: $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}"
+                Color.Danger,
+                true,
+                "Error occurred while changing username. ",
+                $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}"
             ));
             return false;
         }
         
         await UpdateUser(user);
         
+        await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+            UserDataType.Username, 
+            true, 
+            "")
+        );
+        
         Logger.LogInformation("User changed their username successfully.");
         
         await OnStatusUpdate(new StatusArguments(
-            statusColor: Color.Success,
-            statusVisible: true,
-            statusMessage: "Success! ",
-            statusDescription: "Your username has been changed successfully."
+            Color.Success,
+            true,
+            "Success! ",
+            "Your username has been changed successfully."
         ));
         
         return true;
@@ -171,6 +209,12 @@ public partial class CompSettings : SettingsComponentBase
         var user = await GetUser();
         if (user is null)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Password, 
+                false, 
+                "User not found")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
@@ -182,11 +226,17 @@ public partial class CompSettings : SettingsComponentBase
         
         if (curp is null || newp is null)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Password, 
+                false, 
+                "Missing Input")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Error occurred while changing password.",
-                statusDescription: "Current and new password are required."
+                Color.Danger,
+                true,
+                "Error occurred while changing password.",
+                "Current and new password are required."
             ));
             return false;
         }
@@ -194,24 +244,37 @@ public partial class CompSettings : SettingsComponentBase
         var result = await UserManager.ChangePasswordAsync(user, curp, newp);
         if (!result.Succeeded)
         {
+            var errorString = $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}";
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Password, 
+                false, 
+                errorString)
+            );
+            
             await OnStatusUpdate(new StatusArguments(
-                statusColor: Color.Danger,
-                statusVisible: true,
-                statusMessage: "Error occurred while changing password:",
-                statusDescription: $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}"
+                Color.Danger,
+                true,
+                "Error occurred while changing password:",
+                $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}"
             ));
             return false;
         }
         
         await UpdateUser(user);
         
+        await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+            UserDataType.Password, 
+            true, 
+            "")
+        );
+        
         Logger.LogInformation("User changed their password successfully.");
         
         await OnStatusUpdate(new StatusArguments(
-            statusColor: Color.Success,
-            statusVisible: true,
-            statusMessage: "Success! ",
-            statusDescription: "Your password has been changed successfully."
+            Color.Success,
+            true,
+            "Success! ",
+            "Your password has been changed successfully."
         ));
         return true;
     }
@@ -221,6 +284,12 @@ public partial class CompSettings : SettingsComponentBase
         var user = await GetUser();
         if (user is null)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Email, 
+                false, 
+                "User not found")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
@@ -232,6 +301,12 @@ public partial class CompSettings : SettingsComponentBase
         
         if (newEmail is null || newEmail == user.Email)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Email, 
+                false, 
+                "Email Invalid Or Same")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
@@ -241,6 +316,12 @@ public partial class CompSettings : SettingsComponentBase
             return false;
         }
 
+        await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+            UserDataType.Email, 
+            true, 
+            "")
+        );
+        
         await JsRuntime.InvokeVoidAsync("sendNewEmailConfirmation", user.Id, newEmail);
 
         await OnStatusUpdate(new StatusArguments(
@@ -258,6 +339,12 @@ public partial class CompSettings : SettingsComponentBase
         var user = await GetUser();
         if (user is null)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Deletion, 
+                false, 
+                "User not found")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
@@ -269,6 +356,12 @@ public partial class CompSettings : SettingsComponentBase
 
         if (!(pass is not null && await UserManager.CheckPasswordAsync(user, pass)))
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Deletion, 
+                false, 
+                "Incorrect Password")
+            );
+            
             await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
@@ -278,10 +371,14 @@ public partial class CompSettings : SettingsComponentBase
             return false;
         }
         
-        var userId = await UserManager.GetUserIdAsync(user);
         var result = await UserManager.DeleteAsync(user);
         if (!result.Succeeded)
         {
+            await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+                UserDataType.Deletion, 
+                false, 
+                "Unknown")
+            );
             await OnStatusUpdate(new StatusArguments(
                 Color.Danger,
                 true,
@@ -291,9 +388,15 @@ public partial class CompSettings : SettingsComponentBase
             return false;
         }
         
-        await JsRuntime.InvokeVoidAsync("forceLogout");
+        await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
+            UserDataType.Deletion, 
+            true, 
+            "")
+        );
         
-        Logger.LogInformation("User with ID '{UserId}' deleted their account.", userId);
+        Logger.LogInformation("User with ID '{UserId}' deleted their account.", GetUserId());
+        
+        await JsRuntime.InvokeVoidAsync("forceLogout");
         
         return true;
     }
