@@ -1,26 +1,6 @@
-using System.Transactions;
 using Bamboozlers.Classes.AppDbContext;
 
-namespace Bamboozlers.Classes;
-
-public enum UserDataType { Password, Username, Deletion, Email, Visual }
-
-/// <summary>
-/// Record type used to pass changes in user data between components.
-/// </summary>
-/// <param name="UserName">If set, the username value to pass.</param>
-/// <param name="Email">If set, the email value to pass.</param>
-/// <param name="DisplayName">If set, the display name value to pass.</param>
-/// <param name="Bio">If set, the bio (or description) value to pass.</param>
-/// <param name="Avatar">If set, the avatar value to pass.</param>
-public record UserDataRecord(string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? Avatar)
-{
-    public UserDataType? DataType { get; init; }
-    public string? CurrentPassword { get; init; }
-    public string? NewPassword { get; init; }
-    
-    public UserDataRecord() : this(null, null, null, null, null) {}
-}
+namespace Bamboozlers.Classes.Data.ViewModel;
 
 /// <summary>
 /// Record that stores the current user's display details. Used to form a model of the user to be displayed without directly interfering with its database representation.
@@ -51,12 +31,10 @@ public record UserDisplayRecord
     /// <param name="user">The user from which attributes will be set.</param>
     public static void UpdateDisplayRecord(User user)
     {
-        UserName = user.UserName;
-        Email = user.Email;
-        DisplayName = user.DisplayName;
-        Bio = user.Bio;
+        UserName = user.UserName ?? UserName;
+        Email = user.Email ?? Email;
+        DisplayName = user.DisplayName ?? DisplayName;
+        Bio = user.Bio ?? Bio;
         Avatar = GetDisplayableAvatar(user.Avatar);
     }
 }
-
-public record UserUpdateResult(UserDataType DataType, bool Success, string Reason);

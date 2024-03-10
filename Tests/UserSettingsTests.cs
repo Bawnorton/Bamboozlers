@@ -1,22 +1,17 @@
-using System.ComponentModel.DataAnnotations;
 using AngleSharp.Dom;
-using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Data;
+using Bamboozlers.Classes.Data.ViewModel;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Components.Settings;
 using Bamboozlers.Components.Settings.EditFields;
-using Bamboozlers.Layout;
 using Blazorise;
 using Blazorise.Modules;
-using Microsoft.AspNetCore.Identity;
-using Blazorise.Tests.bUnit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.JSInterop;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit.Abstractions;
-using FileEdit = Blazorise.Bootstrap5.FileEdit;
 
 namespace Tests;
 
@@ -45,8 +40,7 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_CompSettings()
     {
-        var user = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user);
+        ManageMockUsers(true);
         
         var component = Ctx.RenderComponent<CompSettings>();
         
@@ -60,21 +54,21 @@ public class UserSettingsTests : BlazoriseTestBase
         Assert.True(component.Instance.Visible);
         
         // Assert: By default, status arguments should be no-parameter constructor result
-        Assert.Equal(Color.Default,component.Instance.Arguments.StatusColor);
-        Assert.False(component.Instance.Arguments.StatusVisible);
-        Assert.Equal("",component.Instance.Arguments.StatusMessage);
-        Assert.Equal("",component.Instance.Arguments.StatusDescription);
-        Assert.Equivalent(new StatusArguments() {}, component.Instance.Arguments);
+        Assert.Equal(Color.Default,component.Instance.Arguments.AlertColor);
+        Assert.False(component.Instance.Arguments.AlertVisible);
+        Assert.Equal("",component.Instance.Arguments.AlertMessage);
+        Assert.Equal("",component.Instance.Arguments.AlertDescription);
+        Assert.Equivalent(new AlertArguments() {}, component.Instance.Arguments);
 
         // Assert: CompSettings does not have circular callback assigned
-        var callback = component.Instance.StatusChangeEvent;
-        Assert.NotEqual(EventCallback.Factory.Create<StatusArguments>(component.Instance,component.Instance.OnStatusUpdate), callback);
+        var callback = component.Instance.AlertEventCallback;
+        Assert.NotEqual(EventCallback.Factory.Create<AlertArguments>(component.Instance,component.Instance.OnAlertChange), callback);
         
         // Act: Invoke Status Change
         var completionCall = new TaskCompletionSource<bool>();
         await component.InvokeAsync(async () =>
         {
-            await component.Instance.OnStatusUpdate(new StatusArguments(
+            await component.Instance.OnAlertChange(new AlertArguments(
                 Color.Light,
                 true,
                 "Test",
@@ -85,12 +79,12 @@ public class UserSettingsTests : BlazoriseTestBase
         await completionCall.Task.WaitAsync(CancellationToken.None);
         
         // Assert: Check that these are the values that are set
-        Assert.Equal(Color.Light,component.Instance.Arguments.StatusColor);
-        Assert.True(component.Instance.Arguments.StatusVisible);
-        Assert.Equal("Test",component.Instance.Arguments.StatusMessage);
-        Assert.Equal("This is a test.",component.Instance.Arguments.StatusDescription);
+        Assert.Equal(Color.Light,component.Instance.Arguments.AlertColor);
+        Assert.True(component.Instance.Arguments.AlertVisible);
+        Assert.Equal("Test",component.Instance.Arguments.AlertMessage);
+        Assert.Equal("This is a test.",component.Instance.Arguments.AlertDescription);
         
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         component.Dispose();
     }
 
@@ -107,13 +101,13 @@ public class UserSettingsTests : BlazoriseTestBase
             "Hi! I'm Bobby."
         );
         user.Email = "bobby.blazor@gmail.com";
+        AuthHelper.InvalidateAuthState();
         _mockAuthenticationProvider.SetUser(user);
         
         var component = Ctx.RenderComponent<CompSettings>();
         component.SetParametersAndRender(parameters 
             => parameters.Add(p => p.Visible, true)
         );
-        AuthHelper.Init(_mockAuthenticationProvider.GetAuthStateProvider(), _mockUserManager.GetDbContextFactory());
         
         // Act: Invoke Data Load (into UserDisplayRecord)
         var completionCall = new TaskCompletionSource<bool>();
@@ -153,7 +147,7 @@ public class UserSettingsTests : BlazoriseTestBase
         Assert.Equal("Hello, my name is Robert.",UserDisplayRecord.Bio);
         
         // Arrange & Act: Destroy Bobby "Robert" Blazor for the purposes of testing
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         completionCall = new TaskCompletionSource<bool>();
         await component.InvokeAsync(async () =>
         {
@@ -175,8 +169,7 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_ChangeUsername()
     {
-        var user = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user);
+        var user = ManageMockUsers(true);
         
         UserUpdateResult? result = null;
         var component = Ctx.RenderComponent<CompSettings>();
@@ -194,7 +187,7 @@ public class UserSettingsTests : BlazoriseTestBase
             await component.Instance.OnDataChange(new UserDataRecord
             {
                 DataType = UserDataType.Username,
-                CurrentPassword = user.PasswordHash
+                CurrentPassword = user?.PasswordHash
             });
             completionCall.SetResult(true);
         });
@@ -215,8 +208,8 @@ public class UserSettingsTests : BlazoriseTestBase
             await component.Instance.OnDataChange(new UserDataRecord
             {
                 DataType = UserDataType.Username,
-                UserName = user.UserName,
-                CurrentPassword = user.PasswordHash
+                UserName = user?.UserName,
+                CurrentPassword = user?.PasswordHash
             });
             completionCall.SetResult(true);
         });
@@ -229,7 +222,7 @@ public class UserSettingsTests : BlazoriseTestBase
         Assert.Equal("Same Username",result.Reason);
         
         // Arrange: User is not found
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -257,8 +250,7 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_ChangePassword()
     {
-        var user = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user);
+        var user = ManageMockUsers(true);
         
         UserUpdateResult? result = null;
         var component = Ctx.RenderComponent<CompSettings>();
@@ -288,7 +280,7 @@ public class UserSettingsTests : BlazoriseTestBase
         Assert.Equal("Missing Input",result.Reason);
         
         // Arrange: User is not found
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -325,7 +317,7 @@ public class UserSettingsTests : BlazoriseTestBase
         );
         
         // Arrange: User is not found
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         var completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -362,7 +354,8 @@ public class UserSettingsTests : BlazoriseTestBase
         );
         
         // Arrange: User is not found
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
+        AuthHelper.InvalidateAuthState();
         var completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -393,8 +386,7 @@ public class UserSettingsTests : BlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditUsername>();
         await UserSettingsTests_NoDataChangeFunction<CompEditUsername>();
         
-        var user0 = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user0);
+        ManageMockUsers(true);
         _mockUserManager.GetMockUser(1);
 
         UserUpdateResult? result = null;
@@ -449,7 +441,7 @@ public class UserSettingsTests : BlazoriseTestBase
         Assert.False(result.Success);
         Assert.Equal("Incorrect Password",result.Reason);
         
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -463,8 +455,7 @@ public class UserSettingsTests : BlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditPassword>();
         await UserSettingsTests_NoDataChangeFunction<CompEditPassword>();
         
-        var user = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user);
+        ManageMockUsers(true);
 
         UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
@@ -507,7 +498,7 @@ public class UserSettingsTests : BlazoriseTestBase
         Assert.False(result.Success);
         Assert.Equal("Error: Password does not match.",result.Reason);
         
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -521,8 +512,7 @@ public class UserSettingsTests : BlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditEmail>();
         await UserSettingsTests_NoDataChangeFunction<CompEditEmail>();
         
-        var user = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user);
+        ManageMockUsers(true);
 
         UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
@@ -559,7 +549,7 @@ public class UserSettingsTests : BlazoriseTestBase
         Assert.False(result.Success);
         Assert.Equal("Email Invalid Or Same",result.Reason);
         
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -573,8 +563,7 @@ public class UserSettingsTests : BlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditDisplayName>();
         await UserSettingsTests_NoDataChangeFunction<CompEditDisplayName>();
         
-        var user = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user);
+        var user = ManageMockUsers(true);
 
         UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
@@ -594,7 +583,7 @@ public class UserSettingsTests : BlazoriseTestBase
         // Assert
         Assert.Equal("UserZero",user.DisplayName);
         
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -608,8 +597,7 @@ public class UserSettingsTests : BlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditBio>();
         await UserSettingsTests_NoDataChangeFunction<CompEditBio>();
         
-        var user = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user);
+        var user = ManageMockUsers(true);
         
         UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
@@ -627,9 +615,9 @@ public class UserSettingsTests : BlazoriseTestBase
         // Act
         await submit.ClickAsync(new MouseEventArgs());
         // Assert
-        Assert.Equal("This is my new bio!",user.Bio);
+        Assert.Equal("This is my new bio!",user!.Bio);
 
-        _mockUserManager.ClearMockUsers();
+        ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -653,8 +641,7 @@ public class UserSettingsTests : BlazoriseTestBase
         UserSettingsTests_TabToggle<CompDeleteAccount>();
         await UserSettingsTests_NoDataChangeFunction<CompDeleteAccount>();
         
-        var user = _mockUserManager.GetMockUser(0);
-        _mockAuthenticationProvider.SetUser(user);
+        var user = ManageMockUsers(true);
 
         UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
@@ -690,12 +677,26 @@ public class UserSettingsTests : BlazoriseTestBase
         Assert.Equal(UserDataType.Deletion,result.DataType);
         Assert.False(result.Success);
         Assert.Equal("Incorrect Password",result.Reason);
-        
-        _mockUserManager.ClearMockUsers();
+
+        ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
-    
+
+    private User? ManageMockUsers(bool reinit = false)
+    {
+        if (reinit)
+        {
+            var user = _mockUserManager.GetMockUser(0);
+            AuthHelper.InvalidateAuthState();
+            _mockAuthenticationProvider.SetUser(user);
+            return user;
+        }
+        _mockUserManager.ClearMockUsers();
+        AuthHelper.InvalidateAuthState();
+        return null;
+    }
+
     /// <summary>
     /// Tests the functionality of the TabToggle component class and subclasses.
     /// </summary>
@@ -728,11 +729,11 @@ public class UserSettingsTests : BlazoriseTestBase
     /// </summary>
     private async Task UserSettingsTests_NoDataChangeFunction<T>() where T : EditField
     {
-        StatusArguments? args = null;
+        AlertArguments? args = null;
 
         var component = Ctx.RenderComponent<T>();
         component.SetParametersAndRender(parameters 
-                => parameters.Add(p => p.StatusChangeEvent, arguments => args = arguments)
+                => parameters.Add(p => p.AlertEventCallback, arguments => args = arguments)
         );
         
         var completionCall = new TaskCompletionSource<bool>();
@@ -744,7 +745,7 @@ public class UserSettingsTests : BlazoriseTestBase
         await completionCall.Task.WaitAsync(CancellationToken.None);
         
         Assert.NotNull(args);
-        Assert.Equal(args,StatusArguments.BasicStatusArgs);
+        Assert.Equal(args,AlertArguments.DefaultErrorAlertArgs);
     }
     
     /// <summary>

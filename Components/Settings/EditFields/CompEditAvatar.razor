@@ -1,3 +1,5 @@
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Data.ViewModel
 @inherits EditField
 
 @inject ILogger<CompEditAvatar> Logger;
@@ -15,7 +17,7 @@
     {
         if (DataChangeFunction is null)
         {
-            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return;
         }
 
@@ -29,7 +31,7 @@
         {
             
             Logger.LogInformation("User unsuccessfully attempted to change their avatar. No file was uploaded.");
-            await StatusChangeEvent.InvokeAsync(new StatusArguments(
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Danger,
                 true,
                 "Unable to change avatar.",
@@ -40,7 +42,7 @@
         catch (InvalidOperationException)
         {
             Logger.LogInformation("User unsuccessfully attempted to change their avatar. More than one file was uploaded.");
-            await StatusChangeEvent.InvokeAsync(new StatusArguments(
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Danger,
                 true,
                 "Unable to change avatar.",
@@ -71,7 +73,7 @@
     {
         if (DataChangeFunction is null)
         {
-            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return;
         }
         
@@ -79,7 +81,7 @@
         {
             Logger.LogInformation("User unsuccessfully attempted to change their avatar. Image produced was null or empty.");
             
-            await StatusChangeEvent.InvokeAsync(new StatusArguments(
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Danger,
                 true,
                 "Could not change avatar.",
@@ -98,8 +100,8 @@
         {
             Logger.LogInformation("User changed their avatar successfully.");
             
-            await StatusChangeEvent.InvokeAsync(new StatusArguments(
-                Color.Danger,
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
+                Color.Success,
                 true,
                 "Success!",
                 "Your avatar has been changed."

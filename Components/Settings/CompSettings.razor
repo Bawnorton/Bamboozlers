@@ -1,15 +1,15 @@
 @using System.Data
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Data.ViewModel
 @inherits SettingsComponentBase
 
-@inject IDbContextFactory<AppDbContext> Db
 @inject UserManager<User> UserManager
-@inject NavigationManager NavigationManager
 @inject ILogger<CompSettings> Logger
 @inject IJSRuntime JsRuntime
 
 <Modal ElementId="container" @bind-Visible="@Visible" Closed="@(async Task () =>
                                         {
-                                            await OnStatusUpdate(new StatusArguments()); 
+                                            await OnAlertChange(new AlertArguments()); 
                                             SectionName = "User Profile"; 
                                         })">
     <ModalContent Centered Size="ModalSize.ExtraLarge">
@@ -18,13 +18,13 @@
             <CloseButton/>
         </ModalHeader>
         <ModalBody>
-            <Alert ElementId="status-alert" Color="@Arguments.StatusColor"
-                   Visible="@Arguments.StatusVisible">
+            <Alert ElementId="status-alert" Color="@Arguments.AlertColor"
+                   Visible="@Arguments.AlertVisible">
                 <AlertMessage ElementId="status-message">
-                    @Arguments.StatusMessage
+                    @Arguments.AlertMessage
                 </AlertMessage>
                 <AlertDescription ElementId="status-description">
-                    @Arguments.StatusDescription
+                    @Arguments.AlertDescription
                 </AlertDescription>
             </Alert>
             <Divider/>
@@ -40,20 +40,20 @@
                             <Row>
                                 <Column ColumnSize="ColumnSize.Is4">
                                     <Row>
-                                        <CompEditAvatar StatusChangeEvent="OnStatusUpdate" DataChangeFunction="OnDataChange"/> 
+                                        <CompEditAvatar AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/> 
                                     </Row>
                                 </Column>
                                 <Column ColumnSize="ColumnSize.Is8">
                                     <Row>
-                                        <CompEditUsername StatusChangeEvent="OnStatusUpdate" DataChangeFunction="OnDataChange"/>  
+                                        <CompEditUsername AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>  
                                     </Row>
                                     <CompSimpleDivider/>
                                     <Row>
-                                        <CompEditDisplayName StatusChangeEvent="OnStatusUpdate" DataChangeFunction="OnDataChange"/>
+                                        <CompEditDisplayName AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                                     </Row>
                                     <CompSimpleDivider/>
                                     <Row>
-                                        <CompEditBio StatusChangeEvent="OnStatusUpdate" DataChangeFunction="OnDataChange"/>
+                                        <CompEditBio AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                                     </Row>
                                 </Column>
                             </Row>
@@ -64,18 +64,18 @@
                             <Row>
                                 <Column>
                                     <Row>
-                                        <CompEditEmail StatusChangeEvent="OnStatusUpdate" DataChangeFunction="OnDataChange"/>  
+                                        <CompEditEmail AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>  
                                     </Row>
                                     <CompSimpleDivider/>
                                     <Row>
-                                        <CompEditPassword StatusChangeEvent="OnStatusUpdate" DataChangeFunction="OnDataChange"/>  
+                                        <CompEditPassword AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>  
                                     </Row>
                                 </Column>
                             </Row>
                         </Container>
                     </TabPanel>
                     <TabPanel Name="Delete" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                        <CompDeleteAccount StatusChangeEvent="OnStatusUpdate" DataChangeFunction="OnDataChange"/>
+                        <CompDeleteAccount AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                     </TabPanel>
                 </Content>
             </Tabs>
@@ -92,21 +92,4 @@
     </ModalContent>
 </Modal>
 
-<form id="send-confirmation-email" action="Account/SendConfirmationEmail" method="post">
-    <AntiforgeryToken/>
-    <input id="userId" type="hidden" value=""/>
-    <input id="newEmail" type="hidden" value=""/>
-</form>
-
-<script>
-    window.forceLogout = function() {
-        document.getElementById("loginRedirectMessage").setAttribute("value","Your account has been deleted.");
-        document.getElementById("logout-form").submit();
-    }
-    
-    window.sendNewEmailConfirmation = function(userId, newEmail) {
-        document.getElementById("userId").setAttribute("value",""+userId);
-        document.getElementById("newEmail").setAttribute("value",""+newEmail);
-        document.getElementById("send-confirmation-email").submit();
-    }
-</script>
+<script src="settings.js"></script>

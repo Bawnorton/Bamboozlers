@@ -1,7 +1,11 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Data;
+using Bamboozlers.Classes.Data.ViewModel;
 using Bamboozlers.Classes.Services;
 using Blazorise;
 using Microsoft.AspNetCore.Components;
@@ -20,11 +24,14 @@ public partial class CompSettings : SettingsComponentBase
     [Parameter] public bool Visible { get => _visible; set { if (_visible == value) return; _visible = value; VisibleChanged.InvokeAsync(value); } }
 
     [Parameter] public EventCallback<UserUpdateResult> UserUpdateCallback { get; set; }
-    public StatusArguments Arguments { get; set; }  = new();
+    public AlertArguments Arguments { get; set; }  = new();
 
-    public Task OnStatusUpdate(StatusArguments arguments)
+    public Task OnAlertChange(AlertArguments arguments)
     {
         Arguments = arguments;
+        
+        StateHasChanged();
+        
         return Task.CompletedTask;
     }
 
@@ -46,7 +53,7 @@ public partial class CompSettings : SettingsComponentBase
             case UserDataType.Email:
                 result = await ChangeEmail(userDataRecord.Email);
                 break;
-            case UserDataType.Visual: case null: default:
+            default:
                 var user = await GetUser();
                 if (user is null) break;
                 
@@ -68,6 +75,10 @@ public partial class CompSettings : SettingsComponentBase
         
         if (result)
             await LoadValuesFromStorage();
+        
+        StateHasChanged();
+        await StateChangedCallback.InvokeAsync();
+        
         return result;
     }
     
@@ -105,7 +116,7 @@ public partial class CompSettings : SettingsComponentBase
                 "User not found")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
@@ -122,7 +133,7 @@ public partial class CompSettings : SettingsComponentBase
                 "Invalid Or Empty")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
@@ -139,7 +150,7 @@ public partial class CompSettings : SettingsComponentBase
                 "Same Username")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
@@ -157,7 +168,7 @@ public partial class CompSettings : SettingsComponentBase
                 "Incorrect Password")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Error occurred while changing username.",
@@ -175,7 +186,7 @@ public partial class CompSettings : SettingsComponentBase
                 "Error Occurred")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Error occurred while changing username. ",
@@ -194,7 +205,7 @@ public partial class CompSettings : SettingsComponentBase
         
         Logger.LogInformation("User changed their username successfully.");
         
-        await OnStatusUpdate(new StatusArguments(
+        await OnAlertChange(new AlertArguments(
             Color.Success,
             true,
             "Success! ",
@@ -215,7 +226,7 @@ public partial class CompSettings : SettingsComponentBase
                 "User not found")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
@@ -232,7 +243,7 @@ public partial class CompSettings : SettingsComponentBase
                 "Missing Input")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Error occurred while changing password.",
@@ -251,7 +262,7 @@ public partial class CompSettings : SettingsComponentBase
                 errorString)
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Error occurred while changing password:",
@@ -270,7 +281,7 @@ public partial class CompSettings : SettingsComponentBase
         
         Logger.LogInformation("User changed their password successfully.");
         
-        await OnStatusUpdate(new StatusArguments(
+        await OnAlertChange(new AlertArguments(
             Color.Success,
             true,
             "Success! ",
@@ -290,7 +301,7 @@ public partial class CompSettings : SettingsComponentBase
                 "User not found")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
@@ -307,7 +318,7 @@ public partial class CompSettings : SettingsComponentBase
                 "Email Invalid Or Same")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Could not change your email.",
@@ -322,9 +333,10 @@ public partial class CompSettings : SettingsComponentBase
             "")
         );
         
-        await JsRuntime.InvokeVoidAsync("sendNewEmailConfirmation", user.Id, newEmail);
+        var userId = await GetUserId();
+        await JsRuntime.InvokeVoidAsync("sendNewEmailConfirmation", userId, newEmail);
 
-        await OnStatusUpdate(new StatusArguments(
+        await OnAlertChange(new AlertArguments(
             Color.Secondary,
             true,
             "Confirmation link was sent to new email.",
@@ -345,7 +357,7 @@ public partial class CompSettings : SettingsComponentBase
                 "User not found")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
@@ -362,7 +374,7 @@ public partial class CompSettings : SettingsComponentBase
                 "Incorrect Password")
             );
             
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Error occurred while deleting account.",
@@ -370,7 +382,8 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
+        AuthHelper.InvalidateAuthState();
         var result = await UserManager.DeleteAsync(user);
         if (!result.Succeeded)
         {
@@ -379,7 +392,7 @@ public partial class CompSettings : SettingsComponentBase
                 false, 
                 "Unknown")
             );
-            await OnStatusUpdate(new StatusArguments(
+            await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Error occurred while deleting account.",
@@ -394,7 +407,7 @@ public partial class CompSettings : SettingsComponentBase
             "")
         );
         
-        Logger.LogInformation("User with ID '{UserId}' deleted their account.", GetUserId());
+        Logger.LogInformation("User with ID '{GetUserId()}' deleted their account.", GetUserId());
         
         await JsRuntime.InvokeVoidAsync("forceLogout");
         
@@ -403,6 +416,7 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task UpdateUser(User user)
     {
+        AuthHelper.InvalidateAuthState();
         await UserManager.UpdateAsync(user);
         await UserManager.UpdateSecurityStampAsync(user);
     }

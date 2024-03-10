@@ -1,3 +1,5 @@
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Data.ViewModel
 @inherits TabToggle
 
 @inject ILogger<CompEditDisplayName> Logger
@@ -97,7 +99,7 @@
         await base.OnValidSubmitAsync();
         if (DataChangeFunction is null)
         {
-            await StatusChangeEvent.InvokeAsync(StatusArguments.BasicStatusArgs);
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return;
         }
         
@@ -111,7 +113,7 @@
         {
             Logger.LogInformation("User changed their biography successfully.");
 
-            await StatusChangeEvent.InvokeAsync(new StatusArguments(
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Primary,
                 true,
                 "Success!",

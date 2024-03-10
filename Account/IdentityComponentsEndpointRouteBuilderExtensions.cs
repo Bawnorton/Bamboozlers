@@ -1,15 +1,18 @@
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
-using Bamboozlers.Account;
+using System.Web;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Bamboozlers.Classes.AppDbContext;
-using Microsoft.AspNetCore.Components;
+using Bamboozlers.Classes.Data;
+using Bamboozlers.Classes.Data.ViewModel;
+using Bamboozlers.Classes.Services;
 using Microsoft.AspNetCore.WebUtilities;
 using JsonSerializer = System.Text.Json.JsonSerializer;
-
+    
 namespace Microsoft.AspNetCore.Routing;
 
 internal static class IdentityComponentsEndpointRouteBuilderExtensions
@@ -28,24 +31,60 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect($"~/Account/Login");
         });
-
-        accountGroup.MapPost("/SendConfirmationEmail", async (
-            [FromServices] UserManager<User> userManager,
-            [FromServices] EmailSender emailSender,
-            [FromServices] NavigationManager navigationManager,
-            [FromForm] string userId,
-            [FromForm] string newEmail) =>
+        
+        accountGroup.MapPost("/DeAuth", async (
+            ClaimsPrincipal user,
+            SignInManager<User> signInManager) =>
         {
-            var user = await userManager.FindByIdAsync(userId);
+            var builder = new UriBuilder();
+            var urlParams = HttpUtility.ParseQueryString(string.Empty);
+            urlParams["errorMessage"] = "Your account has been deleted.";
+            builder.Query = urlParams.ToString();
+            var callbackUrl = "~/Account/Login" + builder.Query;
+
+            Debug.WriteLine(callbackUrl);
+            
+            AuthHelper.InvalidateAuthState();
+            await signInManager.SignOutAsync();
+            return TypedResults.LocalRedirect(callbackUrl);
+        });
+
+        /*
+         * Can't get NavigationManager in here easily, so did a sort of workaround to make sure that the confirmation
+         * email can be sent from a component in Interactive Server rendering.
+         *
+         * Could use some security improvements, but it might not be necessary for this project particularly.
+         */
+        accountGroup.MapPost("/SendConfirmationEmail", async (
+            HttpContext context,
+            [FromServices] UserManager<User> userManager,
+            [FromServices] IEmailSender<User> emailSender,
+            [FromBody] UserDataRecord parameters) =>
+        {
+            if (parameters.Id is null && parameters.Email is null) return;
+
+            var userId = parameters.Id.ToString();
+            var user = await userManager.FindByIdAsync(userId!);
             if (user is null) return;
             
-            var code = await userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+            var code = await userManager.GenerateChangeEmailTokenAsync(user, parameters.Email!);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            var callbackUrl = navigationManager.GetUriWithQueryParameters(
-                navigationManager.ToAbsoluteUri("Account/ConfirmEmailChange").AbsoluteUri,
-                new Dictionary<string, object?> { ["userId"] = userId, ["email"] = newEmail, ["code"] = code });
 
-            await emailSender.SendConfirmationLinkAsync(user, newEmail, HtmlEncoder.Default.Encode(callbackUrl));
+            var builder = new UriBuilder("Account/ConfirmEmailChange");
+            // TODO: When this is hosted, change this. Or really, change it when there's a better way to retrieve it.
+            builder.Host = "localhost:5152";
+            var urlParams = HttpUtility.ParseQueryString(string.Empty);
+            urlParams["userId"] = parameters.Id.ToString();
+            urlParams["email"] = parameters.Email;
+            urlParams["code"] = code;
+            builder.Query = urlParams.ToString();
+            var callbackUrl = builder.Uri.AbsoluteUri;
+            
+            await emailSender.SendConfirmationLinkAsync(
+                user, 
+                parameters.Email!, 
+                HtmlEncoder.Default.Encode(callbackUrl)
+            );
         });
         
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();

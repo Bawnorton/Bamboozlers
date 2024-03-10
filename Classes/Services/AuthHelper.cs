@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using System.Security.Principal;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Func;
@@ -11,7 +10,10 @@ public static class AuthHelper
 {
     private static AuthenticationStateProvider _authStateProvider;
     private static IDbContextFactory<AppDbContext.AppDbContext> _db;
-    
+
+    private static IIdentity? _identity;
+    private static User? _self;
+
     public static void Init(AuthenticationStateProvider authStateProvider, IDbContextFactory<AppDbContext.AppDbContext> db)
     {
         _authStateProvider = authStateProvider;
@@ -29,21 +31,22 @@ public static class AuthHelper
     /// </exception>
     public static async Task<User?> GetSelf(Unary<IQueryable<User>>? inclusionCallback = null)
     {
-        User? self;
-        var identity = await GetIdentity();
-        if (identity is { IsAuthenticated: true })
+        if (_self is not null) return _self;
+        
+        _identity = await GetIdentity();
+        if (_identity is { IsAuthenticated: true })
         {
             await using var db = await _db.CreateDbContextAsync();
             var query = db.Users.AsQueryable();
             query = inclusionCallback?.Invoke(query) ?? query;
-            self = await query.FirstOrDefaultAsync(u => u.UserName == identity.Name);
+            _self = await query.FirstOrDefaultAsync(u => u.UserName == _identity.Name);
         }
         else
         {
             throw new Exception("User is not authenticated");
         }
 
-        return self;
+        return _self;
     }
 
     public static async Task<bool> IsAuthenticated()
@@ -56,7 +59,12 @@ public static class AuthHelper
     /// </returns>
     private static async Task<IIdentity?> GetIdentity()
     {
-        var authState = await _authStateProvider.GetAuthenticationStateAsync();
-        return authState.User.Identity;
+        return _identity ?? (await _authStateProvider.GetAuthenticationStateAsync()).User.Identity;
+    }
+
+    public static void InvalidateAuthState()
+    {
+        _identity = null;
+        _self = null;
     }
 }

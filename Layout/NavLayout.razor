@@ -1,5 +1,7 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Data.ViewModel
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Components.Settings
 @using Blazorise.Extensions
@@ -81,7 +83,7 @@
                  id="profile-button"
                  @onclick="@(() => ProfilePopupVisible = true)">
                 <Text>
-                    @(Self.DisplayName ?? Self.UserName) 
+                    @(UserDisplayRecord.DisplayName ?? UserDisplayRecord.UserName) 
                 </Text>
                 <Icon Name="IconName.UserTie" IconSize="IconSize.Large"></Icon>
             </Div>
@@ -112,7 +114,7 @@
      * tests are being run, which disables the Settings component from being rendered, and thus, causing those
      * tests to unnecessarily fail.
      */
-    <CompSettings @bind-Visible="ProfilePopupVisible"/>
+    <CompSettings StateChangedCallback="@(async () => StateHasChanged())" @bind-Visible="ProfilePopupVisible"/>
 }
 else
 {
@@ -125,9 +127,9 @@ else
 
     private User? Self { get; set; }
 
-    private List<DmChat> DmChats { get; set; }
+    private List<DmChat> DmChats { get; set; } = [];
 
-    private List<GroupChat>? GroupChats { get; set; }
+    private List<GroupChat> GroupChats { get; set; } = [];
 
     private View CurrentView { get; set; } = View.Friends;
 
@@ -142,10 +144,27 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await GetDataAsync();
+        ChangeView(CurrentView);       
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await GetDataAsync();
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task GetDataAsync()
+    {
         Self = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
+
+        if (Self is null)
+            return;
+        
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
-        
+
+        FriendCount = 0;
         await using var db = await Db.CreateDbContextAsync();
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
         foreach (var friendship in friendships)
@@ -155,10 +174,8 @@ else
                 FriendCount++;
             }
         }
-        
-        ChangeView(CurrentView);       
     }
-
+    
     private void ChangeView(View view, Chat? chat = null)
     {
         CurrentView = view;
@@ -197,7 +214,7 @@ else
         Group,
         Friends
     }
-
+    
     private record DmChat(Chat DbReference, User User);
 
     private class ViewHolder(ComponentBase component)
