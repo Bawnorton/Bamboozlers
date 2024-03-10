@@ -6,7 +6,7 @@ We will be primarily focusing on whitebox testing for the moment and will start 
 
 1.2 Unit Testing
 
-We will be making use of the BUnit testing framework that leverages xUnit, NUnit and MSTests. It allows us to individually test Blazor components and the method within them.
+We will be making use of the BUnit testing framework that leverages xUnit, NUnit and MSTests. It allows us to individually test Blazor components/pages and the method within them as well as the methods in helper classes.
 
 For each component, we will develop unit tests and strive for 80% coverage on our tests. To do so, we will highlight critical code paths prior to testing and ensure they are explored when performing testing.
 
