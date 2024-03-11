@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Security.Principal;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Func;
@@ -14,10 +16,13 @@ public static class AuthHelper
     private static IIdentity? _identity;
     private static User? _self;
 
+    public static List<IAuthListener> StateListeners { get; private set; } = [];
+
     public static void Init(AuthenticationStateProvider authStateProvider, IDbContextFactory<AppDbContext.AppDbContext> db)
     {
         _authStateProvider = authStateProvider;
         _db = db;
+        _authStateProvider.AuthenticationStateChanged += InvalidateAuthState;
     } 
     
     /// <returns>
@@ -34,6 +39,7 @@ public static class AuthHelper
         if (_self is not null) return _self;
         
         _identity = await GetIdentity();
+        Debug.WriteLine($"identity: {_identity.Name}");
         if (_identity is { IsAuthenticated: true })
         {
             await using var db = await _db.CreateDbContextAsync();
@@ -61,10 +67,35 @@ public static class AuthHelper
     {
         return _identity ?? (await _authStateProvider.GetAuthenticationStateAsync()).User.Identity;
     }
-
-    public static void InvalidateAuthState()
+    
+    public static async void InvalidateAuthState(Task<AuthenticationState> task)
     {
         _identity = null;
         _self = null;
+        var authState = await task;
     }
+
+    public static void AddListener(IAuthListener listener)
+    {
+        if (!StateListeners.Contains(listener))
+            StateListeners.Add(listener);
+    }
+
+    public static bool RemoveListener(IAuthListener listener)
+    {
+        return StateListeners.Remove(listener);
+    }
+
+    public static void NotifyListeners()
+    {
+        foreach (var listener in StateListeners)
+        {
+            listener.Update();
+        }
+    }
+}
+
+public interface IAuthListener
+{
+    public abstract void Update();
 }

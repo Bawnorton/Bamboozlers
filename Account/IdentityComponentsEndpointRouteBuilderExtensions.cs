@@ -44,7 +44,6 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
 
             Debug.WriteLine(callbackUrl);
             
-            AuthHelper.InvalidateAuthState();
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect(callbackUrl);
         });

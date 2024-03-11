@@ -6,7 +6,7 @@ window.forceLogout = function() {
         },
     })
         .then(async (response) => response)
-        .then((result) => { console.log(result); window.location.href = result.url;})
+        .then((result) => window.location.href = result.url)
         .catch((err) => console.error(err))
 }
 

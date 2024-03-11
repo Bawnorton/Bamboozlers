@@ -54,7 +54,7 @@ public partial class CompSettings : SettingsComponentBase
                 result = await ChangeEmail(userDataRecord.Email);
                 break;
             default:
-                var user = await GetUser();
+                var user = await UserService.GetUserAsync();
                 if (user is null) break;
                 
                 user.DisplayName = userDataRecord.DisplayName != null && userDataRecord.DisplayName != user.DisplayName ? userDataRecord.DisplayName : user.DisplayName;
@@ -82,16 +82,6 @@ public partial class CompSettings : SettingsComponentBase
         return result;
     }
     
-    private async Task<User?> GetUser()
-    {
-        return await UserManager.FindByIdAsync((await GetUserId()).ToString());
-    }
-    
-    private static async Task<int> GetUserId()
-    {
-        var user = await AuthHelper.GetSelf();
-        return user?.Id ?? -1;
-    }
     protected override async Task OnInitializedAsync()
     {
         SectionName ??= "User Profile";
@@ -100,14 +90,14 @@ public partial class CompSettings : SettingsComponentBase
     
     public async Task LoadValuesFromStorage()
     {
-        var user = await GetUser();
+        var user = await UserService.GetUserAsync();
         if (user is null) return;
-        UserDisplayRecord.UpdateDisplayRecord(user);
+        UserDisplayRecord.Update(user);
     }
     
     private async Task<bool> ChangeUsername(string? input, string? pass)
     {
-        var user = await GetUser();
+        var user = await UserService.GetUserAsync();
         if (user is null)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
@@ -195,7 +185,7 @@ public partial class CompSettings : SettingsComponentBase
             return false;
         }
         
-        await UpdateUser(user);
+        await UserService.UpdateUserAsync(user);
         
         await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
             UserDataType.Username, 
@@ -217,7 +207,7 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task<bool> ChangePassword(string? curp, string? newp)
     {
-        var user = await GetUser();
+        var user = await UserService.GetUserAsync();
         if (user is null)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
@@ -271,7 +261,7 @@ public partial class CompSettings : SettingsComponentBase
             return false;
         }
         
-        await UpdateUser(user);
+        await UserService.UpdateUserAsync(user);
         
         await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
             UserDataType.Password, 
@@ -292,7 +282,7 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task<bool> ChangeEmail(string? newEmail)
     {
-        var user = await GetUser();
+        var user = await UserService.GetUserAsync();
         if (user is null)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
@@ -332,8 +322,8 @@ public partial class CompSettings : SettingsComponentBase
             true, 
             "")
         );
-        
-        var userId = await GetUserId();
+
+        var userId = await UserService.GetUserId();
         await JsRuntime.InvokeVoidAsync("sendNewEmailConfirmation", userId, newEmail);
 
         await OnAlertChange(new AlertArguments(
@@ -348,7 +338,7 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task<bool> DeleteAccount(string? pass)
     {
-        var user = await GetUser();
+        var user = await UserService.GetUserAsync();
         if (user is null)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
@@ -382,8 +372,7 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-
-        AuthHelper.InvalidateAuthState();
+        
         var result = await UserManager.DeleteAsync(user);
         if (!result.Succeeded)
         {
@@ -407,17 +396,10 @@ public partial class CompSettings : SettingsComponentBase
             "")
         );
         
-        Logger.LogInformation("User with ID '{GetUserId()}' deleted their account.", GetUserId());
+        Logger.LogInformation("User with ID '{GetUserId()}' deleted their account.", user);
         
         await JsRuntime.InvokeVoidAsync("forceLogout");
         
         return true;
-    }
-
-    private async Task UpdateUser(User user)
-    {
-        AuthHelper.InvalidateAuthState();
-        await UserManager.UpdateAsync(user);
-        await UserManager.UpdateSecurityStampAsync(user);
     }
 }

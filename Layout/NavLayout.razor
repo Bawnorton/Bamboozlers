@@ -1,3 +1,5 @@
+@implements IAuthListener;
+
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Data
@@ -144,6 +146,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        AuthHelper.AddListener(this);
         await GetDataAsync();
         ChangeView(CurrentView);       
     }
@@ -158,9 +161,11 @@ else
     {
         Self = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
 
-        if (Self is null)
-            return;
+        //if (Self is null)
+          //  return;
         
+        //GroupChats = Self.Chats is not null ? Self.Chats.OfType<GroupChat>().ToList() : GroupChats;
+        //DmChats = Self.Chats is not null ? Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList() : DmChats;
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
 
@@ -228,5 +233,10 @@ else
         public Type HeldType => Held.GetType();
         
         public static ViewHolder Of(ComponentBase component) => new(component);
+    }
+
+    public async void Update()
+    {
+        await GetDataAsync();
     }
 }

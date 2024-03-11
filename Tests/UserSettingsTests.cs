@@ -101,7 +101,7 @@ public class UserSettingsTests : BlazoriseTestBase
             "Hi! I'm Bobby."
         );
         user.Email = "bobby.blazor@gmail.com";
-        AuthHelper.InvalidateAuthState();
+        //AuthHelper.InvalidateAuthState();
         _mockAuthenticationProvider.SetUser(user);
         
         var component = Ctx.RenderComponent<CompSettings>();
@@ -355,7 +355,7 @@ public class UserSettingsTests : BlazoriseTestBase
         
         // Arrange: User is not found
         ManageMockUsers();
-        AuthHelper.InvalidateAuthState();
+        //AuthHelper.InvalidateAuthState();
         var completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -688,12 +688,12 @@ public class UserSettingsTests : BlazoriseTestBase
         if (reinit)
         {
             var user = _mockUserManager.GetMockUser(0);
-            AuthHelper.InvalidateAuthState();
+            //AuthHelper.InvalidateAuthState();
             _mockAuthenticationProvider.SetUser(user);
             return user;
         }
         _mockUserManager.ClearMockUsers();
-        AuthHelper.InvalidateAuthState();
+        //AuthHelper.InvalidateAuthState();
         return null;
     }
 
