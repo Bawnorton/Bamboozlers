@@ -20,8 +20,8 @@ public class RegistrationTests: TestBase
     private readonly string fakePswd;
     
     public RegistrationTests(){
-        Mock<IUserStore<User>> userStoreMock = new Mock<IUserStore<User>>();
-        Mock<IUserEmailStore<User>> userEmailStoreMock = userStoreMock.As<IUserEmailStore<User>>();
+        var userStoreMock = new Mock<IUserStore<User>>();
+        var userEmailStoreMock = userStoreMock.As<IUserEmailStore<User>>();
         userManagerMock = new Mock<UserManager<User>>(userStoreMock.Object, null, null, null, null, null, null, null, null);
         redirectManagerMock = new Mock<IdentityRedirectManagerWrapper>(Mock.Of<IIdentityRedirectManager>());
         emailSenderMock = new Mock<IEmailSender<User>>();
@@ -54,7 +54,7 @@ public class RegistrationTests: TestBase
     [Fact]
     public void TestSuccessfulRegistration()
     {
-        string expectedUrl = "Account/RegisterConfirmation";
+        var expectedUrl = "Account/RegisterConfirmation";
         var expectedParameters = new Dictionary<string, object?>
         {
             ["email"] = user.Email,
