@@ -3,7 +3,7 @@
 @inject IJSRuntime JsRuntime
 @implements IDisposable
 
-<Layout Style="height: 92%" Class="scrollbar-container">
+<Layout ElementId="message-container" Style="height: 92%" Class="scrollbar-container">
     <LayoutContent>
         <Div>
             @foreach (var message in Messages)
@@ -28,6 +28,8 @@
     private User Self { get; set; }
 
     private Div MessageInput { get; set; }
+    
+    private Layout ScrollContainer { get; set; }
         
     private string ChatName { get; set; }
     
@@ -55,7 +57,7 @@
         }
 
         var messages = new List<Message>(Chat?.Messages ?? []);
-        messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
+        messages.Sort((a, b) => b.SentAt.CompareTo(a.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
         Messages = linkedMessages;
     }
@@ -88,6 +90,7 @@
         {
             await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
             SendMessage();
+            StateHasChanged();
         } 
     }
     
@@ -101,6 +104,10 @@
         if (inputEvent.KeyReference is { Key: "Backspace" } && TypedMessage.Equals("\n"))
         {
             await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
+        }
+        else if (inputEvent.KeyReference is { Key: "Enter", Shift: false })
+        {
+            await JsRuntime.InvokeVoidAsync("messageInputInterop.scrollToBottom", "message-container");
         }
     }
 
@@ -118,7 +125,6 @@
             Content = TypedMessage
         };
         Messages.Add(new LinkedMessage(message, Messages.Last().Message));
-        StateHasChanged();
     }
     
     public void Dispose()

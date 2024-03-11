@@ -1,6 +1,7 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
 @using AngleSharp.Diffing.Extensions
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 
 @rendermode InteractiveServer
 
@@ -18,7 +19,7 @@
             <Div Background="Background.Secondary"
                  Padding="Padding.Is3"
                  TextSize="TextSize.Heading5">
-                <Icon Name="IconName.Hospital"></Icon>
+                <Icon Name="Icons.UserTimes"></Icon>
                 <Text>Bamboozlers</Text>
             </Div>
             <Bar Mode="BarMode.VerticalInline"
@@ -28,14 +29,14 @@
                 <BarMenu>
                     <BarItem>
                         <BarLink ElementId="friends" @onclick="() => ChangeView(View.Friends)">
-                            <BarIcon IconName="IconName.Check"></BarIcon>
+                            <BarIcon Class="fa-user-circle"></BarIcon>
                             Friends
                         </BarLink>
                     </BarItem>
                     <BarItem>
                         <BarDropdown>
                             <BarDropdownToggle>
-                                <BarIcon IconName="IconName.User"></BarIcon>
+                                <BarIcon IconName="Icons.User"></BarIcon>
                                 Direct Messages
                             </BarDropdownToggle>
                             <BarDropdownMenu ElementId="dms_dropdown">
@@ -43,7 +44,7 @@
                                 {
                                     <BarItem>
                                         <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => ChangeView(View.Dm, chat.DbReference)">
-                                            <BarIcon IconName="IconName.User"></BarIcon>
+                                            <BarIcon IconName="Icons.User"></BarIcon>
                                             @chat.User.DisplayName
                                         </BarLink>
                                     </BarItem>
@@ -54,7 +55,7 @@
                     <BarItem>
                         <BarDropdown>
                             <BarDropdownToggle>
-                                <BarIcon IconName="IconName.Users"></BarIcon>
+                                <BarIcon IconName="Icons.Users"></BarIcon>
                                 Group Chats
                             </BarDropdownToggle>
                             <BarDropdownMenu ElementId="groups_dropdown">
@@ -62,7 +63,7 @@
                                 {
                                     <BarItem>
                                         <BarLink ElementId="@("group_" + chat.ID)" @onclick="() => ChangeView(View.Group, chat)">
-                                            <BarIcon IconName="IconName.Users"></BarIcon>
+                                            <BarIcon IconName="Icons.Users"></BarIcon>
                                             @chat.Name
                                         </BarLink>
                                     </BarItem>
@@ -80,7 +81,7 @@
                 <Text>
                     @(Self.DisplayName ?? Self.UserName) 
                 </Text>
-                <Icon Name="IconName.UserTie" IconSize="IconSize.Large"></Icon>
+                <Icon Name="Icons.UserTie" IconSize="IconSize.Large"></Icon>
             </Div>
         </LayoutSiderContent>
     </LayoutSider>

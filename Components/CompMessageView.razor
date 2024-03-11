@@ -1,6 +1,8 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
 
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
+
 @if (MessageState != MessageState.SameUser)
 {
     <Div Class="message-header" Style="@(MessageState == MessageState.First ? "" : "margin-top: 15px;")">
@@ -20,12 +22,23 @@
 }
 <Div Class="message-content">
     <Div>@Message.Content</Div>
+    <Div Class="message-actions">
+        <Button onclick="alert('Not Implemented')">
+            <Icon Name="Icons.Reply"></Icon>
+        </Button>
+        <Button onclick="alert('Not Implemented')">
+            <Icon Name="Icons.MapPin"></Icon>
+        </Button>
+        <Button onclick="alert('Not Implemented')">
+            <Icon Name="Icons.Trash"></Icon>
+        </Button>
+    </Div>
 </Div>
 
 @code {
-    [Parameter]
+    [Parameter] 
     public Message Message { get; set; }
 
-    [Parameter]
+    [Parameter] 
     public MessageState MessageState { get; set; }
 }

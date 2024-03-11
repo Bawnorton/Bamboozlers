@@ -48,5 +48,9 @@ window.messageInputInterop = {
     clear: async function (elementId) {
         const element = document.getElementById(elementId);
         element.innerHTML = "";
+    },
+    scrollToBottom: async function (elementId) {
+        const element = document.getElementById(elementId);
+        element.scrollTop = element.scrollHeight;
     }
 }
