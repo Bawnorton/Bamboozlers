@@ -71,7 +71,7 @@
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td>14</td>
+    <td>13</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
@@ -79,7 +79,7 @@
       Bridgette Hunt - 4 issues<br>
       MacKenzie Richards - 3 issues<br>
       Zahra Kagda - 3 issues<br>
-      Ben Norton - 3 issues<br>
+      Ben Norton - 2 issues<br>
       Ryan Osmond - 4 issues
     </td>
   </tr>
