@@ -71,7 +71,7 @@
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td>13</td>
+    <td>17</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
