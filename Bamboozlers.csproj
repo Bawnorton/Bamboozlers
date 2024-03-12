@@ -7,7 +7,6 @@
       <UserSecretsId>f4893ed3-d04a-4482-a557-95280a99eb12</UserSecretsId>
     
       <!--Avoid Build Errors-->
-      <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
   
