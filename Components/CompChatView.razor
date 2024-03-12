@@ -57,7 +57,7 @@
         }
 
         var messages = new List<Message>(Chat?.Messages ?? []);
-        messages.Sort((a, b) => b.SentAt.CompareTo(a.SentAt));
+        messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
         Messages = linkedMessages;
     }
@@ -101,13 +101,14 @@
     public async void OnKeyup(InputEvent inputEvent)
     {
         TypedMessage = inputEvent.Text;
-        if (inputEvent.KeyReference is { Key: "Backspace" } && TypedMessage.Equals("\n"))
+        switch (inputEvent.KeyReference)
         {
-            await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
-        }
-        else if (inputEvent.KeyReference is { Key: "Enter", Shift: false })
-        {
-            await JsRuntime.InvokeVoidAsync("messageInputInterop.scrollToBottom", "message-container");
+            case { Key: "Backspace" } when TypedMessage.Equals("\n"):
+                await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
+                break;
+            case { Key: "Enter", Shift: false }:
+                await JsRuntime.InvokeVoidAsync("messageInputInterop.scrollToBottom", "message-container");
+                break;
         }
     }
 
