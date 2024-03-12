@@ -41,12 +41,32 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             urlParams["errorMessage"] = "Your account has been deleted.";
             builder.Query = urlParams.ToString();
             var callbackUrl = "~/Account/Login" + builder.Query;
-
-            Debug.WriteLine(callbackUrl);
             
-            AuthHelper.InvalidateAuthState();
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect(callbackUrl);
+        });
+        
+        accountGroup.MapPost("/ReAuth", async (
+            ClaimsPrincipal user,
+            SignInManager<User> signInManager,
+            [FromServices] UserManager<User> userManager) =>
+        {
+            await signInManager.SignOutAsync();
+            
+            var u = await userManager.GetUserAsync(user);
+            
+            if (u is null)
+            {
+                var builder = new UriBuilder();
+                var urlParams = HttpUtility.ParseQueryString(string.Empty);
+                urlParams["errorMessage"] = "Could not automatically sign you in after changing account details. Please log back in.";
+                builder.Query = urlParams.ToString();
+                var callbackUrl = "~/Account/Login" + builder.Query;
+                return TypedResults.LocalRedirect(callbackUrl);
+            }
+            
+            await signInManager.SignInAsync(u, false);
+            return TypedResults.LocalRedirect("~/");
         });
 
         /*

@@ -47,6 +47,7 @@ builder.Services.AddIdentityCore<User>(options =>
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+builder.Services.AddControllersWithViews();
 
 builder.Services.AddTransient<IEmailSender<User>, EmailSender>();
 builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);

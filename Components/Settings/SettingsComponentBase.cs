@@ -1,10 +1,7 @@
 /* BASE CLASS FOR SETTINGS COMPONENTS */
 
-using Bamboozlers.Classes;
-using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Data.ViewModel;
-using Bamboozlers.Classes.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components.Settings;

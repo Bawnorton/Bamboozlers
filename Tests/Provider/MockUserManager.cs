@@ -19,12 +19,9 @@ public class MockUserManager
     private readonly Mock<IDbContextFactory<AppDbContext>> _mockDbContextFactory;
     
     private readonly List<User> _mockUsers = [];
-
-    private readonly ITestOutputHelper _output;
     
-    public MockUserManager(TestContextBase ctx, ITestOutputHelper output)
+    public MockUserManager(TestContextBase ctx)
     {
-        _output = output;
         // Initialize a mock backing database
         _mockDbContextFactory = new Mock<IDbContextFactory<AppDbContext>>();
         var options = new DbContextOptions<AppDbContext>();
@@ -138,7 +135,6 @@ public class MockUserManager
         string? description = null, 
         byte[]? avatar = null)
     {
-        _output.WriteLine($"Created user {idx}.");
         if (idx == -1) idx = _mockUsers.Count;
         var tuser = new User
         {
@@ -163,7 +159,6 @@ public class MockUserManager
 
     public void ClearMockUsers()
     { 
-        _output.WriteLine($"Cleared all users.");
         _mockUsers.Clear();    
     }
     

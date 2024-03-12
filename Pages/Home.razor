@@ -4,9 +4,11 @@
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Services
+@using Microsoft.AspNetCore.Identity
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject AuthenticationStateProvider AuthStateProvider;
+@inject ServiceProvider ServiceProvider;
 
 @attribute [Authorize]
 
@@ -42,8 +44,9 @@
 </ErrorBoundary>
 
 @code {
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         AuthHelper.Init(AuthStateProvider, Db);
+        await UserService.Init(new ServiceProviderWrapper(ServiceProvider));
     }
 }
