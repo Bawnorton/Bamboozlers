@@ -85,7 +85,27 @@ public class AuthMiscTests : TestBase
     }
     
     [Fact]
-    public void OnValidSubmitAsync_UserExistsAndEmailConfirmed_SendsResetLink()
+    public void TestResendEmailConfirm()
+    {
+        var user = new User();
+        const string testEmail = "test@example.com";
+
+        userManagerMock.Setup(x => x.FindByEmailAsync(testEmail)).ReturnsAsync(user);
+        userManagerMock.Setup(x => x.GetUserIdAsync(user)).ReturnsAsync("1");
+        userManagerMock.Setup(x => x.GenerateEmailConfirmationTokenAsync(user)).ReturnsAsync("SomeToken");
+        
+        var page = Ctx.RenderComponent<ResendEmailConfirmation>(parameters => 
+            parameters.AddCascadingValue(httpContextMock));
+        page.Find("#email").Change(testEmail);
+        page.Find(".btn").Click();
+        // Assert
+        emailSenderMock.Verify(x => x.SendConfirmationLinkAsync(user, testEmail, It.IsAny<string>()), Times.Once());
+        userManagerMock.VerifyAll();
+        Assert.Contains("Verification email sent. Please check your email.", page.Markup);
+    }
+    
+    [Fact]
+    public void TestForgotPassword()
     {
         var user = new User();
         const string testEmail = "test@example.com";
@@ -103,4 +123,6 @@ public class AuthMiscTests : TestBase
         userManagerMock.VerifyAll();
         Assert.Contains("If an account with that email exists, you will receive an email with instructions on how to reset your password.", page.Markup);
     }
+
+    
 }
