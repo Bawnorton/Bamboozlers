@@ -47,13 +47,13 @@ public class EventService : IEventService, IDisposable
     [JSInvokable]
     public async Task OnInputKeydown(InputData data)
     {
-        await InputEvents.InputKeydown.Invoker().Invoke(data.key, data.code, data.ctrl, data.shift, data.alt, data.meta, data.content, data.passed);
+        await InputEvents.InputKeydown.Invoker().Invoke(data.elementId!, data.key, data.code, data.ctrl, data.shift, data.alt, data.meta, data.content, data.passed);
     }
     
     [JSInvokable]
     public async Task OnInputKeyup(InputData data)
     {
-        await InputEvents.InputKeyup.Invoker().Invoke(data.key, data.code, data.ctrl, data.shift, data.alt, data.meta, data.content, data.passed);
+        await InputEvents.InputKeyup.Invoker().Invoke(data.elementId!, data.key, data.code, data.ctrl, data.shift, data.alt, data.meta, data.content, data.passed);
     }
 
     public void Dispose()

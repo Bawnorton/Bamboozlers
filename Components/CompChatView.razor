@@ -70,16 +70,19 @@
         {
             InputData.Normal("Enter", "Enter")
         }));
-        InputEvents.InputKeydown.Register(async (key, _, _, shift, _, _, _, _) =>
+        InputEvents.InputKeydown.Register(async (elementId, key, _, _, shift, _, _, _, _) =>
         {
+            if (elementId != "message-input") return;
             if (key != "Enter" || shift) return;
                 
             await JsRuntime.InvokeVoidAsync("inputInterop.clear", "message-input");
             await SendMessage();
             await InvokeAsync(StateHasChanged);
         });
-        InputEvents.InputKeyup.Register(async (key, _, _, shift, _, _, content, _) =>
+        InputEvents.InputKeyup.Register(async (elementId, key, _, _, shift, _, _, content, _) =>
         {
+            if (elementId != "message-input") return;
+            
             TypedMessage = content;
             switch (key)
             {

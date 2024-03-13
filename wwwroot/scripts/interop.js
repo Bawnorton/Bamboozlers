@@ -58,6 +58,7 @@ window.inputInterop = {
         let passed = true;
         element.addEventListener("keydown", async function (event) {
             const data = {
+                elementId: element.id,
                 key: event.key,
                 code: event.code,
                 ctrl: event.ctrlKey,
@@ -82,6 +83,7 @@ window.inputInterop = {
         
         element.addEventListener("keyup", async function (event) {
             const data = {
+                elementId: element.id,
                 key: event.key,
                 code: event.code,
                 ctrl: event.ctrlKey,
