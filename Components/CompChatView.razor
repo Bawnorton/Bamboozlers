@@ -19,7 +19,7 @@
 </Layout>
 <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Style="bottom: 0">
     <Div Display="Display.Flex" Overflow="Overflow.Hidden">
-        <Div @ref="MessageInput" contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
+        <Div contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
              id="message-input" class="@("message-input " + InputEvents.EventCssClass)" data-placeholder="@($"Message {ChatName}")">
         </Div>
     </Div>
@@ -30,8 +30,6 @@
     public Chat? Chat { get; set; }
     
     private User Self { get; set; }
-
-    private Div MessageInput { get; set; }
     
     private string ChatName { get; set; }
     

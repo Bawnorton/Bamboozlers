@@ -1,12 +1,8 @@
-@using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes
-@using Bamboozlers.Classes.Events
-@using Bamboozlers.Classes.Service
-
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Events
+@using Bamboozlers.Classes
 
-@inject IJSRuntime JsRuntime
-@inject IEventService EventService
 @inject IDbContextFactory<AppDbContext> Db
 
 @if(Loaded)
@@ -87,8 +83,6 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-
-        await EventService.Register(JsRuntime);
         
         KeyboardEvents.Keydown.Register((key, _, _, _, _, _) =>
         {
