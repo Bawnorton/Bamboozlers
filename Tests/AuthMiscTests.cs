@@ -124,5 +124,27 @@ public class AuthMiscTests : TestBase
         Assert.Contains("If an account with that email exists, you will receive an email with instructions on how to reset your password.", page.Markup);
     }
 
-    
+    [Fact]
+    public void TestResetPasswordSuccess()
+    {
+        var uri = navMan.GetUriWithQueryParameter("Code", "someCode");
+        navMan.NavigateTo(uri);
+        
+        userManagerMock.Setup(x => x.FindByEmailAsync("user@example.com")).ReturnsAsync(new User());
+        userManagerMock.Setup(x => x.ResetPasswordAsync(It.IsAny<User>(), It.IsAny<string>(), "NewPassword123!")).ReturnsAsync(IdentityResult.Success);
+        
+        var component = Ctx.RenderComponent<ResetPassword>(parameters => 
+            parameters.AddCascadingValue(httpContextMock));
+
+        // Simulate user input
+        component.Find("#email").Change("user@example.com");
+        component.Find("#password").Change("NewPassword123!");
+        component.Find("#confirmpswd").Change("NewPassword123!");
+
+        // Act
+        component.Find(".btn").Click();
+
+        // Assert
+        Assert.Contains("Your password has been reset.", component.Markup);
+    }
 }
