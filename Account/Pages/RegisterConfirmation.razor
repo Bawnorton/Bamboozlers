@@ -1,14 +1,10 @@
 ﻿@page "/Account/RegisterConfirmation"
 
-@using System.Text
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.WebUtilities
 @using Bamboozlers.Classes.AppDbContext
 
 @inject UserManager<User> UserManager
-@inject IEmailSender<User> EmailSender
-@inject NavigationManager NavigationManager
-@inject IdentityRedirectManager RedirectManager
+@inject IdentityRedirectManagerWrapper RedirectManager
 
 <PageTitle>Register confirmation</PageTitle>
 
@@ -18,14 +14,11 @@
 <p>Please check your email to confirm your account.</p>
 
 @code {
-    private string? emailConfirmationLink;
     private string? statusMessage;
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromQuery] private string? Email { get; set; }
-
-    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
