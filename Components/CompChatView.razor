@@ -1,7 +1,10 @@
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Events
+@using Bamboozlers.Classes.Interop
+@using Bamboozlers.Classes.Service
 @using Bamboozlers.Classes
 @inject IJSRuntime JsRuntime
-@implements IDisposable
+@inject IEventService EventService
 
 <Layout ElementId="message-container" Style="height: 92%" Class="scrollbar-container">
     <LayoutContent>
@@ -16,7 +19,7 @@
 <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Style="bottom: 0">
     <Div Display="Display.Flex" Overflow="Overflow.Hidden">
         <Div @ref="MessageInput" contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
-             id="message-input" class="message-input" data-placeholder="@($"Message {ChatName}")">
+             id="message-input" class="@("message-input " + InputEvents.EventCssClass)" data-placeholder="@($"Message {ChatName}")">
         </Div>
     </Div>
 </Div>
@@ -29,15 +32,11 @@
 
     private Div MessageInput { get; set; }
     
-    private Layout ScrollContainer { get; set; }
-        
     private string ChatName { get; set; }
     
     private string TypedMessage { get; set; }
 
     private List<LinkedMessage> Messages { get; set; } = [];
-    
-    private DotNetObjectReference<CompChatView> Reference { get; set; }
     
     protected override async Task OnInitializedAsync()
     {
@@ -64,54 +63,37 @@
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            Reference = DotNetObjectReference.Create(this);
-            await JsRuntime.InvokeVoidAsync("messageInputInterop.init", Reference, "message-input");
-        }
-    }
-    
-    [JSInvokable]
-    public Task<IEnumerable<KeyReference>> GetDisallowedKeys()
-    {
-        return Task.FromResult<IEnumerable<KeyReference>>([
-            KeyReference.Normal("Enter", "Enter")
-        ]);
-    }
+        if (!firstRender) return;
 
-    /// <summary>
-    /// Before text is inserted into the contenteditable element
-    /// </summary>
-    [JSInvokable]
-    public async void OnKeydown(InputEvent inputEvent)
-    {
-        var keyReference = inputEvent.KeyReference;
-        if (keyReference is { Key: "Enter", Shift: false })
+        await EventService.Register(JsRuntime);
+
+        InputEvents.DisallowedInputs.Register(() => Task.FromResult(new List<InputData>
         {
-            await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
+            InputData.Normal("Enter", "Enter")
+        }));
+        InputEvents.InputKeydown.Register(async (key, _, _, shift, _, _, _, _) =>
+        {
+            if (key != "Enter" || shift) return;
+                
+            await JsRuntime.InvokeVoidAsync("inputInterop.clear", "message-input");
             SendMessage();
             StateHasChanged();
-        } 
+        });
+        InputEvents.InputKeyup.Register(async (key, _, _, shift, _, _, content, _) =>
+        {
+            TypedMessage = content;
+            switch (key)
+            {
+                case "Backspace" when TypedMessage.Equals("\n"):
+                    await JsRuntime.InvokeVoidAsync("inputInterop.clear", "message-input");
+                    break;
+                case "Enter" when !shift:
+                    await JsRuntime.InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
+                    break;
+            }
+        });
     }
     
-    /// <summary>
-    /// After text is inserted into the contenteditable element
-    /// </summary>
-    [JSInvokable]
-    public async void OnKeyup(InputEvent inputEvent)
-    {
-        TypedMessage = inputEvent.Text;
-        switch (inputEvent.KeyReference)
-        {
-            case { Key: "Backspace" } when TypedMessage.Equals("\n"):
-                await JsRuntime.InvokeVoidAsync("messageInputInterop.clear", "message-input");
-                break;
-            case { Key: "Enter", Shift: false }:
-                await JsRuntime.InvokeVoidAsync("messageInputInterop.scrollToBottom", "message-container");
-                break;
-        }
-    }
-
     private void SendMessage()
     {
         if (string.IsNullOrWhiteSpace(TypedMessage))
@@ -126,18 +108,6 @@
             Content = TypedMessage
         };
         Messages.Add(new LinkedMessage(message, Messages.Last().Message));
-    }
-    
-    public void Dispose()
-    {
-        Reference.Dispose();
-    }
-
-    public record InputEvent(KeyReference KeyReference, string Text, bool Passed);
-
-    public record KeyReference(string Key, string Code, bool Ctrl, bool Shift, bool Alt, bool Meta)
-    {
-        public static KeyReference Normal(string key, string code) => new(key, code, false, false, false, false);
     }
     
     public class LinkedMessage(Message message, Message? previous)

@@ -1,49 +1,107 @@
-window.messageInputInterop = {
-    init: async function (dotNetReference, elementId) {
-        const element = document.getElementById(elementId);
+window.persitentStorageInterop = {
+    keyboardInteropElements: [],
+    inputInteropElements: [],
+}
 
-        const disallowedKeys = await dotNetReference.invokeMethodAsync("GetDisallowedKeys");
-        let passed = true;
-        // Impl Note: Determining if the event should be prevented from the "OnKeydown" event is too slow and causes the event to be missed. 
+window.keyboardInterop = {
+    init: function (dotNetReference) {
+        this.addListener(dotNetReference, document);
+    },
+    addListener: function (dotNetReference, element) {
+        console.log("Adding keyboard listener for element: ", element);
         element.addEventListener("keydown", async function (event) {
-            passed = true;
-            for(let {alt, code, ctrl, key, meta, shift} of disallowedKeys) {
-                if(key === event.key && code === event.code && ctrl === event.ctrlKey && shift === event.shiftKey && alt === event.altKey && meta === event.metaKey) {
-                    passed = false;
-                    event.preventDefault();
-                    break;
-                }
-            }
             const data = {
-                KeyReference: {
-                    Key: event.key,
-                    Code: event.code,
-                    Ctrl: event.ctrlKey,
-                    Shift: event.shiftKey,
-                    Alt: event.altKey,
-                    Meta: event.metaKey,
-                },
-                Text: element.innerText,
-                Passed: passed
+                key: event.key,
+                code: event.code,
+                ctrl: event.ctrlKey,
+                shift: event.shiftKey,
+                alt: event.altKey,
+                meta: event.metaKey
             };
             await dotNetReference.invokeMethodAsync("OnKeydown", data);
         });
-
+        
         element.addEventListener("keyup", async function (event) {
             const data = {
-                KeyReference: {
-                    Key: event.key,
-                    Code: event.code,
-                    Ctrl: event.ctrlKey,
-                    Shift: event.shiftKey,
-                    Alt: event.altKey,
-                    Meta: event.metaKey,
-                },
-                Text: element.innerText,
-                Passed: passed
+                key: event.key,
+                code: event.code,
+                ctrl: event.ctrlKey,
+                shift: event.shiftKey,
+                alt: event.altKey,
+                meta: event.metaKey
             };
             await dotNetReference.invokeMethodAsync("OnKeyup", data);
         });
+    },
+    register: async function (dotNetReference, keyboardListenerClass) {
+        let elements = window.persitentStorageInterop.keyboardInteropElements;
+        let newElements = [];
+        newElements.push(...document.getElementsByClassName(keyboardListenerClass));
+        newElements = newElements.filter((v, i, a) => a.indexOf(v) === i && !elements.includes(v));
+        
+        if (newElements.length !== 0) {
+            elements.push(...newElements);
+            window.persitentStorageInterop.keyboardInteropElements = elements;
+        } else {
+            return;
+        }
+        
+        for (let i = 0; i < newElements.length; i++) {
+            this.addListener(dotNetReference, newElements[i]);
+        }
+    }
+}
+
+window.inputInterop = {
+    addListener: function (dotNetReference, element) {
+        console.log("Adding input listener for element: ", element);
+        let passed = true;
+        element.addEventListener("keydown", async function (event) {
+            const data = {
+                key: event.key,
+                code: event.code,
+                ctrl: event.ctrlKey,
+                shift: event.shiftKey,
+                alt: event.altKey,
+                meta: event.metaKey,
+                content: element.innerText,
+                passed: passed
+            };
+            await dotNetReference.invokeMethodAsync("OnInputKeydown", data);
+        });
+        
+        element.addEventListener("keyup", async function (event) {
+            const data = {
+                key: event.key,
+                code: event.code,
+                ctrl: event.ctrlKey,
+                shift: event.shiftKey,
+                alt: event.altKey,
+                meta: event.metaKey,
+                content: element.innerText,
+                passed: passed
+            };
+            await dotNetReference.invokeMethodAsync("OnInputKeyup", data);
+        });
+    },
+    register: async function (dotNetReference, inputListenerClass) {
+        let elements = window.persitentStorageInterop.inputInteropElements;
+        let newElements = [];
+        newElements.push(...document.getElementsByClassName(inputListenerClass));
+        newElements = newElements.filter((v, i, a) => a.indexOf(v) === i && !elements.includes(v));
+        
+        if (newElements.length !== 0) {
+            elements.push(...newElements);
+            window.persitentStorageInterop.inputInteropElements = elements;
+        } else {
+            return;
+        }
+        
+        const disallowedKeys = await dotNetReference.invokeMethodAsync("OnGetDisallowedInputs");
+        
+        for (let i = 0; i < newElements.length; i++) {
+            this.addListener(dotNetReference, newElements[i]);
+        }
     },
     clear: async function (elementId) {
         const element = document.getElementById(elementId);

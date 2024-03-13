@@ -1,7 +1,12 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
+@using Bamboozlers.Classes.Events
+@using Bamboozlers.Classes.Service
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
+
+@inject IJSRuntime JsRuntime
+@inject IEventService EventService
 
 @if (MessageState != MessageState.SameUser)
 {
@@ -23,9 +28,19 @@
 <Div Class="message-content">
     <Div>@Message.Content</Div>
     <Div Class="message-actions">
-        <Button onclick="alert('Not Implemented')">
-            <Icon Name="Icons.Reply"></Icon>
-        </Button>
+        @switch (ShowEdit)
+        {
+            case true:
+                <Button onclick="alert('Not Implemented')">
+                    <Icon Class="fa-pencil-alt"></Icon>
+                </Button>
+                break;
+            case false:
+                <Button onclick="alert('Not Implemented')">
+                    <Icon Name="Icons.Reply"></Icon>
+                </Button>
+                break;
+        }
         <Button onclick="alert('Not Implemented')">
             <Icon Name="Icons.MapPin"></Icon>
         </Button>
@@ -41,4 +56,42 @@
 
     [Parameter] 
     public MessageState MessageState { get; set; }
+    
+    private User Self { get; set; }
+   
+    private bool IsShiftHeld { get; set; }
+
+    private bool IsSelfMessage => Message.Sender.Id == Self.Id;
+    
+    private bool ShowEdit => IsSelfMessage && IsShiftHeld;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Self = await AuthHelper.GetSelf();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await EventService.Register(JsRuntime);
+        
+        KeyboardEvents.Keydown.Register((key, _, _, _, _, _) =>
+        {
+            if (key != "Shift") return Task.CompletedTask;
+            
+            IsShiftHeld = true;
+            InvokeAsync(StateHasChanged);
+            return Task.CompletedTask;
+        });
+        
+        KeyboardEvents.Keyup.Register((key, _, _, _, _, _) =>
+        {
+            if (key != "Shift") return Task.CompletedTask;
+            
+            IsShiftHeld = false;
+            InvokeAsync(StateHasChanged);
+            return Task.CompletedTask;
+        });
+    }
 }
