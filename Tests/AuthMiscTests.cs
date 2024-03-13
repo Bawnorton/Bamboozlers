@@ -13,15 +13,16 @@ namespace Tests;
 public class AuthMiscTests : TestBase
 {
     private readonly Mock<UserManager<User>> userManagerMock;
-    private readonly Mock<IdentityRedirectManagerWrapper> redirectManagerMock;
     private readonly HttpContextMock httpContextMock;
     private readonly FakeNavigationManager navMan;
+    private readonly Mock<IEmailSender<User>> emailSenderMock;
 
     public AuthMiscTests()
     {
         // Setup code that is shared across tests
         userManagerMock = new Mock<UserManager<User>>(Mock.Of<IUserStore<User>>(), null, null, null, null, null, null, null, null);
-        redirectManagerMock = new Mock<IdentityRedirectManagerWrapper>(Mock.Of<IIdentityRedirectManager>());
+        emailSenderMock = new Mock<IEmailSender<User>>();
+        var redirectManagerMock = new Mock<IdentityRedirectManagerWrapper>(Mock.Of<IIdentityRedirectManager>());
         var signInManagerMock = new Mock<SignInManager<User>>(userManagerMock.Object, Mock.Of<IHttpContextAccessor>(), Mock.Of<IUserClaimsPrincipalFactory<User>>(), null, null, null, null);
 
         httpContextMock = new HttpContextMock();
@@ -29,6 +30,7 @@ public class AuthMiscTests : TestBase
         Ctx.Services.AddSingleton(userManagerMock.Object);
         Ctx.Services.AddSingleton(redirectManagerMock.Object);
         Ctx.Services.AddSingleton(signInManagerMock.Object);
+        Ctx.Services.AddSingleton(emailSenderMock.Object);
         navMan = Ctx.Services.GetRequiredService<FakeNavigationManager>();
     }
     
@@ -81,5 +83,24 @@ public class AuthMiscTests : TestBase
         // Asserts
         Assert.Contains("Thank you for confirming your email change.", page.Markup);
     }
+    
+    [Fact]
+    public void OnValidSubmitAsync_UserExistsAndEmailConfirmed_SendsResetLink()
+    {
+        var user = new User();
+        const string testEmail = "test@example.com";
 
+        userManagerMock.Setup(x => x.FindByEmailAsync(testEmail)).ReturnsAsync(user);
+        userManagerMock.Setup(x => x.IsEmailConfirmedAsync(user)).ReturnsAsync(true);
+        userManagerMock.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("SomeToken");
+        
+        var page = Ctx.RenderComponent<ForgotPassword>(parameters => 
+            parameters.AddCascadingValue(httpContextMock));
+        page.Find("#email").Change(testEmail);
+        page.Find(".btn").Click();
+        // Assert
+        emailSenderMock.Verify(x => x.SendPasswordResetLinkAsync(user, testEmail, It.IsAny<string>()), Times.Once());
+        userManagerMock.VerifyAll();
+        Assert.Contains("If an account with that email exists, you will receive an email with instructions on how to reset your password.", page.Markup);
+    }
 }
