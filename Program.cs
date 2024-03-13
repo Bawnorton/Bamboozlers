@@ -6,9 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
 using Bamboozlers.Classes.Service;
+using Bamboozlers.Classes.Service.Messaging;
 using Blazorise.Bootstrap5;
-using Blazorise.Tests.bUnit;
 using Microsoft.AspNetCore.Components.Authorization;
+using IMessageService = Bamboozlers.Classes.Service.Messaging.IMessageService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,7 @@ builder.Services.AddScoped<IdentityRedirectManagerWrapper>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 
 builder.Services.AddAuthentication(options =>
     {

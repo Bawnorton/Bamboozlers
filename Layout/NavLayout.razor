@@ -126,7 +126,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
+        Self = await AuthHelper.GetSelf(query => 
+            query
+                .Include(u => u.Chats)
+                    .ThenInclude(c => c.Users)
+                .Include(u => u.Chats)
+                    .ThenInclude(c => c.Messages)
+        );
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
 
@@ -139,93 +145,6 @@
                 FriendCount++;
             }
         }
-
-        Self.Avatar = "https://cdn.discordapp.com/avatars/430678754931507201/a_9c7355d2677417a89361a75efa686217.webp?size=240";
-
-        var other = new User
-        {
-            Id = 3421,
-            UserName = "TestUser1",
-            Email = "test@gmail.com",
-            EmailConfirmed = true,
-            AccessFailedCount = 0,
-            DisplayName = "Test User 1",
-            Chats = [],
-            ModeratedChats = [],
-            OwnedChats = []
-        };
-        var chat = new Chat
-        {
-            ID = 1342,
-            Users = [Self, other],
-            Messages = []
-        };
-        var messages = new List<Message>
-        {
-            new()
-            {
-                ID = 0,
-                Chat = chat,
-                ChatID = chat.ID,
-                Sender = Self,
-                SenderID = Self.Id,
-                Content = "Hello, World!",
-                Attachment = null,
-                IsPinned = false,
-                SentAt = DateTime.Now.AddMinutes(-1)
-            },
-            new()
-            {
-                ID = 1,
-                Chat = chat,
-                ChatID = chat.ID,
-                Sender = other,
-                SenderID = other.Id,
-                Content = "Hi, there!",
-                Attachment = null,
-                IsPinned = false,
-                SentAt = DateTime.Now.AddSeconds(-30)
-            },
-            new()
-            {
-                ID = 2,
-                Chat = chat,
-                ChatID = chat.ID,
-                Sender = Self,
-                SenderID = Self.Id,
-                Content = "How are you?",
-                Attachment = null,
-                IsPinned = false,
-                SentAt = DateTime.Now.AddSeconds(-15)
-            },
-            new()
-            {
-                ID = 3,
-                Chat = chat,
-                ChatID = chat.ID,
-                Sender = other,
-                SenderID = other.Id,
-                Content = "I'm good, thanks!",
-                Attachment = null,
-                IsPinned = false,
-                SentAt = DateTime.Now
-            },
-            new()
-            {
-                ID = 4,
-                Chat = chat,
-                ChatID = chat.ID,
-                Sender = other,
-                SenderID = other.Id,
-                Content = "How about you?",
-                Attachment = null,
-                IsPinned = false,
-                SentAt = DateTime.Now.AddSeconds(15)
-            }
-        };
-        chat.Messages.AddRange(messages);
-        other.Chats.Add(chat);
-        DmChats.Add(new DmChat(chat, other));
         
         ChangeView(CurrentView);       
     }
@@ -244,7 +163,7 @@
                 break;
             case View.Dm:
             {
-                var other = chat!.Users.First(u => u.Id != Self!.Id);
+                var other = chat!.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? Self!;
                 Views[CurrentView].Name = other.DisplayName ?? other.UserName;
                 Views[CurrentView].Parameters = new Dictionary<string, object>
                 {

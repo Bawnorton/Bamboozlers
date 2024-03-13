@@ -53,7 +53,7 @@ window.keyboardInterop = {
 }
 
 window.inputInterop = {
-    addListener: function (dotNetReference, element) {
+    addListener: function (dotNetReference, disallowedKeys, element) {
         console.log("Adding input listener for element: ", element);
         let passed = true;
         element.addEventListener("keydown", async function (event) {
@@ -67,6 +67,16 @@ window.inputInterop = {
                 content: element.innerText,
                 passed: passed
             };
+            for ({ key, code, ctrl, shift, alt, meta } of disallowedKeys) {
+                if (event.key === key && event.code === code && event.ctrlKey === ctrl && event.shiftKey === shift && event.altKey === alt && event.metaKey === meta) {
+                    passed = false;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+                } else {
+                    passed = true;
+                }
+            }
             await dotNetReference.invokeMethodAsync("OnInputKeydown", data);
         });
         
@@ -100,7 +110,7 @@ window.inputInterop = {
         const disallowedKeys = await dotNetReference.invokeMethodAsync("OnGetDisallowedInputs");
         
         for (let i = 0; i < newElements.length; i++) {
-            this.addListener(dotNetReference, newElements[i]);
+            this.addListener(dotNetReference, disallowedKeys, newElements[i]);
         }
     },
     clear: async function (elementId) {

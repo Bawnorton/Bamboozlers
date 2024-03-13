@@ -4,9 +4,11 @@
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
+@using IMessageService = Bamboozlers.Classes.Service.Messaging.IMessageService
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject AuthenticationStateProvider AuthStateProvider;
+@inject IMessageService MessageService;
 
 @attribute [Authorize]
 
@@ -44,6 +46,7 @@
 @code {
     protected override void OnInitialized()
     {
+        MessageService.Init(Db);
         AuthHelper.Init(AuthStateProvider, Db);
     }
 }

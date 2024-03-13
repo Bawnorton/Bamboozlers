@@ -3,6 +3,7 @@
 @using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes.Service
 @using Bamboozlers.Classes
+
 @inject IJSRuntime JsRuntime
 @inject IEventService EventService
 
@@ -47,7 +48,7 @@
         }
         else if (Chat is not null)
         {
-            var other = Chat.Users.First(u => u.Id != Self.Id);
+            var other = Chat.Users.FirstOrDefault(u => u.Id != Self.Id) ?? Self;
             ChatName = (other.DisplayName ?? other.UserName)!;
         }
         else
@@ -76,8 +77,8 @@
             if (key != "Enter" || shift) return;
                 
             await JsRuntime.InvokeVoidAsync("inputInterop.clear", "message-input");
-            SendMessage();
-            StateHasChanged();
+            await SendMessage();
+            await InvokeAsync(StateHasChanged);
         });
         InputEvents.InputKeyup.Register(async (key, _, _, shift, _, _, content, _) =>
         {
@@ -94,20 +95,14 @@
         });
     }
     
-    private void SendMessage()
+    private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(TypedMessage))
-        {
-            return;
-        }
-        var message = new Message
-        {
-            Sender = Self,
-            SenderID = Self.Id,
-            SentAt = DateTime.Now,
-            Content = TypedMessage
-        };
-        Messages.Add(new LinkedMessage(message, Messages.Last().Message));
+        if (string.IsNullOrWhiteSpace(TypedMessage)) return;
+
+        var message = await MessageEvents.MessageSent.Invoker().Invoke(Chat!, Self, TypedMessage, null, false, DateTime.Now);
+        if (message is null) return; 
+        
+        Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
     }
     
     public class LinkedMessage(Message message, Message? previous)
