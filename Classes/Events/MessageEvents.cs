@@ -21,7 +21,12 @@ public abstract class MessageEvents
             var mutatedMessage = message;
             foreach (var listener in listeners)
             {
-                mutatedMessage = await listener(chat, sender, content, attachment, isPinned, sentAt, () => message, message.ID);
+                var supplied = mutatedMessage;
+                mutatedMessage = await listener(chat, sender, content, attachment, isPinned, sentAt, () => supplied, message.ID);
+                if (mutatedMessage is null)
+                {
+                    break;
+                }
             }
 
             return mutatedMessage;
