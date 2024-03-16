@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 
 namespace Tests;
 
+[Collection("Sequential")]
 public class NavLayoutTests : BlazoriseTestBase
 {
     private readonly MockDatabaseProvider _mockDatabaseProvider;
@@ -33,6 +34,7 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenDms()
     {
+        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>(
             parameters => parameters.Add(p => p.Testing, true)
         );
@@ -62,6 +64,7 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenGroups()
     {
+        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>(
             parameters => parameters.Add(p => p.Testing, true)
         );
@@ -90,6 +93,7 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenFriends()
     {
+        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>(
             parameters => parameters.Add(p => p.Testing, true)
         );

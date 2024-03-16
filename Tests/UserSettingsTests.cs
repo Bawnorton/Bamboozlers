@@ -16,6 +16,7 @@ using Xunit.Abstractions;
 
 namespace Tests;
 
+[Collection("Sequential")]
 public class UserSettingsTests : BlazoriseTestBase
 {
     private readonly MockAuthenticationProvider _mockAuthenticationProvider;
@@ -137,7 +138,6 @@ public class UserSettingsTests : BlazoriseTestBase
             completionCall.SetResult(true);
         });
         await completionCall.Task.WaitAsync(CancellationToken.None);
-        AuthHelper.Invalidate();
         
         // Assert
         Assert.Equal("TestUser0",UserDisplayRecord.UserName);
@@ -154,7 +154,6 @@ public class UserSettingsTests : BlazoriseTestBase
             completionCall.SetResult(true);
         });
         await completionCall.Task.WaitAsync(CancellationToken.None);
-        AuthHelper.Invalidate();
         
         // Assert: That since his information is nullified, nothing should change.
         Assert.Equal("TestUser0",UserDisplayRecord.UserName);
@@ -244,7 +243,6 @@ public class UserSettingsTests : BlazoriseTestBase
         
         // Arrange: User is null
         ManageMockUsers();
-        AuthHelper.Invalidate();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -274,7 +272,6 @@ public class UserSettingsTests : BlazoriseTestBase
     public async Task UserSettingsTests_ChangePassword()
     {
         var user = ManageMockUsers(true);
-        AuthHelper.Invalidate();
         
         UserUpdateResult? result = null;
         var component = Ctx.RenderComponent<CompSettings>();
@@ -305,7 +302,6 @@ public class UserSettingsTests : BlazoriseTestBase
         
         // Arrange: User is null
         ManageMockUsers();
-        AuthHelper.Invalidate();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -344,7 +340,6 @@ public class UserSettingsTests : BlazoriseTestBase
         
         // Arrange: Null Email
         ManageMockUsers(true);
-        AuthHelper.Invalidate();
         var completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -366,7 +361,6 @@ public class UserSettingsTests : BlazoriseTestBase
         
         // Arrange: User is null
         ManageMockUsers();
-        AuthHelper.Invalidate();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -427,7 +421,6 @@ public class UserSettingsTests : BlazoriseTestBase
         
         // Arrange: User is null
         ManageMockUsers();
-        AuthHelper.Invalidate();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -764,6 +757,7 @@ public class UserSettingsTests : BlazoriseTestBase
 
     private User? ManageMockUsers(bool reinit = false)
     {
+        AuthHelper.Invalidate();
         if (reinit)
         {
             var user = _mockUserManager.GetMockUser(0);

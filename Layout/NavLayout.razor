@@ -145,7 +145,7 @@
         
         await using var db = await Db.CreateDbContextAsync();
 
-        User.Chats ??= db.Chats.Where(c => c.Users.Contains(User)).ToList();
+        var chats = User.Chats;
         GroupChats = User.Chats.OfType<GroupChat>().ToList();
         DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != User.Id))).ToList();
 
