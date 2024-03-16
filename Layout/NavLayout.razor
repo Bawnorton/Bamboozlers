@@ -75,7 +75,7 @@
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer"
                  id="profile-button"
-                 @onclick="@(() => ProfilePopupVisible = true)">
+                 @onclick="ProfileButtonCallback">
                 <Text>
                     @(UserDisplayRecord.DisplayName.IsNullOrEmpty() ? UserDisplayRecord.UserName : UserDisplayRecord.DisplayName) 
                 </Text>
@@ -99,21 +99,8 @@
     </Layout>
 </Layout>
 
-
-@if (!Testing)
-{
-    /*
-     * The Settings pop-up component requires a lot of services that are unnecessary for the unit testing of the
-     * navigation layout. I've made it so that the NavLayout has a parameter that is applied only when its unit
-     * tests are being run, which disables the Settings component from being rendered, and thus, causing those
-     * tests to unnecessarily fail.
-     */
-    <CompSettings StateChangedCallback="@(async () => { await GetDataAsync(); StateHasChanged(); })" @bind-Visible="ProfilePopupVisible"/>
-}
-
 @code {
-    [Parameter] public bool Testing { get; set; }
-
+    [Parameter] public EventCallback ProfileButtonCallback { get; set; }
     private User? User { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
 
@@ -136,6 +123,11 @@
         ChangeView(CurrentView);       
     }
 
+    public async Task Refresh()
+    {
+        await GetDataAsync();
+    }
+
     private async Task GetDataAsync()
     {
         User = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
@@ -146,8 +138,11 @@
         await using var db = await Db.CreateDbContextAsync();
 
         var chats = User.Chats;
-        GroupChats = User.Chats.OfType<GroupChat>().ToList();
-        DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != User.Id))).ToList();
+        if (chats is not null)
+        {
+            GroupChats = User.Chats.OfType<GroupChat>().ToList();
+            DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != User.Id))).ToList();
+        }
 
         FriendCount = 0;
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
@@ -162,7 +157,8 @@
     
     private async void ChangeView(View view, Chat? chat = null)
     {
-        var user = await AuthHelper.GetSelf();
+        if (User is null)
+            return;
         
         CurrentView = view;
         switch (CurrentView)
@@ -176,7 +172,7 @@
                 break;
             case View.Dm:
             {
-                var other = chat!.Users.First(u => u.Id != user.Id);
+                var other = chat!.Users.First(u => u.Id != User?.Id);
                 Views[CurrentView].Name = other.DisplayName ?? other.UserName;
                 Views[CurrentView].Parameters = new Dictionary<string, object>
                 {
@@ -191,8 +187,6 @@
                 throw new ArgumentOutOfRangeException();
         }
     }
-
-    public bool ProfilePopupVisible { get; set; }
 
     private enum View
     {

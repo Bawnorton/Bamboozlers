@@ -10,26 +10,34 @@ using Bamboozlers.Classes.Services;
 using Blazorise;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.JSInterop;
 
 namespace Bamboozlers.Components.Settings;
 
 public partial class CompSettings : SettingsComponentBase
 {
+    [Parameter] public bool Visible { get; set; }
     [Parameter] public string? SectionName { get; set; }
-
-    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public string? SentStatusMessage { get; set; }
+    [Parameter] public string? SentStatusDescription { get; set; }
     
-    private bool _visible;
-
-    [Parameter]
-    public bool Visible
+    protected override void OnInitialized()
     {
-        get => _visible; 
-        set { 
-            if (_visible == value) return; 
-            _visible = value; 
-            VisibleChanged.InvokeAsync(value); 
+        SectionName ??= "User Profile";
+    }
+
+    // TODO: Impl with events?
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!(SentStatusMessage is null || SentStatusDescription is null))
+        {
+            await OnAlertChange(new AlertArguments(
+                Color.Default,
+                true,
+                SentStatusMessage,
+                SentStatusDescription
+            ));
         }
     }
 
@@ -82,11 +90,6 @@ public partial class CompSettings : SettingsComponentBase
         await StateChangedCallback.InvokeAsync();
         
         return result;
-    }
-    
-    protected override async Task OnInitializedAsync()
-    {
-        SectionName ??= "User Profile";
     }
     
     private async Task<bool> ChangeUsername(string? input, string? pass)

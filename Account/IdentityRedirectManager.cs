@@ -16,6 +16,14 @@ internal sealed class IdentityRedirectManager(NavigationManager navigationManage
         MaxAge = TimeSpan.FromSeconds(5),
     };
 
+    public string GetUriWithQueryParameters(string uri, Dictionary<string, object?> queryParams, bool absolute)
+    {
+        return navigationManager.GetUriWithQueryParameters(
+            absolute ? navigationManager.ToAbsoluteUri(uri).AbsoluteUri : uri, 
+            queryParams
+        );
+    }
+    
     [DoesNotReturn]
     public void RedirectTo(string? uri)
     {
