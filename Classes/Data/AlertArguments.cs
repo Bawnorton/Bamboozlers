@@ -11,6 +11,9 @@ namespace Bamboozlers.Classes.Data;
 /// <param name="statusDescription">The further description of the alert.</param>
 public sealed record AlertArguments(Color? AlertColor = null, bool AlertVisible = false, string AlertMessage = "", string AlertDescription = "")
 {
+    /// <summary>
+    /// A generic Alert Arguments instance to be reused.
+    /// </summary>
     public static readonly AlertArguments DefaultErrorAlertArgs = new (
         Color.Danger,
         true,

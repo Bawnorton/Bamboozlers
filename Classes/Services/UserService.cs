@@ -14,6 +14,9 @@ public static class UserService
         await UpdateDisplayRecordAsync();
     }
     
+    /// <summary>
+    /// Retrieve User data in UserDataRecord form to prevent query-tracking related errors.
+    /// </summary>
     public static async Task<UserDataRecord?> GetUserDataAsync()
     {
         var user = await AuthHelper.GetSelf();
@@ -30,6 +33,9 @@ public static class UserService
         );
     }
 
+    /// <summary>
+    /// Get the user ID, used when querying the User from UserManager to prevent query-tracking related errors.
+    /// </summary>
     private static async Task<string?> GetUserIdAsync()
     {
         /* It's insane that the workaround to the tracking error is to get the user Id and use that to query from the
@@ -38,6 +44,12 @@ public static class UserService
         return (await AuthHelper.GetSelf())?.Id.ToString();
     }
     
+    /// <summary>
+    /// Update the user's representation in the database.
+    /// </summary>
+    /// <param name="newValues">
+    /// The values, if any, of the user to be updated.
+    /// </param>
     public static async Task<IdentityResult> UpdateUserAsync(UserDataRecord? newValues = null)
     {
         using var scope = _services.CreateScope();
@@ -69,6 +81,20 @@ public static class UserService
         return iResult;
     }
 
+    /// <summary>
+    /// Update the user's username in the database, and updates (invalidate) the security stamp for the user.
+    /// </summary>
+    /// <params>
+    /// <param name="username">
+    /// The inputted new username.
+    /// </param>
+    /// <param name="password">
+    /// The inputted password that should match the user's current password.
+    /// </param>
+    /// </params>
+    /// <returns>
+    /// An IdentityResult, indicating either success, or an error with a description of the issue.
+    /// </returns>
     public static async Task<IdentityResult> ChangeUsernameAsync(string username, string password)
     {
         using var scope = _services.CreateScope();
@@ -99,6 +125,20 @@ public static class UserService
         return iResult;
     }
     
+    /// <summary>
+    /// Update the user's password in the database, and updates (invalidate) the security stamp for the user.
+    /// </summary>
+    /// <params>
+    /// <param name="currentPassword">
+    /// The inputted password that should match the user's current password.
+    /// </param>
+    /// <param name="newPassword">
+    /// The inputted new password.
+    /// </param>
+    /// </params>
+    /// <returns>
+    /// An IdentityResult, indicating either success, or an error with a description of the issue.
+    /// </returns>
     public static async Task<IdentityResult> ChangePasswordAsync(string currentPassword, string newPassword)
     {
         using var scope = _services.CreateScope();
@@ -126,6 +166,15 @@ public static class UserService
         return iResult;
     }
     
+    /// <summary>
+    /// Deletes the user's account.
+    /// </summary>
+    /// <param name="password">
+    /// The inputted password that should match the user's current password.
+    /// </param>
+    /// <returns>
+    /// An IdentityResult, indicating either success, or an error with a description of the issue.
+    /// </returns>
     public static async Task<IdentityResult> DeleteAccountAsync(string password)
     {
         using var scope = _services.CreateScope();
@@ -150,6 +199,9 @@ public static class UserService
         return iResult;
     }
 
+    /// <summary>
+    /// Updates the display record to align with the user's current database representation.
+    /// </summary>
     public static async Task UpdateDisplayRecordAsync()
     {
         var user = await AuthHelper.GetSelf();
