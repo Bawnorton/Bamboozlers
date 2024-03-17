@@ -50,6 +50,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         }
     }
 
+    // TODO: Move over to ChatJsTests
     [Fact]
     public async Task SendMessageAddsMessageCorreclty()
     {
