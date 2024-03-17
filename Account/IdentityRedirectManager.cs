@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Account;
 
-internal sealed class IdentityRedirectManager(NavigationManager navigationManager) : IIdentityRedirectManager
+public sealed class IdentityRedirectManager(NavigationManager navigationManager) : IIdentityRedirectManager
 {
     public const string StatusCookieName = "Identity.StatusMessage";
 

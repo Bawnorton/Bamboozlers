@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Tests;
+namespace Tests.Provider;
 
 public class MockAuthenticationProvider
 {

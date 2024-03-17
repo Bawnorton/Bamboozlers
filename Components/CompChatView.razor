@@ -66,9 +66,9 @@
 
         await EventService.Register(JsRuntime);
 
-        InputEvents.DisallowedInputs.Register(() => Task.FromResult(new List<InputData>
+        InputEvents.DisallowedInputs.Register(() => Task.FromResult(new List<KeyData>
         {
-            InputData.Normal("Enter", "Enter")
+            KeyData.Normal("Enter", "Enter")
         }));
         InputEvents.InputKeydown.Register(async (elementId, key, _, _, shift, _, _, _, _) =>
         {

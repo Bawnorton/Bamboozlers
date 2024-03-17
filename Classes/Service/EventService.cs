@@ -19,7 +19,12 @@ public class EventService : IEventService, IDisposable
         await jsRuntime.InvokeVoidAsync("keyboardInterop.register", _reference, KeyboardEvents.EventCssClass);
         await jsRuntime.InvokeVoidAsync("inputInterop.register", _reference, InputEvents.EventCssClass);
     }
-    
+
+    public DotNetObjectReference<T> GetReference<T>() where T : class, IEventService
+    {
+        return (_reference as DotNetObjectReference<T>)!;
+    }
+
     private async Task Initialize(IJSRuntime jsRuntime)
     {
         _initialized = true;
@@ -39,7 +44,7 @@ public class EventService : IEventService, IDisposable
     }
 
     [JSInvokable]
-    public async Task<List<InputData>> OnGetDisallowedInputs()
+    public async Task<List<KeyData>> OnGetDisallowedInputs()
     {
         return await InputEvents.DisallowedInputs.Invoker().Invoke();
     }
@@ -71,9 +76,6 @@ public interface IEventService
     /// **EVENTS RELATED TO JS INTEROP WILL NOT WORK WITHOUT THIS**
     /// </summary>
     Task Register(IJSRuntime jsRuntime);
-    Task OnKeydown(KeyData data);
-    Task OnKeyup(KeyData data);
-    Task<List<InputData>> OnGetDisallowedInputs();
-    Task OnInputKeydown(InputData data);
-    Task OnInputKeyup(InputData data);
+
+    DotNetObjectReference<T> GetReference<T>() where T : class, IEventService;
 }
