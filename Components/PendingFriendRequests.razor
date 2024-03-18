@@ -1,0 +1,128 @@
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
+@using Microsoft.AspNetCore.Identity
+
+@inject IDbContextFactory<AppDbContext> Db
+@inject UserManager<User> UserManager;
+@inject NavigationManager NavigationManager
+
+<h2>Pending Friend Requests - @total</h2>
+<br/>
+@foreach (var prospect in IncomingFriendReqs)
+{
+    <span style="font-size:1.4em;">Incoming request from @prospect.UserName</span>
+    <button @onclick="() => ManageRequest(prospect, true)" class="btn btn-success btn-sm">Accept</button>
+    <button @onclick="() => ManageRequest(prospect, false)" class="btn btn-danger btn-sm">Deny</button>
+    <p></p>
+}
+
+@foreach (var prospect in OutgoingFriendReqs)
+{
+    <span style="font-size:1.4em;">Outgoing request to @prospect.UserName</span>
+    <button @onclick="() => CancelRequest(prospect)" class="btn btn-danger btn-sm">Cancel</button>
+    <p></p>
+}
+
+@foreach (var prospect in DeniedFriendReqs)
+{
+    <span style="font-size:1.4em;">Friend request to @prospect.UserName has been denied</span>
+    <button @onclick="() => ResendRequest(prospect)" class="btn btn-success btn-sm">Resend</button>
+    <p></p>
+}
+
+@code {
+    private List<User> IncomingFriendReqs = [];
+    private List<User> OutgoingFriendReqs = [];
+    private List<User> DeniedFriendReqs = [];
+    private int total = 0;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthHelper.IsAuthenticated()) return;
+        
+        var self = await AuthHelper.GetSelf();
+        await using var db = await Db.CreateDbContextAsync();
+        foreach (var friendRequest in db.FriendRequests.Include(f => f.Sender).Include(f => f.Receiver))
+        {
+            if (friendRequest.SenderID == self.Id)
+            {
+                if (friendRequest.Status == RequestStatus.Denied)
+                {
+                    DeniedFriendReqs.Add(friendRequest.Receiver);
+                }
+                else
+                {
+                    OutgoingFriendReqs.Add(friendRequest.Receiver);
+                }
+            }
+            else if (friendRequest.ReceiverID == self.Id && friendRequest.Status == RequestStatus.Pending)
+            {   
+                IncomingFriendReqs.Add(friendRequest.Sender);
+            }
+        }
+        total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
+    }
+
+    private async Task ManageRequest(User prospect, Boolean accepted)
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        var self = await AuthHelper.GetSelf();
+        
+        if(accepted) 
+        {
+            Friendship newFriend = new Friendship();
+                newFriend.User1ID = prospect.Id;
+                newFriend.User2ID = self.Id;
+            
+            FriendRequest request = new FriendRequest();
+                    request.SenderID = prospect.Id;
+                    request.ReceiverID = self.Id;
+                    request.Status = RequestStatus.Pending;
+            
+            db.FriendRequests.Remove(request);
+            db.FriendShips.Add(newFriend);
+        }
+        else
+        {
+            db.FriendRequests.Find(prospect.Id, self.Id).Status = RequestStatus.Denied;
+        }
+        
+        db.SaveChanges();
+        refreshPage();
+    }
+
+    private async Task CancelRequest(User prospect)
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        var self = await AuthHelper.GetSelf();
+        
+        FriendRequest request = new FriendRequest();
+        request.SenderID = self.Id;
+        request.ReceiverID = prospect.Id;
+        request.Status = RequestStatus.Pending;
+        
+        db.FriendRequests.Remove(request);
+        db.SaveChanges();
+        refreshPage();
+    }
+    
+    private async Task ResendRequest(User prospect)
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        var self = await AuthHelper.GetSelf();
+        
+        db.FriendRequests.Find(self.Id,prospect.Id).Status = RequestStatus.Pending;
+        db.SaveChanges();
+        refreshPage();        
+    }
+
+    private async void refreshPage()
+    {
+        IncomingFriendReqs.Clear();
+        OutgoingFriendReqs.Clear();
+        DeniedFriendReqs.Clear();
+
+        await OnInitializedAsync();
+        StateHasChanged();
+    }
+}

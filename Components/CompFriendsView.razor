@@ -4,25 +4,35 @@
 
 <h3>Friend Window</h3>
 
+<Tabs RenderMode="TabsRenderMode.LazyReload" SelectedTab="@selectedTab" SelectedTabChanged="@OnSelectedTabChanged">
+    <Items>
+        <Tab Name="All">All</Tab>
+        <Tab Name="Pending">Pending</Tab>
+        <Tab Name="Blocked">Blocked</Tab>
+        <Tab Name="Add Friend">Add Friend</Tab>
+    </Items>
+    <Content>
+        <TabPanel Name="All">
+            <CurrentFriends/>
+        </TabPanel>
+        <TabPanel Name="Pending">
+            <PendingFriendRequests/>
+        </TabPanel>
+        <TabPanel Name="Blocked">
+            <BlockedUsers/>
+        </TabPanel>
+        <TabPanel Name="Add Friend">
+            <AddFriend/>
+        </TabPanel>
+    </Content>
+</Tabs>
+
 @code {
-    private List<User> Friends = [];
-
-    protected override async Task OnInitializedAsync()
+    private String selectedTab { get; set; } = "All";
+    
+    private Task OnSelectedTabChanged( string name )
     {
-        if (!AuthHelper.IsAuthenticated()) return;
-
-        var self = await AuthHelper.GetSelf();
-        await using var db = await Db.CreateDbContextAsync();
-        foreach (var friendship in db.FriendShips.Include(f => f.User1).Include(f => f.User2))
-        {
-            if (friendship.User1ID == self.Id)
-            {
-                Friends.Add(friendship.User2);
-            }
-            else if (friendship.User2ID == self.Id)
-            {
-                Friends.Add(friendship.User1);
-            }
-        }
+        selectedTab = name;
+        return Task.CompletedTask;
     }
 }

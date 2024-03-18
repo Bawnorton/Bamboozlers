@@ -1,0 +1,40 @@
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
+@using Microsoft.AspNetCore.Identity
+
+@inject IDbContextFactory<AppDbContext> Db
+@inject UserManager<User> UserManager;
+
+
+<h2>All friends - @Friends.Count</h2>
+<br/>
+
+@foreach (var friend in Friends)
+{
+    <span style="font-size:1.4em;">@friend.UserName</span>
+    <p></p>
+}
+
+@code {
+    private List<User> Friends = [];
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthHelper.IsAuthenticated()) return;
+
+        var self = await AuthHelper.GetSelf();
+        await using var db = await Db.CreateDbContextAsync();
+        foreach (var friendship in db.FriendShips.Include(f => f.User1).Include(f => f.User2))
+        {
+            if (friendship.User1ID == self.Id)
+            {
+                Friends.Add(friendship.User2);
+            }
+            else if (friendship.User2ID == self.Id)
+            {
+                Friends.Add(friendship.User1);
+            }
+        }
+    }
+    
+}

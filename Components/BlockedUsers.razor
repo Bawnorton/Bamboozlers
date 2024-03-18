@@ -1,0 +1,37 @@
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
+@using Microsoft.AspNetCore.Identity
+
+@inject IDbContextFactory<AppDbContext> Db
+@inject UserManager<User> UserManager;
+
+
+<h2>Blocked - @BlockedList.Count</h2>
+<br/>
+
+@foreach (var blockedUser in BlockedList)
+{
+    <span style="font-size:1.4em;">@blockedUser.UserName</span>
+    <p></p>
+}
+
+@code {
+    
+    private List<User> BlockedList = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthHelper.IsAuthenticated()) return;
+
+        var self = await AuthHelper.GetSelf();
+        await using var db = await Db.CreateDbContextAsync();
+        foreach (var block in db.BlockList.Include(f => f.Blocker).Include(f => f.Blocked))
+        {
+            if (block.BlockerID == self.Id)
+            {
+                BlockedList.Add(block.Blocked);
+            }
+        }
+    }
+    
+}
