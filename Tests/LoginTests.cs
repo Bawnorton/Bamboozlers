@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Tests;
 
 
-public class AuthenticationTests : TestBase
+public class LoginTests : TestBase
 {
     private readonly Mock<SignInManager<User>> signInManagerMock;
     private readonly Mock<UserManager<User>> userManagerMock;
@@ -22,7 +22,7 @@ public class AuthenticationTests : TestBase
     private readonly HttpContextMock httpContextMock;
     private string fakePswd = "TestPassword123!";
 
-    public AuthenticationTests()
+    public LoginTests()
     {
         // Setup code that is shared across tests
         userManagerMock = new Mock<UserManager<User>>(Mock.Of<IUserStore<User>>(), null, null, null, null, null, null, null, null);

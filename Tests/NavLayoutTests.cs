@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 
 namespace Tests;
 
+[Collection("Sequential")]
 public class NavLayoutTests : BlazoriseTestBase
 {
     private readonly MockDatabaseProvider _mockDatabaseProvider;
@@ -33,9 +34,8 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenDms()
     {
-        var component = Ctx.RenderComponent<NavLayout>(
-            parameters => parameters.Add(p => p.Testing, true)
-        );
+        AuthHelper.Invalidate();
+        var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var dms = _self.Chats.Except(_self.Chats.OfType<GroupChat>()).ToList();
@@ -62,9 +62,8 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenGroups()
     {
-        var component = Ctx.RenderComponent<NavLayout>(
-            parameters => parameters.Add(p => p.Testing, true)
-        );
+        AuthHelper.Invalidate();
+        var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var groups = _self.Chats.OfType<GroupChat>().ToList();
@@ -90,9 +89,8 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenFriends()
     {
-        var component = Ctx.RenderComponent<NavLayout>(
-            parameters => parameters.Add(p => p.Testing, true)
-        );
+        AuthHelper.Invalidate();
+        var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);

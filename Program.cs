@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
 using Blazorise.Bootstrap5;
 using Blazorise.Tests.bUnit;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,7 +40,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 
 builder.Services.AddIdentityCore<User>(options =>
                         {
-                            //options.SignIn.RequireConfirmedAccount = true;
+                            options.SignIn.RequireConfirmedAccount = true;
                             options.User.RequireUniqueEmail = true;
                         })
     .AddEntityFrameworkStores<AppDbContext>()

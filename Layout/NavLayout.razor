@@ -1,5 +1,3 @@
-@implements IAuthListener;
-
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Data
@@ -12,12 +10,6 @@
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject AuthenticationStateProvider AuthStateProvider;
-
-@if (Self is null)
-{
-    <p>Loading...</p>
-    return;
-}
 
 <Layout Sider>
     <LayoutSider>
@@ -83,9 +75,9 @@
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer"
                  id="profile-button"
-                 @onclick="@(() => ProfilePopupVisible = true)">
+                 @onclick="ProfileButtonCallback">
                 <Text>
-                    @(UserDisplayRecord.DisplayName ?? UserDisplayRecord.UserName) 
+                    @(UserDisplayRecord.DisplayName.IsNullOrEmpty() ? UserDisplayRecord.UserName : UserDisplayRecord.DisplayName) 
                 </Text>
                 <Icon Name="IconName.UserTie" IconSize="IconSize.Large"></Icon>
             </Div>
@@ -107,28 +99,9 @@
     </Layout>
 </Layout>
 
-
-@if (!Testing)
-{
-    /*
-     * The Settings pop-up component requires a lot of services that are unnecessary for the unit testing of the
-     * navigation layout. I've made it so that the NavLayout has a parameter that is applied only when its unit
-     * tests are being run, which disables the Settings component from being rendered, and thus, causing those
-     * tests to unnecessarily fail.
-     */
-    <CompSettings StateChangedCallback="@(async () => StateHasChanged())" @bind-Visible="ProfilePopupVisible"/>
-}
-else
-{
-    // Mock of the Settings pop-up component
-    <Modal ElementId="test-settings" @bind-Visible="@ProfilePopupVisible"></Modal>
-}
-
 @code {
-    [Parameter] public bool Testing { get; set; }
-
-    private User? Self { get; set; }
-
+    [Parameter] public EventCallback ProfileButtonCallback { get; set; }
+    private User? User { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
 
     private List<GroupChat> GroupChats { get; set; } = [];
@@ -146,43 +119,47 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        AuthHelper.AddListener(this);
         await GetDataAsync();
         ChangeView(CurrentView);       
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    public async Task Refresh()
     {
         await GetDataAsync();
-        await base.OnAfterRenderAsync(firstRender);
     }
 
     private async Task GetDataAsync()
     {
-        Self = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
+        User = await AuthHelper.GetSelf(query => query.Include(u => u.Chats).ThenInclude(c => c.Users));
 
-        //if (Self is null)
-          //  return;
+        if (User is null)
+            return;
         
-        //GroupChats = Self.Chats is not null ? Self.Chats.OfType<GroupChat>().ToList() : GroupChats;
-        //DmChats = Self.Chats is not null ? Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList() : DmChats;
-        GroupChats = Self.Chats.OfType<GroupChat>().ToList();
-        DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
+        await using var db = await Db.CreateDbContextAsync();
+
+        var chats = User.Chats;
+        if (chats is not null)
+        {
+            GroupChats = User.Chats.OfType<GroupChat>().ToList();
+            DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != User.Id))).ToList();
+        }
 
         FriendCount = 0;
-        await using var db = await Db.CreateDbContextAsync();
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
         foreach (var friendship in friendships)
         {
-            if (friendship.User1ID == Self.Id || friendship.User2ID == Self.Id)
+            if (friendship.User1ID == User.Id || friendship.User2ID == User.Id)
             {
                 FriendCount++;
             }
         }
     }
     
-    private void ChangeView(View view, Chat? chat = null)
+    private async void ChangeView(View view, Chat? chat = null)
     {
+        if (User is null)
+            return;
+        
         CurrentView = view;
         switch (CurrentView)
         {
@@ -195,7 +172,7 @@ else
                 break;
             case View.Dm:
             {
-                var other = chat!.Users.First(u => u.Id != Self!.Id);
+                var other = chat!.Users.First(u => u.Id != User?.Id);
                 Views[CurrentView].Name = other.DisplayName ?? other.UserName;
                 Views[CurrentView].Parameters = new Dictionary<string, object>
                 {
@@ -210,8 +187,6 @@ else
                 throw new ArgumentOutOfRangeException();
         }
     }
-
-    public bool ProfilePopupVisible { get; set; }
 
     private enum View
     {
@@ -233,10 +208,5 @@ else
         public Type HeldType => Held.GetType();
         
         public static ViewHolder Of(ComponentBase component) => new(component);
-    }
-
-    public async void Update()
-    {
-        await GetDataAsync();
     }
 }

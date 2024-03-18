@@ -1,4 +1,4 @@
-window.forceLogout = function() {
+window.ForceLogout = function() {
     fetch("/Account/DeAuth", {
         method: "POST",
         headers: {
@@ -10,7 +10,19 @@ window.forceLogout = function() {
         .catch((err) => console.error(err))
 }
 
-window.sendNewEmailConfirmation = function(userId, email) {
+window.Reauthenticate = function() {
+    fetch("/Account/ReAuth", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+    })
+        .then(async (response) => response)
+        .then((result) => { console.log(result); window.location.href = result.url;})
+        .catch((err) => console.error(err))
+}
+
+window.SendNewEmailConfirmation = function(userId, email) {
     let data = {
         "Id": userId, 
         "Email": email

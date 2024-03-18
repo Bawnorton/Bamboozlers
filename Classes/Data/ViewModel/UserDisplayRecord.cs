@@ -30,13 +30,15 @@ public record UserDisplayRecord
     /// Updates the static attributes of the display record given a User object.
     /// </summary>
     /// <param name="user">The user from which attributes will be set.</param>
-    public static void Update(User user)
+    public static void Update(User? user)
     {
-        Debug.WriteLine(user.UserName);
+        if (user is null)
+            return;
+        
         UserName = user.UserName ?? UserName;
         Email = user.Email ?? Email;
-        DisplayName = user.DisplayName ?? DisplayName;
-        Bio = user.Bio ?? Bio;
+        DisplayName = user.DisplayName;
+        Bio = user.Bio;
         Avatar = GetDisplayableAvatar(user.Avatar);
     }
 }

@@ -460,3 +460,6 @@ MigrationBackup/
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,visualstudio,rider
 
+.idea/.idea.Bamboozlers/.idea/copilot/chatSessions/00000000000.xd
+.idea/.idea.Bamboozlers/.idea/copilot/chatSessions/blobs/version
+.idea/.idea.Bamboozlers/.idea/copilot/chatSessions/xd.lck

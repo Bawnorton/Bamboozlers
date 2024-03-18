@@ -28,6 +28,7 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             ClaimsPrincipal user,
             SignInManager<User> signInManager) =>
         {
+            AuthHelper.Invalidate();
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect($"~/Account/Login");
         });
@@ -41,11 +42,36 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             urlParams["errorMessage"] = "Your account has been deleted.";
             builder.Query = urlParams.ToString();
             var callbackUrl = "~/Account/Login" + builder.Query;
-
-            Debug.WriteLine(callbackUrl);
             
+            AuthHelper.Invalidate();
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect(callbackUrl);
+        });
+        
+        accountGroup.MapPost("/ReAuth", async (
+            ClaimsPrincipal user,
+            SignInManager<User> signInManager,
+            [FromServices] UserManager<User> userManager) =>
+        {
+            await signInManager.SignOutAsync();
+            
+            var u = await userManager.GetUserAsync(user);
+            
+            if (u is null)
+            {
+                var builder = new UriBuilder();
+                var urlParams = HttpUtility.ParseQueryString(string.Empty);
+                urlParams["errorMessage"] = "Could not automatically sign you in after changing account details. Please log back in.";
+                builder.Query = urlParams.ToString();
+                
+                var callbackUrl = "~/Account/Login" + builder.Query;
+                
+                return TypedResults.LocalRedirect(callbackUrl);
+            }
+            
+            AuthHelper.Invalidate();
+            await signInManager.SignInAsync(u, false);
+            return TypedResults.LocalRedirect("~/");
         });
 
         /*
@@ -60,28 +86,37 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             [FromServices] IEmailSender<User> emailSender,
             [FromBody] UserDataRecord parameters) =>
         {
-            if (parameters.Id is null && parameters.Email is null) return;
+            if (parameters.Id is null || parameters.Email is null) return;
 
             var userId = parameters.Id.ToString();
             var user = await userManager.FindByIdAsync(userId!);
             if (user is null) return;
             
-            var code = await userManager.GenerateChangeEmailTokenAsync(user, parameters.Email!);
+            var code = await userManager.GenerateChangeEmailTokenAsync(user, parameters.Email);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
 
-            var builder = new UriBuilder("Account/ConfirmEmailChange");
-            // TODO: When this is hosted, change this. Or really, change it when there's a better way to retrieve it.
-            builder.Host = "localhost:5152";
+            // TODO: This is probably not the most stellar way to perform this action, but it works for now. Could be improved.
+            
             var urlParams = HttpUtility.ParseQueryString(string.Empty);
             urlParams["userId"] = parameters.Id.ToString();
             urlParams["email"] = parameters.Email;
             urlParams["code"] = code;
-            builder.Query = urlParams.ToString();
+            
+            var request = context.Request;
+            var builder = new UriBuilder
+            {
+                Host = request.Host.Host,
+                Scheme = request.Scheme,
+                Port = request.Host.Port ?? 80,
+                Path = "Account/ConfirmEmailChange",
+                Query = urlParams.ToString()
+            };
+
             var callbackUrl = builder.Uri.AbsoluteUri;
             
             await emailSender.SendConfirmationLinkAsync(
                 user, 
-                parameters.Email!, 
+                parameters.Email, 
                 HtmlEncoder.Default.Encode(callbackUrl)
             );
         });
