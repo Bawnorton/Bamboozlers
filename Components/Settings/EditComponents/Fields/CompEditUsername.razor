@@ -1,0 +1,79 @@
+@using Bamboozlers.Classes.Data.ViewModel
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Components.Settings.EditComponents.Bases
+@inherits EditFieldBase
+
+@{
+    ViewPanelContent =
+        @<ViewPanelBase DisplayData="@UserDisplayRecord.UserName"
+                        FieldName="Username"
+                        Button="ToggleEditButton"
+                        />;
+
+    List<RenderFragment> formFields = [];
+    formFields.Add(
+        @<Div Class="form-floating mb-3">
+            <InputText id="username-field" 
+                       @bind-Value="Model!.Username" 
+                       class="form-control" 
+                       autocomplete="new-username" 
+                       aria-required="true" 
+                       placeholder="Please enter new username."/>
+            <Label for="username-field" class="form-label">New Username</Label>
+            <ValidationMessage For="() => Model.Username" class="text-danger"/>
+        </Div>
+    );
+    formFields.Add(
+        @<Div Class="form-floating mb-3">
+            <InputText id="password-field" 
+                       type="password" 
+                       @bind-Value="Model!.Password" 
+                       class="form-control" 
+                       autocomplete="current-password" 
+                       aria-required="true" 
+                       placeholder="Please confirm your password."/>
+            <Label for="password-field" class="form-label">Password</Label>
+            <ValidationMessage For="() => Model.Password" class="text-danger"/>
+        </Div>
+    );
+    
+    EditPanelContent =
+        @<EditPanelBase
+             SubmitCallback="OnValidSubmitAsync"
+             Model="Model"
+             FormName="change-password"
+             Fields="formFields"
+             ButtonsBelow="true"
+             Buttons="EditPanelButtons"/>;
+}
+
+@{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    private UsernameInputModel? Model { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Model = new UsernameInputModel();
+    }
+    
+    public override async Task OnValidSubmitAsync()
+    {
+        await base.OnValidSubmitAsync();
+        if (DataChangeFunction is null)
+        {
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
+            return;
+        }
+        
+        await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Username,
+            UserName = Model!.Username,
+            CurrentPassword = Model.Password
+        });
+    }
+}

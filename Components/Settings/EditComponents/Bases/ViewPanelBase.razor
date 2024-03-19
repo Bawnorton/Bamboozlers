@@ -1,0 +1,21 @@
+@using Bamboozlers.Classes.Data
+
+<Container>
+    <Row Class="centre-content">
+        <Column ColumnSize="ColumnSize.Is6">
+            <Div Class="form-floating">
+                <input type="text" value="@DisplayData" class="form-control" disabled/>
+                <Label class="form-label">
+                    @FieldName
+                </Label>
+            </Div>
+        </Column>
+        @Button
+    </Row>
+</Container>
+
+@code {
+    [Parameter] public string? DisplayData { get; set; }
+    [Parameter] public string? FieldName { get; set; }
+    [Parameter] public RenderFragment Button { get; set; }
+}

@@ -4,7 +4,8 @@ using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Data.ViewModel;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Components.Settings;
-using Bamboozlers.Components.Settings.EditFields;
+using Bamboozlers.Components.Settings.EditComponents.Bases;
+using Bamboozlers.Components.Settings.EditComponents.Fields;
 using Blazorise;
 using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
@@ -772,7 +773,7 @@ public class UserSettingsTests : BlazoriseTestBase
     /// <summary>
     /// Tests the functionality of the TabToggle component class and subclasses.
     /// </summary>
-    private void UserSettingsTests_TabToggle<T>() where T : TabToggle
+    private void UserSettingsTests_TabToggle<T>() where T : EditFieldBase
     {
         var component = Ctx.RenderComponent<T>();
         
@@ -791,7 +792,7 @@ public class UserSettingsTests : BlazoriseTestBase
         CheckElementClassContains(viewTab,visClass,true);
         CheckElementClassContains(editTab,visClass);
         
-        component.Find("#toggle-view").Click();
+        component.Find("#cancel-button").Click();
         CheckElementClassContains(viewTab,visClass);
         CheckElementClassContains(editTab,visClass,true);
     }
@@ -799,7 +800,7 @@ public class UserSettingsTests : BlazoriseTestBase
     /// <summary>
     /// Tests the functionality of the EditField deriving classes when there is no DataChangeFunction callback.
     /// </summary>
-    private async Task UserSettingsTests_NoDataChangeFunction<T>() where T : EditField
+    private async Task UserSettingsTests_NoDataChangeFunction<T>() where T : EditFieldBase
     {
         AlertArguments? args = null;
 

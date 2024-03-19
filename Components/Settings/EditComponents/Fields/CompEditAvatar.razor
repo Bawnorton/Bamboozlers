@@ -1,8 +1,6 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Data.ViewModel
-@inherits EditField
-
-@inject ILogger<CompEditAvatar> Logger;
+@inherits SettingsComponentBase
 
 <FigureImage ElementId="avatar-display" Source="@UserDisplayRecord.Avatar"/>
 <FigureCaption>
@@ -29,8 +27,6 @@
         }
         catch (ArgumentNullException)
         {
-            
-            Logger.LogInformation("User unsuccessfully attempted to change their avatar. No file was uploaded.");
             await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Danger,
                 true,
@@ -41,7 +37,6 @@
         }
         catch (InvalidOperationException)
         {
-            Logger.LogInformation("User unsuccessfully attempted to change their avatar. More than one file was uploaded.");
             await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Danger,
                 true,
@@ -60,10 +55,7 @@
                 await file.WriteToStreamAsync(stream);
                 success = stream.TryGetBuffer(out image);
             }
-            catch (Exception exc)
-            {
-                Logger.LogError(exc.ToString());
-            }
+            catch (Exception) { }
         }
         if (success) 
             await ProcessFile(image.ToArray());
@@ -79,8 +71,6 @@
         
         if (image.IsNullOrEmpty())
         {
-            Logger.LogInformation("User unsuccessfully attempted to change their avatar. Image produced was null or empty.");
-            
             await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Danger,
                 true,
@@ -98,8 +88,6 @@
 
         if (result)
         {
-            Logger.LogInformation("User changed their avatar successfully.");
-            
             await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Success,
                 true,

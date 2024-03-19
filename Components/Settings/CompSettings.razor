@@ -1,22 +1,25 @@
 @using System.Data
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Data.ViewModel
+@using Bamboozlers.Components.Settings.EditComponents.Fields
 @inherits SettingsComponentBase
 
 @inject ILogger<CompSettings> Logger
 @inject IJSRuntime JsRuntime
 
-<Modal ElementId="container" @bind-Visible="@Visible" Closed="@(async Task () =>
-                                        {
-                                            await OnAlertChange(new AlertArguments()); 
-                                            SectionName = "User Profile"; 
-                                        })">
+<Modal ElementId="container"
+       @bind-Visible="@Visible"
+       Closed="@(async Task () =>
+                                {
+                                    await OnAlertChange(new AlertArguments()); 
+                                    SectionName = "User Profile"; 
+                                })">
     <ModalContent Centered Size="ModalSize.ExtraLarge">
         <ModalHeader>
             <h3>Account Settings</h3>
             <CloseButton/>
         </ModalHeader>
-        <ModalBody>
+        <ModalBody Width="Width.Is100" Height="Height.Is100">
             <Alert ElementId="status-alert" Color="@Arguments.AlertColor"
                    Visible="@Arguments.AlertVisible">
                 <AlertMessage ElementId="status-message">
@@ -83,7 +86,10 @@
             <Form id="logout-form" action="Account/Logout" method="post">
                 <AntiforgeryToken/>
                 <input id="loginRedirectMessage" type="hidden" value="You have been logged out."/>
-                <Button Color="Color.Primary" Type="ButtonType.Submit">
+                <Button Color="Color.Dark"
+                        Border="Border.White"
+                        Type="ButtonType.Submit">
+                    <Icon Name="IconName.Running"/>
                     Log Out
                 </Button>
             </Form>
