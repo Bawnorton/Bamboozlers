@@ -7,7 +7,7 @@
     ViewPanelContent =
         @<Container>
             <Row Class="centre-content">
-                <Column ColumnSize="ColumnSize.Is6">
+                <Column ColumnSize="ColumnSize.Is8">
                     <Div Class="form-floating">
                         <textarea name="bio" 
                                   type="text" 
@@ -20,11 +20,7 @@
                         </Label>
                     </Div>
                 </Column>
-                <CompSettingsActionButton ColumnWidth="ColumnSize.Is1"
-                                          ButtonId="toggle-edit"
-                                          Color="Color.Light"
-                                          ActionCallback="Toggle"
-                                          IconName="IconName.Pen"/>
+                @ToggleEditButton
             </Row>
         </Container>;
 
@@ -50,7 +46,6 @@
              Model="Model"
              FormName="change-bio"
              Fields="formFields"
-             ButtonsBelow="true"
              Buttons="EditPanelButtons"/>;
 }
 

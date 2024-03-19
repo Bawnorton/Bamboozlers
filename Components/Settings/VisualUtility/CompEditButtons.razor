@@ -15,8 +15,8 @@
     [Parameter] public EventCallback Toggle { get; set; }
     [Parameter] public Color ConfirmColor { get; set; } = Color.Success;
     [Parameter] public Color CancelColor { get; set; } = Color.Danger;
-    [Parameter] public IFluentColumn ColumnWidth { get; set; } = ColumnSize.Is1;
+    [Parameter] public IFluentColumn ColumnWidth { get; set; } = ColumnSize.Is2;
     [Parameter] public IFluentSizing ButtonWidth { get; set; } = Width.Auto;
-    [Parameter] public string? ConfirmButtonCaption { get; set; }
-    [Parameter] public string? CancelButtonCaption { get; set; }
+    [Parameter] public string? ConfirmButtonCaption { get; set; } = "Confirm";
+    [Parameter] public string? CancelButtonCaption { get; set; } = "Cancel";
 }

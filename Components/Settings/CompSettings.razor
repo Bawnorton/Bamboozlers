@@ -19,7 +19,7 @@
             <h3>Account Settings</h3>
             <CloseButton/>
         </ModalHeader>
-        <ModalBody Width="Width.Is100" Height="Height.Is100">
+        <ModalBody>
             <Alert ElementId="status-alert" Color="@Arguments.AlertColor"
                    Visible="@Arguments.AlertVisible">
                 <AlertMessage ElementId="status-message">
@@ -39,7 +39,7 @@
                 <Content>
                     <TabPanel Name="User Profile" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
                         <Container Width="Width.Is100">
-                            <Row>
+                            <Row Class="centre-content">
                                 <Column ColumnSize="ColumnSize.Is4">
                                     <Row>
                                         <CompEditAvatar AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/> 
@@ -63,8 +63,8 @@
                     </TabPanel>
                     <TabPanel Name="Login Details" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
                         <Container Width="Width.Is100">
-                            <Row>
-                                <Column>
+                            <Row Class="centre-content">
+                                <Column ColumnSize="ColumnSize.Is8">
                                     <Row>
                                         <CompEditEmail AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>  
                                     </Row>

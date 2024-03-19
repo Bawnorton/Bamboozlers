@@ -1,4 +1,5 @@
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Components.Settings.VisualUtility
 @inherits SettingsComponentBase
 
 <Tabs @bind-SelectedTab="InteractionMode">
@@ -37,7 +38,8 @@
         ToggleEditButton = @<CompSettingsActionButton ActionCallback="Toggle"
                                                 ButtonId="toggle-edit"
                                                 IconName="IconName.Pen"
-                                                Color="Color.Light"/>;
+                                                Color="Color.Light"
+                                                ButtonCaption="Edit"/>;
         EditPanelButtons = @<CompEditButtons Toggle="Toggle"/>;
         SetViewContext();
     }
