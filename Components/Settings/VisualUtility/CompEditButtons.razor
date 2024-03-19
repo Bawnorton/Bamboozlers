@@ -1,0 +1,22 @@
+<CompSettingsActionButton ButtonId="cancel-button" 
+                  ActionCallback="Toggle" 
+                  ColumnWidth="@ColumnWidth" 
+                  ButtonWidth="@ButtonWidth" 
+                  Color="@CancelColor"
+                  IconName="IconName.Ban"
+                  ButtonCaption="@CancelButtonCaption"/>
+<CompSettingsActionButton ButtonId="submit-button" 
+                  ButtonType="ButtonType.Submit" 
+                  Color="@ConfirmColor"
+                  IconName="IconName.Check"
+                  ButtonCaption="@ConfirmButtonCaption"/>
+
+@code {
+    [Parameter] public EventCallback Toggle { get; set; }
+    [Parameter] public Color ConfirmColor { get; set; } = Color.Success;
+    [Parameter] public Color CancelColor { get; set; } = Color.Danger;
+    [Parameter] public IFluentColumn ColumnWidth { get; set; } = ColumnSize.Is1;
+    [Parameter] public IFluentSizing ButtonWidth { get; set; } = Width.Auto;
+    [Parameter] public string? ConfirmButtonCaption { get; set; }
+    [Parameter] public string? CancelButtonCaption { get; set; }
+}

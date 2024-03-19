@@ -1,0 +1,54 @@
+@using Bamboozlers.Classes.Data
+@inherits SettingsComponentBase
+
+<Tabs @bind-SelectedTab="InteractionMode">
+    <Content>
+        <TabPanel ElementId="view-panel"
+                  Name="view">
+            @ViewPanelContent
+        </TabPanel>
+        <TabPanel ElementId="edit-panel" 
+                  Name="edit">
+            @EditPanelContent
+        </TabPanel>
+    </Content>
+</Tabs>
+
+@code {
+    protected RenderFragment ViewPanelContent { get; set; }
+    protected RenderFragment EditPanelContent { get; set; }
+
+    protected RenderFragment ToggleEditButton { get; set; }
+    protected RenderFragment EditPanelButtons { get; set; }
+
+    private bool Editing { get; set; }
+    protected string? InteractionMode { get; set; } = "view";
+
+    protected Task Toggle()
+    {
+        Editing = !Editing;
+        SetViewContext();
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        ToggleEditButton = @<CompSettingsActionButton ActionCallback="Toggle"
+                                                ButtonId="toggle-edit"
+                                                IconName="IconName.Pen"
+                                                Color="Color.Light"/>;
+        EditPanelButtons = @<CompEditButtons Toggle="Toggle"/>;
+        SetViewContext();
+    }
+    
+    public virtual async Task OnValidSubmitAsync()
+    {
+        return;
+    }
+
+    private void SetViewContext()
+    {
+        InteractionMode = Editing ? "edit" : "view";
+    }
+}

@@ -1,0 +1,71 @@
+@using Bamboozlers.Classes.Data.ViewModel
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Components.Settings.EditComponents.Bases
+@inherits EditFieldBase
+
+@{
+    ViewPanelContent =
+        @<ViewPanelBase DisplayData="@UserDisplayRecord.Email"
+                        FieldName="Email"
+                        Button="ToggleEditButton"/>;
+
+    List<RenderFragment> formFields = [];
+    formFields.Add(
+        @<Div Class="form-floating centre-content">
+            <InputText id="email-field" 
+                       @bind-Value="Model!.Email" 
+                       class="form-control" 
+                       autocomplete="email" 
+                       aria-required="true" 
+                       placeholder="Please enter new email."/>
+            <Label for="email-field" class="form-label">
+                New Email
+            </Label>
+            <ValidationMessage For="() => Model!.Email" class="text-danger"/>
+        </Div>
+    );
+
+    List<RenderFragment> buttons = []; 
+    buttons.Add(EditPanelButtons);
+    
+    EditPanelContent =
+        @<EditPanelBase
+             SubmitCallback="OnValidSubmitAsync"
+             Model="Model"
+             FormName="change-email"
+             Fields="formFields"
+             Buttons="EditPanelButtons"/>;
+}
+
+@{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    private EmailInputModel? Model { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Model = new EmailInputModel();
+    }
+
+    public override async Task OnValidSubmitAsync()
+    {
+        await base.OnValidSubmitAsync();
+        if (DataChangeFunction is null)
+        {
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
+            return;
+        }
+    
+        var result = await DataChangeFunction.Invoke(new UserDataRecord 
+        { 
+            DataType = UserDataType.Email, 
+            Email = Model!.Email 
+        });
+    
+        if (result)
+            await Toggle();
+    }
+}
