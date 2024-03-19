@@ -26,7 +26,7 @@
             </Div>
         }
         <Div Class="message-content">
-            <Div>@Message.Content</Div>
+            <CompMessageContentView Content=@Message.Content/>
             <Div Class="message-actions">
                 @switch (ShowEdit)
                 {

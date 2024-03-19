@@ -2,7 +2,6 @@ using Bamboozlers;
 using Bamboozlers.Account;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Service;
-using Bamboozlers.Classes.Service.Messaging;
 using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
@@ -16,11 +15,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using NUnit.Framework;
-using IMessageService = Bamboozlers.Classes.Service.Messaging.IMessageService;
+using IMessageService = Bamboozlers.Classes.Service.IMessageService;
 
 namespace Tests.Playwright;
 
-public class BlazorJsTestBase : PageTest
+public class BlazorJsTestBase(string username = "testuser1", string password = "Hpxd3910!") : PageTest
 {
     protected WebApplication? Host;
     
@@ -97,14 +96,14 @@ public class BlazorJsTestBase : PageTest
         // Set up Playwright
         var browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Headless = false
+            Headless = true
         });
         var page = await browser.NewPageAsync();
         
         // Log in
         await page.GotoAsync(RootUri.ToString());
-        await page.GetByPlaceholder("name@example.com or username").FillAsync("Username");
-        await page.GetByPlaceholder("password").FillAsync("Password123!");
+        await page.GetByPlaceholder("name@example.com or username").FillAsync(username);
+        await page.GetByPlaceholder("password").FillAsync(password);
         await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Log in" }).ClickAsync();
     }
 

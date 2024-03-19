@@ -1,7 +1,7 @@
 using Bamboozlers.Classes.Events;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bamboozlers.Classes.Service.Messaging;
+namespace Bamboozlers.Classes.Service;
 
 public class MessageService : IMessageService
 {
@@ -10,11 +10,14 @@ public class MessageService : IMessageService
     public void Init(IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory)
     {
         _db = dbContextFactory;
-        MessageEvents.MessageSent.Register(async (_, _, _, _, _, _, mesageSupplier, _) =>
+        MessageEvents.MessageCreated.Register(async message =>
         {
+            if (message.ID != null)
+            {
+                // Message already exists in db as ID is auto-assigned
+                return message;
+            }
             await using var db = await _db.CreateDbContextAsync();
-            var message = mesageSupplier?.Invoke();
-            if (message == null) return null;
             
             db.Messages.Add(message);
             await db.SaveChangesAsync();

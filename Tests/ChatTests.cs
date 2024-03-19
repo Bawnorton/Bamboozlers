@@ -65,10 +65,10 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         
         // I would simulate a keyboard input but apparently bunit doesn't support contenteditable elements, why? who knows, so instead we get this mess:
         Message? message = null;
-        MessageEvents.MessageSent.Register((_, _, _, _, _, _, supplier, _) =>
+        MessageEvents.MessageCreated.Register(created =>
         {
-            message = supplier?.Invoke();
-            message!.ID = db.Messages.Count() + 1; 
+            message = created;
+            message.ID = db.Messages.Count() + 1; 
             return Task.FromResult(message)!;
         });
         

@@ -6,6 +6,7 @@
 
 @inject IJSRuntime JsRuntime
 @inject IEventService EventService
+@inject IWebSocketService WebSocketService
 
 <Layout ElementId="message-container" Style="height: 92%" Class="scrollbar-container">
     <LayoutContent>
@@ -58,6 +59,8 @@
         messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
         Messages = linkedMessages;
+
+        await WebSocketService.ConnectAsync(Self.Id);
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -100,8 +103,18 @@
     {
         if (string.IsNullOrWhiteSpace(TypedMessage)) return;
 
-        var message = await MessageEvents.MessageSent.Invoker().Invoke(Chat!, Self, TypedMessage, null, false, DateTime.Now);
-        if (message is null) return; 
+        TypedMessage = TypedMessage.Trim();
+        
+        var message = new Message
+        {
+            ChatID = Chat!.ID,
+            SenderID = Self.Id,
+            Content = TypedMessage,
+            SentAt = DateTime.Now,
+            IsPinned = false
+        };
+        await MessageEvents.MessageCreated.Invoker().Invoke(message);
+        WebSocketService.SendMessage(message);
         
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
     }
