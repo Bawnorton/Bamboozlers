@@ -6,9 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
 using Bamboozlers.Classes.Service;
+using Bamboozlers.Classes.Services;
 using Blazorise.Bootstrap5;
 using Microsoft.AspNetCore.Components.Authorization;
-using IMessageService = Bamboozlers.Classes.Service.IMessageService;
+using IMessageService = Bamboozlers.Classes.Services.IMessageService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,3 +82,5 @@ app.MapRazorComponents<App>()
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 app.Run();
+
+public partial class Program { }

@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Account;
@@ -15,7 +14,7 @@ public sealed class IdentityRedirectManager(NavigationManager navigationManager)
         IsEssential = true,
         MaxAge = TimeSpan.FromSeconds(5),
     };
-
+    
     [DoesNotReturn]
     public void RedirectTo(string? uri)
     {

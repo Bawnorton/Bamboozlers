@@ -3,16 +3,16 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| | | | 
+| Complete | Complete | Not needed | 
 
 ### Sprint Team Members
-| Name | Role |
-| --- | --- |
-| | |
-| | |
-| | |
-| | |
-| | |
+| Name               | Role        |
+|--------------------|-------------|
+| Bridgette Hunt     | Team Leader |
+| Ben Norton         | Developer   |
+| MacKenzie Richards | Developer   |
+| Zahra Kagda        | Developer   |
+| Ryan Osmond        | Developer   |
 
 ## Sprint Planning Meeting Items
 
@@ -20,23 +20,29 @@
 <table>
   <tr>
     <th>Sprint Theme</th>
-    <td>e.g., Bugs</td>
+    <td>Development</td>
   </tr>
   <tr>
     <th>Issues Completed</th>
-    <td></td>
+    <td>2</td>
   </tr>
   <tr>
     <th>Issues Left</th>
-    <td></td>
+    <td>15 issues</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td></td>
+    <td>
+      Bridgette Hunt - 4 issues<br>
+      MacKenzie Richards - 3 issues<br>
+      Zahra Kagda - 3 issues<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 4 issues
+    </td>
   </tr>
   <tr>
     <th>Summary</th>
-    <td></td>
+    <td>A lot of issues could not be finished due to personal time constraints on the part of our entire team.</td>
   </tr>
 </table>
 
@@ -44,41 +50,41 @@
 <table>
   <tr>
     <th>Start Date</th>
-    <td></td>
+    <td>03/19/2024</td>
   </tr>
   <tr>
     <th>End Date</th>
-    <td></td>
+    <td>03/26/2024</td>
   </tr>
   <tr>
     <th>Sprint Theme</th>
-    <td></td>
+    <td>Development</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td></td>
+    <td>At least 2 hours</td>
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td></td>
+    <td>15 issues</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      Member 1<br>
-      Member 2<br>
-      Member 3<br>
-      Member 4<br>
-      Member 5
+      Bridgette Hunt - 3 issues<br>
+      MacKenzie Richards - 4 issues<br>
+      Zahra Kagda - 3 issues<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 3 issues
     </td>
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td></td>
+    <td>Might not be able to get some stuff done due to various time constraints on the part of team members.</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td></td>
+    <td>Do our best to get as much work as possible done.</td>
   </tr>
 </table>
 

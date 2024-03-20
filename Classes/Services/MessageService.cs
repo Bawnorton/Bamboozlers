@@ -1,7 +1,7 @@
 using Bamboozlers.Classes.Events;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bamboozlers.Classes.Service;
+namespace Bamboozlers.Classes.Services;
 
 public class MessageService : IMessageService
 {

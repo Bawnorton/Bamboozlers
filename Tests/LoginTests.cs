@@ -190,7 +190,7 @@ public class LoginTests : TestBase
         );
 
         var errorMsg = page.Find(".alert").TextContent;
-        Assert.Contains("Please Confirm your email before logging in.", errorMsg);
+        Assert.Contains("Please confirm your email before logging in.", errorMsg);
     }
     
     [Fact]

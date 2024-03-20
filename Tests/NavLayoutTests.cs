@@ -1,4 +1,5 @@
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Services;
 using Bamboozlers.Layout;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,17 +8,9 @@ namespace Tests;
 public class NavLayoutTests : AuthenticatedBlazoriseTestBase
 {
     [Fact]
-    public void NavLayoutTests_FindAndOpenProfile()
-    {
-        var component = Ctx.RenderComponent<NavLayout>();
-        
-        component.Find("#profile").Click();
-        /* TODO: Verify that the profile page is open, blocked by implementation of the profile page */
-    }
-
-    [Fact]
     public async Task NavLayoutTests_FindAndOpenDms()
     {
+        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
@@ -45,6 +38,7 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenGroups()
     {
+        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
@@ -71,6 +65,7 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenFriends()
     {
+        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();

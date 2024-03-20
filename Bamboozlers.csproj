@@ -50,13 +50,12 @@
       <Folder Include="Migrations\" />
       <Folder Include="wwwroot\images\" />
     </ItemGroup>
-
+    
     <ItemGroup>
-      <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css" />
-      <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css.map" />
-      <_ContentIncludedByDefault Remove="Tests\obj\project.assets.json" />
-      <_ContentIncludedByDefault Remove="Tests\obj\project.packagespec.json" />
-      <_ContentIncludedByDefault Remove="Tests\obj\Tests.csproj.nuget.dgspec.json" />
+      <Content Update="Tests\bin\Debug\net8.0\images\default_profile.png">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
     </ItemGroup>
 
 </Project>

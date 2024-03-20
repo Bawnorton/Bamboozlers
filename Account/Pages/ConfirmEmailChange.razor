@@ -1,9 +1,8 @@
 ﻿@page "/Account/ConfirmEmailChange"
-
-@using System.Text
+@using Bamboozlers.Classes.AppDbContext
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using Bamboozlers.Classes.AppDbContext
+@using System.Text
 
 @inject UserManager<User> UserManager
 @inject SignInManager<User> SignInManager
@@ -48,7 +47,7 @@
             message = $"Error: {string.Join(", ", result.Errors.Select(error => error.Description))}";
             return;
         }
-
+        
         await SignInManager.RefreshSignInAsync(user);
         message = "Thank you for confirming your email change.";
     }

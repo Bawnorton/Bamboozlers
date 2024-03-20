@@ -5,17 +5,17 @@
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes.Interop
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Data.ViewModel
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Components.Settings
+@using Blazorise.Extensions
 
 @rendermode InteractiveServer
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject AuthenticationStateProvider AuthStateProvider;
 
-@if (Self is null)
-{
-    <p>Loading...</p>
-    return;
-}
 <Layout Sider>
     <LayoutSider>
         <LayoutSiderContent>
@@ -79,10 +79,10 @@
             <Div Padding="Padding.Is3"
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer"
-                 id="profile"
-                 @onclick="OpenProfilePopup">
+                 id="profile-button"
+                 @onclick="ProfileButtonCallback">
                 <Text>
-                    @(Self.DisplayName ?? Self.UserName) 
+                    @(UserDisplayRecord.DisplayName.IsNullOrEmpty() ? UserDisplayRecord.UserName : UserDisplayRecord.DisplayName) 
                 </Text>
                 <Icon Name="Icons.UserTie" IconSize="IconSize.Large"></Icon>
             </Div>
@@ -106,12 +106,11 @@
 </Layout>
 
 @code {
+    [Parameter] public EventCallback ProfileButtonCallback { get; set; }
+    private User? User { get; set; }
+    private List<DmChat> DmChats { get; set; } = [];
 
-    private User? Self { get; set; }
-
-    private List<DmChat> DmChats { get; set; }
-
-    private List<GroupChat> GroupChats { get; set; }
+    private List<GroupChat> GroupChats { get; set; } = [];
 
     private View CurrentView { get; set; } = View.Friends;
 
@@ -126,31 +125,53 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthHelper.GetSelf(query => 
+        await GetDataAsync();
+        ChangeView(CurrentView);       
+    }
+
+    public async Task Refresh()
+    {
+        await GetDataAsync();
+    }
+
+    private async Task GetDataAsync()
+    {
+        User = await AuthHelper.GetSelf(query => 
             query
                 .Include(u => u.Chats)
                     .ThenInclude(c => c.Users)
                 .Include(u => u.Chats)
                     .ThenInclude(c => c.Messages)
         );
-        GroupChats = Self.Chats.OfType<GroupChat>().ToList();
-        DmChats = Self.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != Self.Id))).ToList();
 
+        if (User is null)
+            return;
+        
         await using var db = await Db.CreateDbContextAsync();
+
+        var chats = User.Chats;
+        if (chats is not null)
+        {
+            GroupChats = User.Chats.OfType<GroupChat>().ToList();
+            DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != User.Id))).ToList();
+        }
+
+        FriendCount = 0;
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
         foreach (var friendship in friendships)
         {
-            if (friendship.User1ID == Self.Id || friendship.User2ID == Self.Id)
+            if (friendship.User1ID == User.Id || friendship.User2ID == User.Id)
             {
                 FriendCount++;
             }
         }
-        
-        ChangeView(CurrentView);       
     }
-
-    private void ChangeView(View view, Chat? chat = null)
+    
+    private async void ChangeView(View view, Chat? chat = null)
     {
+        if (User is null)
+            return;
+        
         CurrentView = view;
         switch (CurrentView)
         {
@@ -163,7 +184,7 @@
                 break;
             case View.Dm:
             {
-                var other = chat!.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? Self!;
+                var other = chat!.Users.First(u => u.Id != User?.Id);
                 Views[CurrentView].Name = other.DisplayName ?? other.UserName;
                 Views[CurrentView].Parameters = new Dictionary<string, object>
                 {
@@ -178,13 +199,6 @@
                 throw new ArgumentOutOfRangeException();
         }
     }
-    
-    
-    private Task OpenProfilePopup()
-    {
-        // TODO: Impl;
-        return Task.CompletedTask;
-    }
 
     private enum View
     {
@@ -192,7 +206,7 @@
         Group,
         Friends
     }
-
+    
     private record DmChat(Chat DbReference, User User);
 
     private class ViewHolder(ComponentBase component)

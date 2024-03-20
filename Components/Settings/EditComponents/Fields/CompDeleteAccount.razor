@@ -1,0 +1,121 @@
+@inherits EditFieldBase
+
+@{
+    ViewPanelContent =
+        @<Container Width="Width.Is75">
+            <p>
+                We store data you provided to us as part of creating and updating your account as well as data that was generated as part of this process.
+                You can download this data at any time.
+            </p>
+            <Container Width="Width.Is75"
+                       TextAlignment="TextAlignment.Center">
+                <Form action="Account/DownloadPersonalData"
+                      method="post">
+                    <AntiforgeryToken/>
+                    <Button Color="Color.Light"
+                            Type="ButtonType.Submit">
+                        <Icon Name="IconName.InfoCircle"/>
+                        Download personal data
+                    </Button>
+                </Form>
+            </Container>
+            <br/>
+            <p>
+                You can delete your account and its associated data from our application permanently at any time.
+            </p>
+            <Container Width="Width.Is25">
+                <Button id="toggle-edit"
+                        Width="Width.Is100"
+                        Color="Color.Danger"
+                        Clicked="Toggle">
+                    <Icon Name="IconName.Delete"/>
+                    Delete Account
+                </Button>
+            </Container>
+        </Container>;
+
+    EditPanelContent =
+        @<Container>
+            <EditForm Model="Model" OnValidSubmit="OnValidSubmitAsync" method="post">
+                <DataAnnotationsValidator/>
+                <Container>
+                    <Container Width="Width.Is75">
+                        <p>
+                            Please confirm your password to delete your account.
+                        </p>
+                        <Div class="form-floating mb-3">
+                            <InputText id="password-field"
+                                       type="password"
+                                       @bind-Value="Model!.Password"
+                                       class="form-control"
+                                       autocomplete="current-password"
+                                       aria-required="true"
+                                       placeholder="Please enter your password."/>
+                            <label for="password-field"
+                                   class="form-label">
+                                Password
+                            </label>
+                            <ValidationMessage For="() => Model.Password" class="text-danger"/>
+                        </Div>
+                    </Container>
+                    <Container Width="Width.Is50">
+                        <p>
+                            Are you sure you want to delete your account? This action is permanent and cannot be reversed!
+                            If you wish to use this application again, you will have to create a new account.
+                        </p>
+                        <Row>
+                            <Column>
+                                <Button id="cancel-button"
+                                        Width="Width.Is100"
+                                        Color="Color.Light"
+                                        Clicked="Toggle">
+                                    Cancel
+                                </Button>
+                            </Column>
+                            <Column>
+                                <Button id="submit-button"
+                                        Width="Width.Is100"
+                                        Color="Color.Danger"
+                                        Type="ButtonType.Submit">
+                                    <Icon Name="IconName.Delete"/>
+                                    Delete my Account
+                                </Button>
+                            </Column>
+                        </Row>
+                    </Container>
+                </Container>
+            </EditForm>
+        </Container>;
+}
+
+@{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    private DeleteAccountInputModel? Model { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Model = new DeleteAccountInputModel();
+    }
+    
+    public override async Task<bool> OnValidSubmitAsync()
+    {
+        await base.OnValidSubmitAsync();
+        if (DataChangeFunction is null)
+        {
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
+            return false;
+        }
+        
+        var result = await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Deletion,
+            CurrentPassword = Model!.Password
+        });
+        
+        return result;
+    }
+}

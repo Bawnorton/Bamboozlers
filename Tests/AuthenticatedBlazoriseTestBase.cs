@@ -1,5 +1,6 @@
 using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Services;
 using Tests.Provider;
 
 namespace Tests;
@@ -14,7 +15,7 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
     {
         MockDatabaseProvider = new MockDatabaseProvider(Ctx);
         Self = MockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.First();
-        var mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, Self.UserName!);
+        var mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, Self);
 
         AuthHelper.Init(mockAuthenticationProvider.GetAuthStateProvider(), MockDatabaseProvider.GetDbContextFactory());
     }

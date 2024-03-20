@@ -2,6 +2,7 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes
+@using Bamboozlers.Classes.Services
 
 @inject IDbContextFactory<AppDbContext> Db
 
@@ -14,7 +15,7 @@
                 <Div Class="message-info">
                     @if (Message.Sender!.Avatar != null)
                     {
-                        <Image Source="@Message.Sender.Avatar" Class="message-avatar" alt=""/>
+                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Message.Sender.Avatar)}") Class="message-avatar" alt=""/>
                     }
                     <Div Class="message-username" onclick="alert('Not Implemented')">
                         @(Message.Sender.DisplayName ?? Message.Sender.UserName)

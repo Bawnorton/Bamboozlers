@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bamboozlers.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240313080841_Initial")]
+    [Migration("20240320203910_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -165,8 +165,8 @@ namespace Bamboozlers.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
-                    b.Property<string>("Avatar")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<byte[]>("Avatar")
+                        .HasColumnType("varbinary(max)");
 
                     b.Property<string>("Bio")
                         .HasColumnType("nvarchar(max)");

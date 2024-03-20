@@ -2,6 +2,7 @@ using Bamboozlers;
 using Bamboozlers.Account;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Service;
+using Bamboozlers.Classes.Services;
 using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
@@ -15,7 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using NUnit.Framework;
-using IMessageService = Bamboozlers.Classes.Service.IMessageService;
+using IMessageService = Bamboozlers.Classes.Services.IMessageService;
 
 namespace Tests.Playwright;
 
