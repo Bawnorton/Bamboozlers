@@ -12,7 +12,7 @@ public class MessageService : IMessageService
         _db = dbContextFactory;
         MessageEvents.MessageCreated.Register(async message =>
         {
-            if (message.ID != null)
+            if (message.ID != 0)
             {
                 // Message already exists in db as ID is auto-assigned
                 return message;

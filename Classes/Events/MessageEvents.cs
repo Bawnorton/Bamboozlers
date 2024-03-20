@@ -1,6 +1,5 @@
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Events.Api;
-using Bamboozlers.Classes.Func;
 
 namespace Bamboozlers.Classes.Events;
 
