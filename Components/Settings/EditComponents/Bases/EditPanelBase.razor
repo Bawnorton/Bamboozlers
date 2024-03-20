@@ -1,0 +1,30 @@
+@using Bamboozlers.Classes.Data
+@typeparam TInput where TInput : InputModel
+
+<EditForm Model="@Model" 
+          FormName="@FormName"
+          OnValidSubmit="SubmitCallback"
+          method="post">
+    <DataAnnotationsValidator/>
+    <Container>
+        <Row Class="centre-content">
+            <Column ColumnSize="ColumnSize.Is8">
+                @foreach (var field in Fields)
+                {
+                    @field
+                }
+            </Column>
+        </Row>
+        <Row Class="centre-content">
+            @Buttons
+        </Row>
+    </Container>
+</EditForm>
+
+@code {
+    [Parameter] public TInput Model { get; set; }
+    [Parameter] public EventCallback SubmitCallback { get; set; }
+    [Parameter] public string? FormName { get; set; }
+    [Parameter] public List<RenderFragment> Fields { get; set; }
+    [Parameter] public RenderFragment Buttons { get; set; }
+}

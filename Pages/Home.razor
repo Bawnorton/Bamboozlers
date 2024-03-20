@@ -1,14 +1,19 @@
 ﻿@page "/"
+
+@rendermode InteractiveServer
+
 @inherits LayoutComponentBase
 
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes
-@using IMessageService = Bamboozlers.Classes.Service.Messaging.IMessageService
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Components.Settings
+@using IMessageService = Bamboozlers.Classes.Services.IMessageService
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject AuthenticationStateProvider AuthStateProvider;
 @inject IMessageService MessageService;
+@inject IServiceProvider ServiceProvider;
 
 @attribute [Authorize]
 
@@ -16,8 +21,9 @@
 
 <ErrorBoundary>
     <ChildContent>
-        <AuthorizeView> 
-            <NavLayout/>
+        <AuthorizeView>
+            <NavLayout @ref="_navLayout" ProfileButtonCallback="@(() => _settingsComponent!.Visible = true)"/>
+            <CompSettings @ref="_settingsComponent" StateChangedCallback="@(async () => await _navLayout!.Refresh())"/>
         </AuthorizeView>
     </ChildContent>
     <ErrorContent Context="exception">
@@ -44,9 +50,13 @@
 </ErrorBoundary>
 
 @code {
-    protected override void OnInitialized()
+    private NavLayout? _navLayout;
+    private CompSettings? _settingsComponent;
+
+    protected override async Task OnInitializedAsync()
     {
         MessageService.Init(Db);
         AuthHelper.Init(AuthStateProvider, Db);
+        await UserService.Init(new ServiceProviderWrapper(ServiceProvider));
     }
 }

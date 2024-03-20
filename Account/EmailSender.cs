@@ -7,7 +7,7 @@ using SendGrid.Helpers.Mail;
 
 namespace Bamboozlers.Account;
 
-internal sealed class EmailSender : IEmailSender<User>
+public sealed class EmailSender : IEmailSender<User>
 {
     private readonly ILogger _logger;
     public EmailSender(IOptions<AuthMessageSenderOptions> optionsAccessor,

@@ -1,0 +1,13 @@
+@foreach (var segment in Segments)
+{
+    <span>@segment</span>
+    <br/>
+}
+
+@code
+{
+    [Parameter]
+    public string Content { get; set; }
+    
+    private IEnumerable<string> Segments => Content.Split('\n');
+}

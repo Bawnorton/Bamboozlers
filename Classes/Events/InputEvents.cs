@@ -11,7 +11,7 @@ public abstract class InputEvents
         EventFactory.CreateArrayBacked<DisallowedInputsEvent>(listeners =>
             async () =>
             {
-                var disallowedKeys = new List<InputData>();
+                var disallowedKeys = new List<KeyData>();
                 foreach (var listener in listeners)
                 {
                     disallowedKeys.AddRange(await listener());
@@ -39,7 +39,7 @@ public abstract class InputEvents
             });
 
 
-    public delegate Task<List<InputData>> DisallowedInputsEvent();
+    public delegate Task<List<KeyData>> DisallowedInputsEvent();
 
     public delegate Task InputKeydownEvent(string elementId, string key, string code, bool ctrl, bool shift, bool alt, bool meta,
         string content, bool passed);

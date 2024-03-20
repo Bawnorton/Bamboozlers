@@ -2,69 +2,70 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes
+@using Bamboozlers.Classes.Services
 
 @inject IDbContextFactory<AppDbContext> Db
 
 @if(Loaded)
 {
-    if (MessageState != MessageState.SameUser)
-    {
-        <Div Class="message-header" Style="@(MessageState == MessageState.First ? "" : "margin-top: 15px;")">
-            <Div Class="message-info">
-                @if (Message.Sender!.Avatar != null)
-                {
-                    <Image Source="@Message.Sender.Avatar" Class="message-avatar" alt=""/>
-                }
-                <Div Class="message-username" onclick="alert('Not Implemented')">
-                    @(Message.Sender.DisplayName ?? Message.Sender.UserName)
-                </Div>
-                <Div Class="message-timestamp">
-                    @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
+    <Div ElementId="@("message_" + Message.ID)">
+        @if (MessageState != MessageState.SameUser)
+        {
+            <Div Class="message-header" Style="@(MessageState == MessageState.First ? "" : "margin-top: 15px;")">
+                <Div Class="message-info">
+                    @if (Message.Sender!.Avatar != null)
+                    {
+                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Message.Sender.Avatar)}") Class="message-avatar" alt=""/>
+                    }
+                    <Div Class="message-username" onclick="alert('Not Implemented')">
+                        @(Message.Sender.DisplayName ?? Message.Sender.UserName)
+                    </Div>
+                    <Div Class="message-timestamp">
+                        @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
+                    </Div>
                 </Div>
             </Div>
-        </Div>
-    }
-    <Div Class="message-content">
-        <Div>@Message.Content</Div>
-        <Div Class="message-actions">
-            @switch (ShowEdit)
-            {
-                case true:
-                    <Button onclick="alert('Not Implemented')">
-                        <Icon Class="fa-pencil-alt"></Icon>
-                    </Button>
-                    break;
-                case false:
-                    <Button onclick="alert('Not Implemented')">
-                        <Icon Name="Icons.Reply"></Icon>
-                    </Button>
-                    break;
-            }
-            <Button onclick="alert('Not Implemented')">
-                <Icon Name="Icons.MapPin"></Icon>
-            </Button>
-            <Button onclick="alert('Not Implemented')">
-                <Icon Name="Icons.Trash"></Icon>
-            </Button>
+        }
+        <Div Class="message-content">
+            <CompMessageContentView Content=@Message.Content/>
+            <Div Class="message-actions">
+                @switch (ShowEdit)
+                {
+                    case true:
+                        <Button onclick="alert('Not Implemented')">
+                            <Icon Class="fa-pencil-alt"></Icon>
+                        </Button>
+                        break;
+                    case false:
+                        <Button onclick="alert('Not Implemented')">
+                            <Icon Name="Icons.Reply"></Icon>
+                        </Button>
+                        break;
+                }
+                <Button onclick="alert('Not Implemented')">
+                    <Icon Name="Icons.MapPin"></Icon>
+                </Button>
+                <Button onclick="alert('Not Implemented')">
+                    <Icon Name="Icons.Trash"></Icon>
+                </Button>
+            </Div>
         </Div>
     </Div>
 }
 
 @code {
-    [Parameter] 
-    public Message Message { get; set; }
+    [Parameter] public Message Message { get; set; }
 
-    [Parameter] 
-    public MessageState MessageState { get; set; }
+    [Parameter] public MessageState MessageState { get; set; }
 
     private bool Loaded { get; set; }
-    
+
     private User Self { get; set; }
-    
+
     private bool IsShiftHeld { get; set; }
 
     private bool IsSelfMessage => Message.Sender!.Id == Self.Id;
-    
+
     private bool ShowEdit => IsSelfMessage && IsShiftHeld;
 
     protected override async Task OnInitializedAsync()
@@ -77,26 +78,27 @@
             var sender = await db.Users.FindAsync(Message.SenderID);
             Message.Sender = sender ?? throw new NullReferenceException("Sender not found"); // TOOD: Replace with "Deleted User" entry
         }
+
         Loaded = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        
+
         KeyboardEvents.Keydown.Register((key, _, _, _, _, _) =>
         {
             if (key != "Shift") return Task.CompletedTask;
-            
+
             IsShiftHeld = true;
             InvokeAsync(StateHasChanged);
             return Task.CompletedTask;
         });
-        
+
         KeyboardEvents.Keyup.Register((key, _, _, _, _, _) =>
         {
             if (key != "Shift") return Task.CompletedTask;
-            
+
             IsShiftHeld = false;
             InvokeAsync(StateHasChanged);
             return Task.CompletedTask;

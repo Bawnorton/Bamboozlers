@@ -6,23 +6,13 @@ namespace Bamboozlers.Classes.Events;
 
 public abstract class MessageEvents
 {
-    public static readonly Event<MessageSentEvent> MessageSent = EventFactory.CreateArrayBacked<MessageSentEvent>(listeners =>
-        async (chat, sender, content, attachment, isPinned, sentAt, _, _) =>
+    public static readonly Event<MessageCreatedEvent> MessageCreated = EventFactory.CreateArrayBacked<MessageCreatedEvent>(listeners =>
+        async message =>
         {
-            var message = new Message
-            {
-                ChatID = chat.ID,
-                SenderID = sender.Id,
-                Content = content,
-                // Attachment = attachment,
-                IsPinned = isPinned,
-                SentAt = sentAt
-            };
             var mutatedMessage = message;
             foreach (var listener in listeners)
             {
-                var supplied = mutatedMessage;
-                mutatedMessage = await listener(chat, sender, content, attachment, isPinned, sentAt, () => supplied, message.ID);
+                mutatedMessage = await listener(mutatedMessage);
                 if (mutatedMessage is null)
                 {
                     break;
@@ -33,26 +23,26 @@ public abstract class MessageEvents
         });
     
     public static readonly Event<MessageEditedEvent> MessageEdited = EventFactory.CreateArrayBacked<MessageEditedEvent>(listeners =>
-        async (id, chat, editor, oldContent, newContent, attachment, wasPinned, isPinned, editedAt) =>
+        async (oldMessage, newMessage, editor) =>
         {
             foreach (var listener in listeners)
             {
-                await listener(id, chat, editor, oldContent, newContent, attachment, wasPinned, isPinned, editedAt);
+                await listener(oldMessage, newMessage, editor);
             }
         });
     
     public static readonly Event<MessageDeletedEvent> MessageDeleted = EventFactory.CreateArrayBacked<MessageDeletedEvent>(listeners =>
-        async (id, chat, deleter, deletedContent, removedAttachment, wasPinned, deletedAt) =>
+        async (message, deleter) =>
         {
             foreach (var listener in listeners)
             {
-                await listener(id, chat, deleter, deletedContent, removedAttachment, wasPinned, deletedAt);
+                await listener(message, deleter);
             }
         });
     
-    public delegate Task<Message?> MessageSentEvent(Chat chat, User sender, string content, string? attachment, bool isPinned, DateTime sentAt, Supplier<Message>? createdMessageSupplier = default, int createdId = default);
+    public delegate Task<Message?> MessageCreatedEvent(Message message);
     
-    public delegate Task MessageEditedEvent(int id, Chat chat, User editor, string oldContent, string newContent, string? attachment, bool wasPinned, bool isPinned, DateTime editedAt);
+    public delegate Task MessageEditedEvent(Message oldMessage, Message newMessage, User editor);
     
-    public delegate Task MessageDeletedEvent(int id, Chat chat, User deleter, string deletedContent, string? removedAttachment, bool wasPinned, DateTime deletedAt);
+    public delegate Task MessageDeletedEvent(Message message, User deleter);
 }

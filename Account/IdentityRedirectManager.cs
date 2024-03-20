@@ -1,10 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Account;
 
-internal sealed class IdentityRedirectManager(NavigationManager navigationManager) : IIdentityRedirectManager
+public sealed class IdentityRedirectManager(NavigationManager navigationManager) : IIdentityRedirectManager
 {
     public const string StatusCookieName = "Identity.StatusMessage";
 
@@ -15,7 +14,7 @@ internal sealed class IdentityRedirectManager(NavigationManager navigationManage
         IsEssential = true,
         MaxAge = TimeSpan.FromSeconds(5),
     };
-
+    
     [DoesNotReturn]
     public void RedirectTo(string? uri)
     {

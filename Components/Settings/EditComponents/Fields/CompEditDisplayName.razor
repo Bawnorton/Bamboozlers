@@ -1,0 +1,76 @@
+@inherits EditFieldBase
+
+@{
+    ViewPanelContent =
+        @<ViewPanelBase DisplayData="@UserDisplayRecord.DisplayName"
+                        FieldName="Display Name"
+                        Button="ToggleEditButton"
+                        />;
+
+    List<RenderFragment> formFields = [];
+    formFields.Add(
+        @<Div Class="form-floating mb-3">
+            <InputText id="displayname-field" 
+                       @bind-Value="Model!.DisplayName" 
+                       class="form-control" 
+                       autocomplete="new-username" 
+                       aria-required="true"
+                       placeholder="Please enter new display name."/>
+            <Label for="displayname-field"
+                   class="form-label">
+                New Display Name
+            </Label>
+            <ValidationMessage For="() => Model.DisplayName" class="text-danger"/>
+        </Div>
+    );
+    
+    EditPanelContent =
+        @<EditPanelBase
+             SubmitCallback="OnValidSubmitAsync"
+             Model="Model"
+             FormName="change-password"
+             Fields="formFields"
+             Buttons="EditPanelButtons"/>;
+}
+
+@{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    private DisplayNameInputModel? Model { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Model = new DisplayNameInputModel();
+    }
+
+    public override async Task OnValidSubmitAsync()
+    {
+        await base.OnValidSubmitAsync();
+        if (DataChangeFunction is null)
+        {
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
+            return;
+        }
+        
+        var result = await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Visual,
+            DisplayName = Model!.DisplayName
+        });
+
+        if (result)
+        {
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
+                Color.Primary,
+                true,
+                "Success!",
+                "Your display name has been changed."
+            ));
+            
+            await Toggle();
+        }
+    }
+}

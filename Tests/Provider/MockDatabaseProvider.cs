@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MockQueryable.Moq;
 
-namespace Tests;
+namespace Tests.Provider;
 
 public class MockDatabaseProvider
 {
@@ -31,7 +31,13 @@ public class MockDatabaseProvider
     private void SetupMockDbContext(Mock<AppDbContext> mockDbContext)
     {
         var mockUsers = SetupMockUsers();
+        mockUsers.Setup(x => x.FindAsync(It.IsAny<object[]>())).ReturnsAsync((object[] parameters) =>
+        {
+            // you'd think, just call mockUsers.Object.FindAsync(parameters) but that doesn't work for some reason, is it clear why? no of course not
+            return mockUsers.Object.FirstOrDefault(user => user.Id == (int)parameters[0])!;
+        });
         var mockChats = SetupMockChats(mockUsers.Object);
+        var mockMessages = SetupMockMessages(mockUsers.Object, mockChats.Object);
         var mockBlocks = SetupMockBlocks(mockUsers.Object);
         var mockFriendRequests = SetupMockFriendRequests(mockUsers.Object);
         var mockFriendships = SetupMockFriendships(mockUsers.Object);
@@ -39,6 +45,7 @@ public class MockDatabaseProvider
 
         mockDbContext.Setup(x => x.Users).Returns(mockUsers.Object);
         mockDbContext.Setup(x => x.Chats).Returns(mockChats.Object);
+        mockDbContext.Setup(x => x.Messages).Returns(mockMessages.Object);
         mockDbContext.Setup(x => x.BlockList).Returns(mockBlocks.Object);
         mockDbContext.Setup(x => x.FriendRequests).Returns(mockFriendRequests.Object);
         mockDbContext.Setup(x => x.FriendShips).Returns(mockFriendships.Object);
@@ -94,7 +101,8 @@ public class MockDatabaseProvider
         var dm = new Chat
         {
             ID = 1,
-            Users = new List<User> { user1, user2 }
+            Users = new List<User> { user1, user2 },
+            Messages = []
         };
         
         var groupChat = new GroupChat
@@ -104,7 +112,8 @@ public class MockDatabaseProvider
             Owner = user1,
             OwnerID = user1.Id,
             Moderators = new List<User> { user2 },
-            Users = new List<User> { user1, user2, user3 }
+            Users = new List<User> { user1, user2, user3 },
+            Messages = []
         };
         
         user1.Chats.Add(dm);
@@ -116,6 +125,85 @@ public class MockDatabaseProvider
         user3.Chats.Add(groupChat);
         
         return SetupMockDbSet(new List<Chat> { dm, groupChat });
+    }
+
+    private Mock<DbSet<Message>> SetupMockMessages(IQueryable<User> users, IQueryable<Chat> chats)
+    {
+        var user1 = users.First();
+        var user2 = users.Skip(1).First();
+        var dm = chats.First();
+        
+        var messages = new List<Message>
+        {
+            new()
+            {
+                ID = 1,
+                Chat = dm,
+                ChatID = dm.ID,
+                Sender = user1,
+                SenderID = user1.Id,
+                Content = "Hello World!",
+                SentAt = DateTime.Now.Subtract(TimeSpan.FromMinutes(5))
+            },
+            new()
+            {
+                ID = 2,
+                Chat = dm,
+                ChatID = dm.ID,
+                Sender = user2,
+                SenderID = user2.Id,
+                Content = "Hi!",
+                SentAt = DateTime.Now.Subtract(TimeSpan.FromMinutes(4))
+            },
+            new()
+            {
+                ID = 3,
+                Chat = dm,
+                ChatID = dm.ID,
+                Sender = user2,
+                SenderID = user2.Id,
+                Content = "How are you?",
+                SentAt = DateTime.Now.Subtract(TimeSpan.FromMinutes(3.5))
+            },
+            new()
+            {
+                ID = 4,
+                Chat = dm,
+                ChatID = dm.ID,
+                Sender = user1,
+                SenderID = user1.Id,
+                Content = "I'm good, you?",
+                SentAt = DateTime.Now.Subtract(TimeSpan.FromMinutes(3))
+            },
+            new()
+            {
+                ID = 5,
+                Chat = dm,
+                ChatID = dm.ID,
+                Sender = user2,
+                SenderID = user2.Id,
+                Content = "I'm good too!",
+                SentAt = DateTime.Now.Subtract(TimeSpan.FromMinutes(2))
+            }
+        };
+        
+        for (var i = 6; i < 100; i++)
+        {
+            messages.Add(new Message
+            {
+                ID = i,
+                Chat = dm,
+                ChatID = dm.ID,
+                Sender = user1,
+                SenderID = user1.Id,
+                Content = "Test Message " + i,
+                SentAt = DateTime.Now.Subtract(TimeSpan.FromSeconds(101 - i))
+            });
+        }
+        
+        dm.Messages = messages;
+        
+        return SetupMockDbSet(messages);
     }
 
     private Mock<DbSet<Block>> SetupMockBlocks(IQueryable<User> users)
