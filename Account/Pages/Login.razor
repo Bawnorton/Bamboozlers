@@ -16,10 +16,10 @@
 <div class="d-flex min-vh-100 min-vw-100">
     <div class="col-md-4 d-flex flex-grow-1 align-items-center justify-content-center">
         <section class="w-50 p-5 shadow">
-            <StatusMessage Message="@errorMessage" Link="@errorLink" LinkText="@errorLinkText" ReturnUrl="@ReturnUrl"/>
+            <StatusMessage Message="@ErrorMessage" Link="@ErrorLink" LinkText="@ErrorLinkText" ReturnUrl="@ReturnUrl"/>
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator/>
-                <h2>Welcome Back!</h2>
+                <h2>Welcome!</h2>
                 <hr/>
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.UserNameOrEmail" id="email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com or username"/>
@@ -53,10 +53,9 @@
 </div>
 
 @code {
-    
-    private string? errorMessage;
-    private string? errorLink;
-    private string? errorLinkText;
+    [SupplyParameterFromQuery] private string? ErrorMessage { get; set; }
+    [SupplyParameterFromQuery] private string? ErrorLink { get; set; }
+    [SupplyParameterFromQuery] private string? ErrorLinkText { get; set; }
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
@@ -78,26 +77,26 @@
         var user = await UserManager.FindByNameAsync(Input.UserNameOrEmail) ?? await UserManager.FindByEmailAsync(Input.UserNameOrEmail);
         if (user is null)
         {
-            errorMessage = "Error: Invalid login attempt.";
+            ErrorMessage = "Error: Invalid login attempt.";
             return;
         }
         var result = await SignInManager.PasswordSignInAsync(user.UserName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
+            RedirectManager.RedirectTo(ReturnUrl ?? "/");
         }
         else
         {
             if (!UserManager.IsEmailConfirmedAsync(user).Result)
             {
-                errorMessage = "Please Confirm your email before logging in.";
-                errorLink = "Account/ResendEmailConfirmation";
-                errorLinkText = "Resend Confirmation Email";
+                ErrorMessage = "Please confirm your email before logging in. ";
+                ErrorLink = "Account/ResendEmailConfirmation";
+                ErrorLinkText = "Resend Confirmation Email";
             }
             else
             {
-                errorMessage= "Error: Invalid login attempt.";
+                ErrorMessage= "Error: Invalid login attempt.";
             }
             
         }

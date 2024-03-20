@@ -1,38 +1,40 @@
+using AngleSharp.Dom;
+using Bamboozlers.Account;
 using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Services;
 using Bamboozlers.Layout;
+using Bamboozlers.Pages;
+using Blazorise.Modules;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Tests;
 
+[Collection("Sequential")]
 public class NavLayoutTests : BlazoriseTestBase
 {
     private readonly MockDatabaseProvider _mockDatabaseProvider;
     private readonly MockAuthenticationProvider _mockAuthenticationProvider;
-
+    
     private readonly User _self;
     
     public NavLayoutTests()
     {
         _mockDatabaseProvider = new MockDatabaseProvider(Ctx);
         _self = _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.First();
-        _mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, _self.UserName!);
+        _mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, _self);
 
+        Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
         AuthHelper.Init(_mockAuthenticationProvider.GetAuthStateProvider(), _mockDatabaseProvider.GetDbContextFactory());
-    }
-
-    [Fact]
-    public void NavLayoutTests_FindAndOpenProfile()
-    {
-        var component = Ctx.RenderComponent<NavLayout>();
-        
-        component.Find("#profile").Click();
-        /* TODO: Verify that the profile page is open, blocked by implementation of the profile page */
     }
 
     [Fact]
     public async Task NavLayoutTests_FindAndOpenDms()
     {
+        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
@@ -60,6 +62,7 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenGroups()
     {
+        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
@@ -86,6 +89,7 @@ public class NavLayoutTests : BlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenFriends()
     {
+        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();

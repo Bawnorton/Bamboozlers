@@ -15,7 +15,7 @@ internal sealed class IdentityRedirectManager(NavigationManager navigationManage
         IsEssential = true,
         MaxAge = TimeSpan.FromSeconds(5),
     };
-
+    
     [DoesNotReturn]
     public void RedirectTo(string? uri)
     {
