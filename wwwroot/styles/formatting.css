@@ -3,3 +3,25 @@
     align-items: center;
     justify-content: center;
 }
+
+.settings-tab {
+    min-height: 50vh;
+    max-height: 50vh;
+    margin: 2%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth
+}
+
+.settings-container {
+    margin: 2%;
+    padding: 0 10%;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 2%;
+    padding-bottom: 2%
+}

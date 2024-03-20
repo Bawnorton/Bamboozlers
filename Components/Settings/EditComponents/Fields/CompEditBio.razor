@@ -8,6 +8,7 @@
                     <Div Class="form-floating">
                         <textarea name="bio" 
                                   type="text" 
+                                  style="resize: none; max-height: 400px; min-height: 100px;"
                                   class="form-control"
                                   disabled>
                                    @UserDisplayRecord.Bio
@@ -28,7 +29,7 @@
                            @bind-Value="Model!.Bio" 
                            class="form-control" 
                            aria-required="true" 
-                           style="resize: vertical; max-height: 300px; min-height: 150px;"
+                           style="resize: vertical; max-height: 400px; min-height: 100px;"
                            placeholder="Please enter new description."/>
             <Label for="bio-field"
                    class="form-label">

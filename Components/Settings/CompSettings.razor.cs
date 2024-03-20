@@ -24,7 +24,7 @@ public partial class CompSettings : SettingsComponentBase
     
     protected override void OnInitialized()
     {
-        SectionName ??= "User Profile";
+        SectionName ??= "Account";
     }
 
     // TODO: Impl with events?

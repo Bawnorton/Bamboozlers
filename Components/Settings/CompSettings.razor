@@ -12,7 +12,7 @@
        Closed="@(async Task () =>
                                 {
                                     await OnAlertChange(new AlertArguments()); 
-                                    SectionName = "User Profile"; 
+                                    SectionName = "Account"; 
                                 })">
     <ModalContent Size="ModalSize.ExtraLarge"
                   Centered>
@@ -33,26 +33,26 @@
             <Divider/>
             <Tabs @bind-SelectedTab="SectionName">
                 <Items>
-                    <Tab Name="User Profile">Profile</Tab>
-                    <Tab Name="Login Details">Login Details</Tab>
-                    <Tab Name="Delete">Account Management</Tab>
+                    <Tab Name="Account">Account</Tab>
+                    <Tab Name="Accessibility">Accessibility</Tab>
+                    <Tab Name="Privacy">Privacy</Tab>
                 </Items>
                 <Content>
-                    <TabPanel Name="User Profile" 
-                              Margin="Margin.Is2.OnMobile.Is5.OnDesktop"
+                    <TabPanel Name="Account" 
                               Class="settings-tab scrollbar-container">
-                        <Container>
-                            <Row Class="centre-content">
-                                <Column ColumnSize="ColumnSize.Is4">
+                        <Container Class="settings-container">
+                            <Row Class="settings-row">
+                                <h3>Your Profile</h3>
+                                <Divider/>
+                                <Column>
+                                    <Row>
+                                        <h4>Avatar</h4>
+                                    </Row>
                                     <Row>
                                         <CompEditAvatar AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                                     </Row>
                                 </Column>
                                 <Column ColumnSize="ColumnSize.Is8">
-                                    <Row>
-                                        <CompEditUsername AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
-                                    </Row>
-                                    <CompSimpleDivider/>
                                     <Row>
                                         <CompEditDisplayName AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                                     </Row>
@@ -62,14 +62,14 @@
                                     </Row>
                                 </Column>
                             </Row>
-                        </Container>
-                    </TabPanel>
-                    <TabPanel Name="Login Details" 
-                              Margin="Margin.Is2.OnMobile.Is5.OnDesktop"
-                              Class="settings-tab">
-                        <Container Width="Width.Is100" Height="Height.Is100">
-                            <Row Class="centre-content">
+                            <Row Class="settings-row">
+                                <h3>Your Login Details</h3>
+                                <Divider/>
                                 <Column ColumnSize="ColumnSize.Is8">
+                                    <Row>
+                                        <CompEditUsername AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                                    </Row>
+                                    <CompSimpleDivider/>
                                     <Row>
                                         <CompEditEmail AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                                     </Row>
@@ -79,12 +79,22 @@
                                     </Row>
                                 </Column>
                             </Row>
+                            <Row Class="settings-row">
+                                <h3>Extended Options</h3>
+                                <Divider/>
+                                <CompDeleteAccount AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                            </Row>
                         </Container>
                     </TabPanel>
-                    <TabPanel Name="Delete" 
-                              Margin="Margin.Is2.OnMobile.Is5.OnDesktop"
-                              Class="settings-tab">
-                        <CompDeleteAccount AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                    <TabPanel Name="Privacy" 
+                              Class="settings-tab scrollbar-container">
+                        <h3>Not implemented</h3>
+                        <p>This feature is not part of the requirements and is thus not mandatory to complete, but if there is spare time...</p>
+                    </TabPanel>
+                    <TabPanel Name="Accessibility" 
+                              Class="settings-tab scrollbar-container">
+                        <h3>Not implemented</h3>
+                        <p>This feature is not part of the requirements and is thus not mandatory to complete, but if there is spare time...</p>
                     </TabPanel>
                 </Content>
             </Tabs>
