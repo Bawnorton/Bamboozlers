@@ -14,7 +14,8 @@
                                     await OnAlertChange(new AlertArguments()); 
                                     SectionName = "User Profile"; 
                                 })">
-    <ModalContent Centered Size="ModalSize.ExtraLarge">
+    <ModalContent Size="ModalSize.ExtraLarge"
+                  Centered>
         <ModalHeader>
             <h3>Account Settings</h3>
             <CloseButton/>
@@ -37,17 +38,19 @@
                     <Tab Name="Delete">Account Management</Tab>
                 </Items>
                 <Content>
-                    <TabPanel Name="User Profile" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                        <Container Width="Width.Is100">
+                    <TabPanel Name="User Profile" 
+                              Margin="Margin.Is2.OnMobile.Is5.OnDesktop"
+                              Class="settings-tab">
+                        <Container>
                             <Row Class="centre-content">
                                 <Column ColumnSize="ColumnSize.Is4">
                                     <Row>
-                                        <CompEditAvatar AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/> 
+                                        <CompEditAvatar AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                                     </Row>
                                 </Column>
                                 <Column ColumnSize="ColumnSize.Is8">
                                     <Row>
-                                        <CompEditUsername AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>  
+                                        <CompEditUsername AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                                     </Row>
                                     <CompSimpleDivider/>
                                     <Row>
@@ -61,22 +64,26 @@
                             </Row>
                         </Container>
                     </TabPanel>
-                    <TabPanel Name="Login Details" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
-                        <Container Width="Width.Is100">
+                    <TabPanel Name="Login Details" 
+                              Margin="Margin.Is2.OnMobile.Is5.OnDesktop"
+                              Class="settings-tab">
+                        <Container Width="Width.Is100" Height="Height.Is100">
                             <Row Class="centre-content">
                                 <Column ColumnSize="ColumnSize.Is8">
                                     <Row>
-                                        <CompEditEmail AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>  
+                                        <CompEditEmail AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                                     </Row>
                                     <CompSimpleDivider/>
                                     <Row>
-                                        <CompEditPassword AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>  
+                                        <CompEditPassword AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                                     </Row>
                                 </Column>
                             </Row>
                         </Container>
                     </TabPanel>
-                    <TabPanel Name="Delete" Margin="Margin.Is2.OnMobile.Is5.OnDesktop">
+                    <TabPanel Name="Delete" 
+                              Margin="Margin.Is2.OnMobile.Is5.OnDesktop"
+                              Class="settings-tab">
                         <CompDeleteAccount AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
                     </TabPanel>
                 </Content>

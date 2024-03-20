@@ -155,6 +155,8 @@ window.mouseInterop = {
         if (newElements.length !== 0) {
             elements.push(...newElements);
             window.persistentStorageInterop.mouseInteropElements = elements;
+        } else {
+            return;
         }
 
         for (let i = 0; i < newElements.length; i++) {
