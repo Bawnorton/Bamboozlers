@@ -8,7 +8,7 @@
 
 @inject UserManager<User> UserManager;
 
-<h2>You can add friends with their username - @Users.Count</h2>
+<h2>You can add friends with their username</h2>
 
 <Autocomplete TItem="User" TValue="string" Data="@Users"
               TextField="@((user) => user.UserName)"
@@ -29,7 +29,6 @@
 @code
 {
     private List<User> Users = [];
-    private User? temp;
     
     protected override async Task OnInitializedAsync()
     {
@@ -38,10 +37,10 @@
         var blocked = db.BlockList.Where(w => w.BlockerID == self.Id).Select(s => s.BlockerID).ToList();
         var friends1 = db.FriendShips.Where(w => w.User2ID == self.Id).Select(s => s.User1ID).ToList();
         var friends2 = db.FriendShips.Where(w => w.User1ID == self.Id).Select(s => s.User2ID).ToList();
-        var outwardsPending = db.FriendRequests.Where(w => w.SenderID == self.Id).Select(s => s.ReceiverID).ToList();
-        var inwardsPending = db.FriendRequests.Where(w => w.ReceiverID == self.Id).Select(s => s.SenderID).ToList();
+        var outwardsPending = db.FriendRequests.Where(w => w.SenderID == self.Id && w.Status == 0).Select(s => s.ReceiverID).ToList();
+        var inwardsPending = db.FriendRequests.Where(w => w.ReceiverID == self.Id && w.Status == 0).Select(s => s.SenderID).ToList();
         Users = db.Users
-            .Where(user => !blocked.Contains(user.Id) && !friends1.Contains(user.Id) && !friends2.Contains(user.Id) && !outwardsPending.Contains(user.Id) && !inwardsPending.Contains(user.Id))
+            .Where(user => !blocked.Contains(user.Id) && !friends1.Contains(user.Id) && !friends2.Contains(user.Id) && !outwardsPending.Contains(user.Id) && (!inwardsPending.Contains(user.Id)))
             .Where(user => user.UserName != self.UserName)
             .ToList();    
     }
@@ -60,10 +59,7 @@
          db.FriendRequests.Add(newRequest);
          db.SaveChanges();
          
-         //Users.Clear();
-         //await OnInitializedAsync();
-         Users.Remove(db.Users.First(user => user.UserName == username));
-         StateHasChanged();
+         Users.RemoveAll(user => user.UserName == username);
     }
     
 }

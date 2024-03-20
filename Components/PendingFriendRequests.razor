@@ -74,13 +74,12 @@
                 newFriend.User1ID = prospect.Id;
                 newFriend.User2ID = self.Id;
             
-            FriendRequest request = new FriendRequest();
-                    request.SenderID = prospect.Id;
-                    request.ReceiverID = self.Id;
-                    request.Status = RequestStatus.Pending;
-            
-            db.FriendRequests.Remove(request);
+            db.FriendRequests.Remove(db.FriendRequests.Find(prospect.Id,self.Id));
+            db.FriendRequests.Remove(db.FriendRequests.Find(self.Id,prospect.Id));
             db.FriendShips.Add(newFriend);
+            
+            OutgoingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
+            DeniedFriendReqs.RemoveAll(user => user.Id == prospect.Id);
         }
         else
         {
@@ -88,7 +87,8 @@
         }
         
         db.SaveChanges();
-        refreshPage();
+        IncomingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
+        total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
     }
 
     private async Task CancelRequest(User prospect)
@@ -96,14 +96,10 @@
         await using var db = await Db.CreateDbContextAsync();
         var self = await AuthHelper.GetSelf();
         
-        FriendRequest request = new FriendRequest();
-        request.SenderID = self.Id;
-        request.ReceiverID = prospect.Id;
-        request.Status = RequestStatus.Pending;
-        
-        db.FriendRequests.Remove(request);
+        db.FriendRequests.Remove(db.FriendRequests.Find(self.Id,prospect.Id));
         db.SaveChanges();
-        refreshPage();
+        OutgoingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
+        total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
     }
     
     private async Task ResendRequest(User prospect)
@@ -113,16 +109,8 @@
         
         db.FriendRequests.Find(self.Id,prospect.Id).Status = RequestStatus.Pending;
         db.SaveChanges();
-        refreshPage();        
-    }
-
-    private async void refreshPage()
-    {
-        IncomingFriendReqs.Clear();
-        OutgoingFriendReqs.Clear();
-        DeniedFriendReqs.Clear();
-
-        await OnInitializedAsync();
-        StateHasChanged();
+        DeniedFriendReqs.RemoveAll(user => user.Id == prospect.Id);
+        OutgoingFriendReqs.Add(prospect);
+        total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
     }
 }
