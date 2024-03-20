@@ -273,7 +273,7 @@ public partial class CompSettings : SettingsComponentBase
             "Your password has been changed successfully."
         ));
         
-        await JsRuntime.InvokeVoidAsync("Reauthenticate");
+        await JsRuntime.InvokeVoidAsync("settingsInterop.Reauthenticate");
         
         return true;
     }
@@ -321,7 +321,7 @@ public partial class CompSettings : SettingsComponentBase
             "")
         );
         
-        await JsRuntime.InvokeVoidAsync("SendNewEmailConfirmation", user.Id, newEmail);
+        await JsRuntime.InvokeVoidAsync("settingsInterop.SendNewEmailConfirmation", user.Id, newEmail);
 
         await OnAlertChange(new AlertArguments(
             Color.Secondary,
@@ -398,7 +398,7 @@ public partial class CompSettings : SettingsComponentBase
         
         Logger.LogInformation("User with name '{user.UserName}' deleted their account.",user.UserName);
         
-        await JsRuntime.InvokeVoidAsync("ForceLogout");
+        await JsRuntime.InvokeVoidAsync("settingsInterop.ForceLogout");
         
         return true;
     }

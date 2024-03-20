@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data.ViewModel;
 using Microsoft.AspNetCore.Identity;
@@ -70,7 +71,15 @@ public static class UserService
         {
             user.DisplayName = newValues.DisplayName ?? user.DisplayName;
             user.Bio = newValues.Bio ?? user.Bio;
-            user.Avatar = newValues.Avatar ?? user.Avatar;
+            
+            if (newValues.Avatar?.Length == 0)
+            {
+                user.Avatar = null;
+            }
+            else
+            {
+                user.Avatar = newValues.Avatar ?? user.Avatar;
+            }
         }
         
         var iResult = await userManager.UpdateAsync(user);

@@ -1,6 +1,7 @@
-window.persitentStorageInterop = {
+window.persistentStorageInterop = {
     keyboardInteropElements: [],
     inputInteropElements: [],
+    mouseInteropElements: [],
 }
 
 window.keyboardInterop = {
@@ -34,14 +35,14 @@ window.keyboardInterop = {
         });
     },
     register: async function (dotNetReference, keyboardListenerClass) {
-        let elements = window.persitentStorageInterop.keyboardInteropElements;
+        let elements = window.persistentStorageInterop.keyboardInteropElements;
         let newElements = [];
         newElements.push(...document.getElementsByClassName(keyboardListenerClass));
         newElements = newElements.filter((v, i, a) => a.indexOf(v) === i && !elements.includes(v));
         
         if (newElements.length !== 0) {
             elements.push(...newElements);
-            window.persitentStorageInterop.keyboardInteropElements = elements;
+            window.persistentStorageInterop.keyboardInteropElements = elements;
         } else {
             return;
         }
@@ -97,14 +98,14 @@ window.inputInterop = {
         });
     },
     register: async function (dotNetReference, inputListenerClass) {
-        let elements = window.persitentStorageInterop.inputInteropElements;
+        let elements = window.persistentStorageInterop.inputInteropElements;
         let newElements = [];
         newElements.push(...document.getElementsByClassName(inputListenerClass));
         newElements = newElements.filter((v, i, a) => a.indexOf(v) === i && !elements.includes(v));
         
         if (newElements.length !== 0) {
             elements.push(...newElements);
-            window.persitentStorageInterop.inputInteropElements = elements;
+            window.persistentStorageInterop.inputInteropElements = elements;
         } else {
             return;
         }
@@ -123,4 +124,41 @@ window.inputInterop = {
         const element = document.getElementById(elementId);
         element.scrollTop = element.scrollHeight;
     }
+}
+
+window.mouseInterop = {
+    addListener: function (dotNetReference, element) {
+        console.log("Adding mouse listener for element: ", element);
+        let passed = true;
+        element.addEventListener("mouseover", async function (event) {
+            const data = {
+                elementId: element.id,
+                passed: passed,
+            };
+            await dotNetReference.invokeMethodAsync("OnMouseOver", data);
+        });
+
+        element.addEventListener("mouseout", async function (event) {
+            const data = {
+                elementId: element.id,
+                passed: passed,
+            };
+            await dotNetReference.invokeMethodAsync("OnMouseOut", data);
+        });
+    },
+    register: async function (dotNetReference, inputListenerClass) {
+        let elements = window.persistentStorageInterop.mouseInteropElements;
+        let newElements = [];
+        newElements.push(...document.getElementsByClassName(inputListenerClass));
+        newElements = newElements.filter((v, i, a) => a.indexOf(v) === i && !elements.includes(v));
+
+        if (newElements.length !== 0) {
+            elements.push(...newElements);
+            window.persistentStorageInterop.mouseInteropElements = elements;
+        }
+
+        for (let i = 0; i < newElements.length; i++) {
+            this.addListener(dotNetReference, newElements[i]);
+        }
+    },
 }

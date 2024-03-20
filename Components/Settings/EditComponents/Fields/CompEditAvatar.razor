@@ -1,29 +1,77 @@
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Data.ViewModel
+@using Bamboozlers.Classes.Events
+@using System.Diagnostics
+@using Azure.Core
 @inherits SettingsComponentBase
 
-<FigureImage ElementId="avatar-display" Source="@UserDisplayRecord.Avatar"/>
-<FigureCaption>
-    <FileEdit ElementId="avatar-field" 
-              Changed="OnFileUpload" 
-              Filter="image/png"/>  
-</FigureCaption>
+@inject IEventService EventService;
+@inject IJSRuntime JsRuntime;
+
+<Row>
+    <Label Width="@Width.Px(256)" Height="@Height.Px(256)" Class="overlay-wrapper" for="input-file">
+        <Image ElementId="avatar-display"
+               Class="border-mask overlay-base fit"
+               Source="@UserDisplayRecord.Avatar"/>
+        <Image ElementId="hover-effect"
+               Class="border-mask overlay fit"
+               Source="images/edit_overlay.png"/>
+    </Label>
+    <InputFile id="input-file" OnChange="@OnFileUpload" hidden/>
+</Row>
+<Row>
+    <!-- TODO: This will work fine once the avatar can truly be a null string, but right now, I've prevented that from occurring.-->
+    @if (UserDisplayRecord.Avatar is not null)
+    {
+        <CompSettingsActionButton Color="Color.Danger"
+                                  IconName="IconName.Delete"
+                                  ActionCallback="DeleteAvatar"/>
+    }
+</Row>
 
 @code
 {
-    public async Task OnFileUpload(FileChangedEventArgs args)
+    private static readonly string[] Allowed_Formats = ["jpeg","png"];
+    
+    private string? UploadedImageSource { get; set; }
+
+    private async Task DeleteAvatar()
+    {
+        if (UserDisplayRecord.Avatar is null) return;
+    
+        if (DataChangeFunction is null)
+        {
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
+            return;
+        } 
+                                  
+        var result = await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Visual,
+            Avatar = Array.Empty<byte>()
+        });
+                                  
+        if (result) 
+        {
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
+                Color.Success,
+                true,
+                "Success!",
+                "Your avatar has been removed."
+            ));
+        }
+    }
+    
+    private async Task OnFileUpload(InputFileChangeEventArgs args)
     {
         if (DataChangeFunction is null)
         {
             await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return;
         }
-
-        IFileEntry? file;
         
+        IBrowserFile? upload;
         try
         {
-            file = args.Files.Single();
+            upload = args.File;
         }
         catch (ArgumentNullException)
         {
@@ -35,13 +83,26 @@
             ));
             return;
         }
-        catch (InvalidOperationException)
+        
+        if (!upload.ContentType.Contains("image/"))
         {
             await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Danger,
                 true,
                 "Unable to change avatar.",
-                "More than one file was uploaded. Exactly one file must be uploaded."
+                "Uploaded file was not an image."
+            ));
+            return;
+        }
+        
+        var imageType = upload.ContentType[6..];
+        if (!Allowed_Formats.Contains(imageType))
+        {
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
+                Color.Danger,
+                true,
+                "Unable to change avatar.",
+                "Avatar must be either a Portable Network Graphics (PNG) or JPEG image."
             ));
             return;
         }
@@ -52,16 +113,38 @@
         {
             try
             {
-                await file.WriteToStreamAsync(stream);
+                await upload.OpenReadStream().CopyToAsync(stream);
                 success = stream.TryGetBuffer(out image);
             }
-            catch (Exception) { }
+            catch (Exception)
+            {
+                await AlertEventCallback.InvokeAsync(new AlertArguments(
+                    Color.Danger,
+                    true,
+                    "Unable to change avatar.",
+                    "Unknown error occurred. Please try again."
+                ));
+                return;
+            }
         }
-        if (success) 
-            await ProcessFile(image.ToArray());
+
+        if (success)
+        {
+            await ProcessFile(upload.ContentType, image.ToArray());
+        }
+        else
+        {
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
+                Color.Danger,
+                true,
+                "Unable to change avatar.",
+                "Unknown error occurred. Please try again."
+            ));
+            return;
+        }
     }
 
-    public async Task ProcessFile(byte[] image)
+    public async Task ProcessFile(string format, byte[] image)
     {
         if (DataChangeFunction is null)
         {
@@ -79,13 +162,14 @@
             ));
             return;
         }
-        
+
         var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Visual,
-            Avatar = image.ToArray()
+            Avatar = image
         });
-
+        // Avatar = $"data:{format};base64,{Convert.ToBase64String(image)}"
+        
         if (result)
         {
             await AlertEventCallback.InvokeAsync(new AlertArguments(

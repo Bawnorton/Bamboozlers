@@ -5,6 +5,7 @@ using Blazorise.Icons.FontAwesome;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
+using Bamboozlers.Classes.Services;
 using Blazorise.Bootstrap5;
 using Blazorise.Tests.bUnit;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -27,6 +28,8 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IIdentityRedirectManager, IdentityRedirectManager>();
 builder.Services.AddScoped<IdentityRedirectManagerWrapper>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+
+builder.Services.AddScoped<IEventService, EventService>();
 
 builder.Services.AddAuthentication(options =>
     {

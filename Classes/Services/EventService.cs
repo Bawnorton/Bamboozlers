@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Bamboozlers.Classes.Events;
 using Bamboozlers.Classes.Interop;
 using Microsoft.JSInterop;
@@ -6,7 +7,7 @@ namespace Bamboozlers.Classes.Services;
 
 public class EventService : IEventService, IDisposable
 {
-    private DotNetObjectReference<EventService> _reference;
+    private DotNetObjectReference<EventService>? _reference;
     private bool _initialized;
     
     public async Task Register(IJSRuntime jsRuntime)
@@ -18,6 +19,7 @@ public class EventService : IEventService, IDisposable
         }
         await jsRuntime.InvokeVoidAsync("keyboardInterop.register", _reference, KeyboardEvents.EventCssClass);
         await jsRuntime.InvokeVoidAsync("inputInterop.register", _reference, InputEvents.EventCssClass);
+        await jsRuntime.InvokeVoidAsync("mouseInterop.register", _reference, MouseEvents.EventCssClass);
     }
 
     public DotNetObjectReference<T> GetReference<T>() where T : class, IEventService
@@ -60,10 +62,23 @@ public class EventService : IEventService, IDisposable
     {
         await InputEvents.InputKeyup.Invoker().Invoke(data.elementId!, data.key, data.code, data.ctrl, data.shift, data.alt, data.meta, data.content, data.passed);
     }
+    
+    [JSInvokable]
+    public async Task OnMouseOver(MouseData data)
+    {
+        await MouseEvents.MouseOver.Invoker().Invoke(data.elementId!, data.passed);
+    }
+    
+    [JSInvokable]
+    public async Task OnMouseOut(MouseData data)
+    {
+        await MouseEvents.MouseOut.Invoker().Invoke(data.elementId!, data.passed);
+    }
 
     public void Dispose()
     {
-        _reference.Dispose();
+        if (_reference is not null)
+            _reference.Dispose();
         GC.SuppressFinalize(this);
     }
 }
