@@ -197,7 +197,7 @@ public partial class CompSettings : SettingsComponentBase
             "Your username has been changed successfully."
         ));
         
-        await JsRuntime.InvokeVoidAsync("Reauthenticate");
+        await JsRuntime.InvokeVoidAsync("settingsInterop.Reauthenticate");
         
         return true;
     }
