@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bamboozlers", "Bamboozlers.csproj", "{CE8A2931-9EB9-43DB-AF4B-2C96E524C8BF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bamboozlers", "App\Bamboozlers.csproj", "{CE8A2931-9EB9-43DB-AF4B-2C96E524C8BF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{C6EF1068-4E0E-4041-802F-4604CE1EF55E}"
 EndProject

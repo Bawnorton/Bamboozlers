@@ -80,6 +80,7 @@ public class BlazorJsTestBase(bool headless = true, string username = "testuser"
         
         const string url = "http://localhost:5001";
         builder.WebHost.UseUrls(url);
+        builder.WebHost.UseStaticWebAssets();
         Host = builder.Build();
 
         Host.UseExceptionHandler("/Error", true);
