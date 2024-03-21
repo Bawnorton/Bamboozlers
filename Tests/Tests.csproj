@@ -39,5 +39,4 @@
     <ItemGroup>
       <ProjectReference Include="..\App\Bamboozlers.csproj" />
     </ItemGroup>
-
 </Project>

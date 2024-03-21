@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using NUnit.Framework;
@@ -20,17 +22,30 @@ using IMessageService = Bamboozlers.Classes.Services.IMessageService;
 
 namespace Tests.Playwright;
 
-public class BlazorJsTestBase(bool headless = true, string username = "testuser", string password = "Hpxd3910!") : PageTest
-{
-    protected WebApplication? Host;
+public class BlazorJsTestBase(bool headless, string username, string password) : PageTest
+{ 
     
+    protected WebApplication? Host;
     protected Uri RootUri { get; private set; } = default!;
+
+    public BlazorJsTestBase() : this(false, "testuser", "Hpxd3910!") { }
+    
+    [Test]
+    public async Task ChatJsTest()
+    {
+        await Task.Delay(10000);
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = " Direct Messages" }).ClickAsync();
+    }
     
     [SetUp]
     public async Task SetUpWebApplication()
     {
-        var builder = WebApplication.CreateBuilder();
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions()
+        {
+            ContentRootPath = "../../../../App"
+        });
         
+        // Access Configuration from the builder
         var configuration = builder.Configuration;
 
         // Add services to the container.
@@ -49,6 +64,7 @@ public class BlazorJsTestBase(bool headless = true, string username = "testuser"
 
         builder.Services.AddScoped<IEventService, EventService>();
         builder.Services.AddScoped<IMessageService, MessageService>();
+        builder.Services.AddScoped<IWebSocketService, WebSocketService>();
 
         builder.Services.AddAuthentication(options =>
             {
@@ -61,10 +77,10 @@ public class BlazorJsTestBase(bool headless = true, string username = "testuser"
             options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING")));
 
         builder.Services.AddIdentityCore<User>(options =>
-            {
-                options.SignIn.RequireConfirmedAccount = false;
-                options.User.RequireUniqueEmail = false;
-            })
+                                {
+                                    options.SignIn.RequireConfirmedAccount = true;
+                                    options.User.RequireUniqueEmail = true;
+                                })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddSignInManager()
             .AddDefaultTokenProviders();
@@ -77,24 +93,26 @@ public class BlazorJsTestBase(bool headless = true, string username = "testuser"
             options.Configuration = builder.Configuration["AZURE_REDIS_CONNECTIONSTRING"];
             options.InstanceName = "SampleInstance";
         });
-        
+
         const string url = "http://localhost:5001";
         builder.WebHost.UseUrls(url);
         builder.WebHost.UseStaticWebAssets();
-        Host = builder.Build();
+        var app = builder.Build();
 
-        Host.UseExceptionHandler("/Error", true);
-        Host.UseHsts();
-        Host.UseHttpsRedirection();
-        Host.UseStaticFiles();
-        Host.UseAntiforgery();
-        Host.MapRazorComponents<App>().AddInteractiveServerRenderMode();
-        Host.MapAdditionalIdentityEndpoints();
+        app.UseHttpsRedirection();
+
+        app.UseStaticFiles();
+        app.UseAntiforgery();
+
+        app.MapRazorComponents<App>()
+            .AddInteractiveServerRenderMode();
+        // Add additional endpoints required by the Identity /Account Razor components.
+        app.MapAdditionalIdentityEndpoints();
+        await app.StartAsync();
         
-        await Host.StartAsync();
-        
+        Host = app;
         RootUri = new Uri(url);
-
+        
         // Set up Playwright
         var browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
