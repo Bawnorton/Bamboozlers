@@ -34,9 +34,6 @@ public static class AuthHelper
     /// </exception>
     public static async Task<User> GetSelf(Unary<IQueryable<User>>? inclusionCallback = null)
     {
-        if (_self is not null) 
-            return _self;
-        
         _identity = await GetIdentity();
         if (_identity is not { IsAuthenticated: true }) 
             throw new Exception("User is not authenticated");
@@ -49,7 +46,7 @@ public static class AuthHelper
         await db.DisposeAsync();
         
         if (_self is null) 
-            throw new Exception("User not found");
+            throw new Exception($"No user found with the username {_identity.Name}");
         
         return _self;
     }
@@ -77,7 +74,6 @@ public static class AuthHelper
 
     public static void Invalidate()
     {
-        _self = null;
         _identity = null;
     }
 }
