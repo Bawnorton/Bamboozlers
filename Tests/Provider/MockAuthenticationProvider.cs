@@ -14,7 +14,6 @@ public class MockAuthenticationProvider
     {
         _user = user;
         _mockAuthStateProvider = new Mock<AuthenticationStateProvider>();
-        
         _mockAuthStateProvider.Setup(x => x.GetAuthenticationStateAsync()).Returns(CreateAuthState());
         
         ctx.Services.AddSingleton(GetAuthStateProvider());

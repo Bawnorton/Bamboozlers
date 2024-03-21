@@ -20,12 +20,12 @@ using IMessageService = Bamboozlers.Classes.Services.IMessageService;
 
 namespace Tests.Playwright;
 
-public class BlazorJsTestBase(string username = "testuser1", string password = "Hpxd3910!") : PageTest
+public class BlazorJsTestBase(bool headless = true, string username = "testuser", string password = "Hpxd3910!") : PageTest
 {
     protected WebApplication? Host;
     
     protected Uri RootUri { get; private set; } = default!;
-
+    
     [SetUp]
     public async Task SetUpWebApplication()
     {
@@ -62,8 +62,8 @@ public class BlazorJsTestBase(string username = "testuser1", string password = "
 
         builder.Services.AddIdentityCore<User>(options =>
             {
-                options.SignIn.RequireConfirmedAccount = true;
-                options.User.RequireUniqueEmail = true;
+                options.SignIn.RequireConfirmedAccount = false;
+                options.User.RequireUniqueEmail = false;
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddSignInManager()
@@ -97,15 +97,34 @@ public class BlazorJsTestBase(string username = "testuser1", string password = "
         // Set up Playwright
         var browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Headless = true
+            Headless = headless
         });
         var page = await browser.NewPageAsync();
+
+        await CreateUserIfNotExists();
         
         // Log in
         await page.GotoAsync(RootUri.ToString());
         await page.GetByPlaceholder("name@example.com or username").FillAsync(username);
         await page.GetByPlaceholder("password").FillAsync(password);
         await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Log in" }).ClickAsync();
+    }
+
+    private async Task CreateUserIfNotExists()
+    {
+        var userManager = Host!.Services.CreateScope().ServiceProvider.GetRequiredService<UserManager<User>>();
+        var user = await userManager.FindByNameAsync(username);
+        if (user is null)
+        {
+            user = new User
+            {
+                UserName = username,
+                Email = $"{username}@gmail.com",
+                DisplayName = username.First().ToString().ToUpper() + username[1..],
+                EmailConfirmed = true
+            };
+            await userManager.CreateAsync(user, password);
+        }
     }
 
     [TearDown]

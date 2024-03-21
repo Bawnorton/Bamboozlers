@@ -31,11 +31,6 @@ public class MockDatabaseProvider
     private void SetupMockDbContext(Mock<AppDbContext> mockDbContext)
     {
         var mockUsers = SetupMockUsers();
-        mockUsers.Setup(x => x.FindAsync(It.IsAny<object[]>())).ReturnsAsync((object[] parameters) =>
-        {
-            // you'd think, just call mockUsers.Object.FindAsync(parameters) but that doesn't work for some reason, is it clear why? no of course not
-            return mockUsers.Object.FirstOrDefault(user => user.Id == (int)parameters[0])!;
-        });
         var mockChats = SetupMockChats(mockUsers.Object);
         var mockMessages = SetupMockMessages(mockUsers.Object, mockChats.Object);
         var mockBlocks = SetupMockBlocks(mockUsers.Object);
@@ -63,8 +58,8 @@ public class MockDatabaseProvider
                 Chats = [],
                 ModeratedChats = [],
                 OwnedChats = [],
-                UserName = "TestUser",
-                Email = "test_user@gmail.com",
+                UserName = "TestUser0",
+                Email = "test_user0@gmail.com",
                 EmailConfirmed = true
             },
             new()
@@ -74,8 +69,8 @@ public class MockDatabaseProvider
                 Chats = [],
                 ModeratedChats = [],
                 OwnedChats = [],
-                UserName = "TestUser2",
-                Email = "test_user2@gmail.com",
+                UserName = "TestUser1",
+                Email = "test_user1@gmail.com",
                 EmailConfirmed = true
             },
             new()
@@ -85,8 +80,8 @@ public class MockDatabaseProvider
                 Chats = [],
                 ModeratedChats = [],
                 OwnedChats = [],
-                UserName = "TestUser3",
-                Email = "test_user3@gmail.com",
+                UserName = "TestUser2",
+                Email = "test_user2@gmail.com",
                 EmailConfirmed = true
             }
         });

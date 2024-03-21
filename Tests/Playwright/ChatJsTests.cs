@@ -1,14 +1,16 @@
+using Microsoft.Playwright;
 using NUnit.Framework;
 using Assert = NUnit.Framework.Assert;
 
 namespace Tests.Playwright;
 
 [Parallelizable(ParallelScope.Self)]
-public class ChatJsTests : BlazorJsTestBase
+public class ChatJsTests() : BlazorJsTestBase(headless: false)
 {
     [Test]
-    public void ChatJsTest()
+    public async Task ChatJsTest()
     {
-        Assert.Pass();
+        await Task.Delay(10000);
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = " Direct Messages" }).ClickAsync();
     }
 }

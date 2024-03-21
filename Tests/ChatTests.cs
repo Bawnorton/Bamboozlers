@@ -1,7 +1,7 @@
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Events;
 using Bamboozlers.Classes.Interop;
-using Bamboozlers.Components;
+using Bamboozlers.Components.Chat;
 using Microsoft.EntityFrameworkCore;
 using Tests.Provider;
 

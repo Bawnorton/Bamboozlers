@@ -2,11 +2,17 @@ using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Layout;
 using Microsoft.EntityFrameworkCore;
+using Tests.Provider;
 
 namespace Tests;
 
 public class NavLayoutTests : AuthenticatedBlazoriseTestBase
 {
+    public NavLayoutTests()
+    {
+        _ = new MockEventServiceProvider(Ctx);
+    }
+    
     [Fact]
     public async Task NavLayoutTests_FindAndOpenDms()
     {
