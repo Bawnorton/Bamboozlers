@@ -18,6 +18,7 @@
         <PackageReference Include="bunit" Version="1.27.17" />
         <PackageReference Include="bunit.core" Version="1.27.17" />
         <PackageReference Include="HttpContextMoq" Version="1.6.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.2" />
         <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="8.0.2" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0"/>
         <PackageReference Include="Microsoft.Playwright" Version="1.42.0" />
