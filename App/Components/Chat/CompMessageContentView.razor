@@ -1,13 +1,18 @@
-@foreach (var segment in Segments)
-{
-    <span>@segment</span>
-    <br/>
-}
+@using Microsoft.AspNetCore.Components
+@using System.Net
 
-@code
-{
+<Div class="word-break">
+    @((MarkupString)SafelyFormatContentWithLineBreaks(Content))
+</Div>
+
+@code {
     [Parameter]
     public string Content { get; set; }
-    
-    private IEnumerable<string> Segments => Content.Split('\n');
+
+    private string SafelyFormatContentWithLineBreaks(string content)
+    {
+        // No XSS thanks
+        var encodedContent = WebUtility.HtmlEncode(content);
+        return encodedContent.Replace("\n", "<br />");
+    }
 }

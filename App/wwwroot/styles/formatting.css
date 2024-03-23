@@ -7,6 +7,11 @@
     outline: none;
 }
 
+.word-break {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
 .centre-content {
     display: flex;
     align-items: center;

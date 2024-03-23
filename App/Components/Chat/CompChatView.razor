@@ -22,7 +22,7 @@
 <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Style="bottom: 0">
     <Div Display="Display.Flex" Overflow="Overflow.Hidden">
         <Div contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
-             id="message-input" class="@("message-input " + InputEvents.EventCssClass)" data-placeholder="@($"Message {ChatName}")">
+             id="message-input" class="@($"message-input word-break {InputEvents.EventCssClass} {ClipboardEvents.EventCssClass}")" data-placeholder="@($"Message {ChatName}")">
         </Div>
     </Div>
 </Div>
@@ -36,7 +36,7 @@
     private string ChatName { get; set; }
     
     private string TypedMessage { get; set; }
-
+    
     private List<LinkedMessage> Messages { get; set; } = [];
     
     protected override async Task OnInitializedAsync()
@@ -98,13 +98,22 @@
                     break;
             }
         });
+        ClipboardEvents.OnPaste.Register(async (elementId, content) =>
+        {
+            if (elementId != "message-input") return content;
+            
+            TypedMessage = content;
+            await InvokeAsync(StateHasChanged);
+            return content;
+        });
     }
     
     private async Task SendMessage()
     {
         if (string.IsNullOrWhiteSpace(TypedMessage)) return;
 
-        TypedMessage = TypedMessage.Trim();
+        while(TypedMessage.EndsWith("\n")) TypedMessage = TypedMessage[..^1];
+        while(TypedMessage.StartsWith("\n")) TypedMessage = TypedMessage[1..];
         
         var message = new Message
         {

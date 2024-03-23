@@ -2,6 +2,7 @@ window.persistentStorageInterop = {
     keyboardInteropElements: [],
     inputInteropElements: [],
     mouseInteropElements: [],
+    clipboardInteropElements: [],
 }
 
 window.keyboardInterop = {
@@ -163,4 +164,71 @@ window.mouseInterop = {
             this.addListener(dotNetReference, newElements[i]);
         }
     },
+}
+
+window.clipboardInterop = {
+    register: async function (dotNetReference, clipboardListenerClass) {
+        let elements = window.persistentStorageInterop.clipboardInteropElements;
+        let newElements = [];
+        newElements.push(...document.getElementsByClassName(clipboardListenerClass));
+        newElements = newElements.filter((v, i, a) => a.indexOf(v) === i && !elements.includes(v));
+        
+        if (newElements.length !== 0) {
+            elements.push(...newElements);
+            window.persistentStorageInterop.clipboardInteropElements = elements;
+        } else {
+            return;
+        }
+        
+        for (let i = 0; i < newElements.length; i++) {
+            this.addListener(dotNetReference, newElements[i]);
+        }
+    },
+    addListener: function (dotNetReference, element) {
+        console.log("Adding clipboard listener for element: ", element);
+        element.addEventListener("paste", async function (event) {
+            event.preventDefault();
+            
+            let text = (event.clipboardData || window.clipboardData).getData('text');
+            const data = {
+                elementId: element.id,
+                text: text
+            };
+            element.innerHTML += await dotNetReference.invokeMethodAsync("OnPaste", data);
+        
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(element);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            element.focus();
+        });
+        
+        element.addEventListener("copy", async function (event) {
+            event.preventDefault();
+            
+            const clipdata = event.clipboardData || window.clipboardData;
+            let text = clipdata.getData('text');
+            const data = {
+                elementId: element.id,
+                text: text
+            };
+            const result = await dotNetReference.invokeMethodAsync("OnCopy", data);
+            clipdata.setData('text', result);
+        });
+        
+        element.addEventListener("cut", async function (event) {
+            event.preventDefault();
+            
+            const clipdata = event.clipboardData || window.clipboardData;
+            let text = clipdata.getData('text');
+            const data = {
+                elementId: element.id,
+                text: text
+            };
+            const result = await dotNetReference.invokeMethodAsync("OnCut", data);
+            clipdata.setData('text', result);
+        });
+    }
 }

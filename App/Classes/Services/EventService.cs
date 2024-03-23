@@ -19,6 +19,7 @@ public class EventService : IEventService, IDisposable
         await jsRuntime.InvokeVoidAsync("keyboardInterop.register", _reference, KeyboardEvents.EventCssClass);
         await jsRuntime.InvokeVoidAsync("inputInterop.register", _reference, InputEvents.EventCssClass);
         await jsRuntime.InvokeVoidAsync("mouseInterop.register", _reference, MouseEvents.EventCssClass);
+        await jsRuntime.InvokeVoidAsync("clipboardInterop.register", _reference, ClipboardEvents.EventCssClass);
     }
 
     public DotNetObjectReference<T> GetReference<T>() where T : class, IEventService
@@ -72,6 +73,24 @@ public class EventService : IEventService, IDisposable
     public async Task OnMouseOut(MouseData data)
     {
         await MouseEvents.MouseOut.Invoker().Invoke(data.elementId!, data.passed);
+    }
+    
+    [JSInvokable]
+    public async Task<string> OnCopy(ClipboardData data)
+    {
+        return await ClipboardEvents.OnCopy.Invoker().Invoke(data.elementId, data.text);
+    }
+    
+    [JSInvokable]
+    public async Task<string> OnCut(ClipboardData data)
+    {
+        return await ClipboardEvents.OnCut.Invoker().Invoke(data.elementId, data.text);
+    }
+    
+    [JSInvokable]
+    public async Task<string> OnPaste(ClipboardData data)
+    {
+        return await ClipboardEvents.OnPaste.Invoker().Invoke(data.elementId, data.text);
     }
 
     public void Dispose()

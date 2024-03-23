@@ -1,3 +1,7 @@
+:root {
+    --hover-background-colour: hsl(217, 16%, 20%);
+}
+
 .message-header {
     flex-direction: row;
     align-items: center;
@@ -41,17 +45,22 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
+    position: relative;
 }
 
 .message-content:hover {
-    background-color: #252b33;
+    background-color: var(--hover-background-colour);
 }
 
 .message-actions {
     display: flex;
+    position: absolute;
+    top: -15px;
+    right: 0;
     border-radius: 5px;
     flex-direction: row;
-    align-items: flex-end;
+    align-items: center;
+    z-index: 1;
 }
 
 .message-content:hover .message-actions {
@@ -72,11 +81,11 @@
 }
 
 .message-header:hover {
-    background-color: #252b33;
+    background-color: var(--hover-background-colour);
 }
 
 .message-header:hover + .message-content {
-    background-color: #252b33;
+    background-color: var(--hover-background-colour);
 }
 
 .message-header:hover + .message-content .message-actions {
@@ -89,5 +98,5 @@
 
 /* equivalent to .message-content:hover -previous- .message-header */
 .message-header:has(+ .message-content:hover) {
-    background-color: #252b33;
+    background-color: var(--hover-background-colour);
 }
