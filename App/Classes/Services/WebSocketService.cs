@@ -1,11 +1,7 @@
-using System.Text.Json;
-using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Networking;
 using Websocket.Client;
 
 namespace Bamboozlers.Classes.Services;
-
-using System;
-using System.Threading.Tasks;
 
 public class WebSocketService : IWebSocketService, IDisposable
 {
@@ -19,7 +15,16 @@ public class WebSocketService : IWebSocketService, IDisposable
         _client.ReconnectionHappened.Subscribe(info =>
             Console.WriteLine($"Reconnected: {info.Type}"));
         _client.MessageReceived.Subscribe(msg =>
-            Console.WriteLine($"Message received: {msg}"));
+        {
+            if (msg.Text != null)
+            {
+                PacketRecieved(msg.Text);
+            }
+            else
+            {
+                throw new Exception("Websocket message has no text. Message: " + msg);
+            }
+        });
     }
 
     public async Task ConnectAsync(int id)
@@ -28,10 +33,14 @@ public class WebSocketService : IWebSocketService, IDisposable
         await _client.Start();
     }
 
-    public void SendMessage(Message message)
+    public void SendPacket(IPacket packet)
     {
-        var json = JsonSerializer.Serialize(message);
-        _client.Send(json);
+        _client.Send(packet.AsJson());
+    }
+    
+    private void PacketRecieved(string packetJson) 
+    {
+        
     }
 
     public void Dispose()
@@ -44,5 +53,5 @@ public class WebSocketService : IWebSocketService, IDisposable
 public interface IWebSocketService
 {
     public Task ConnectAsync(int id);
-    public void SendMessage(Message message);
+    public void SendPacket(IPacket packet);
 }

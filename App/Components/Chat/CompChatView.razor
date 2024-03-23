@@ -3,7 +3,6 @@
 @using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes
-
 @inject IJSRuntime JsRuntime
 @inject IEventService EventService
 @inject IWebSocketService WebSocketService
@@ -123,7 +122,16 @@
             IsPinned = false
         };
         await MessageEvents.MessageCreated.Invoker().Invoke(message);
-        WebSocketService.SendMessage(message);
+
+        // var recipientIds = Chat.Users.Select(u => u.Id).ToList();
+        // recipientIds.Remove(Self.Id);
+        // var readDatabaseRequest = new ReadDatabaseC2SPacket
+        // {
+        //     SenderId = Self.Id,
+        //     RecipientIds = recipientIds,
+        //     DataType = DataType.ChatMessage
+        // };
+        // WebSocketService.SendPacket(readDatabaseRequest);
         
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
     }

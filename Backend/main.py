@@ -34,18 +34,15 @@ class ConnectedClient:
         await self.websocket.send_text(message)
 
 
-class Message:
+class CallbackMessage:
     def __init__(self, sender_id: int, target_ids: list, content: str):
         self.sender_id = sender_id
         self.target_ids = target_ids
         self.content = content
 
-    def __str__(self):
-        return f"Message from {self.sender_id} to {self.target_ids}: {self.content}"
-
     @staticmethod
     def from_json(json):
-        return Message(json["sender_id"], json["target_ids"], json["content"])
+        return CallbackMessage(json["sender_id"], json["target_ids"], json["content"])
 
 
 manager = ConnectionManager()
@@ -57,7 +54,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     try:
         while True:
             json = await websocket.receive_json()
-            message = Message.from_json(json)
+            message = CallbackMessage.from_json(json)
             for target_id in message.target_ids:
                 connected_client = manager.get_connected_client(target_id)
                 if connected_client:
