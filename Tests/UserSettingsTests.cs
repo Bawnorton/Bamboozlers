@@ -106,7 +106,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         
         // Act: Invoke Data Display Update
         //await MockUserService.GetUserService();
-        data = await service.GetUserDataAsync();
+        data = service.GetUserData();
         
         // Assert: Check if assigned values are as expected
         Assert.Equal("TestUser0",data.UserName);
@@ -131,7 +131,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         await completionCall.Task.WaitAsync(CancellationToken.None);
         
         // Assert
-        data = await service.GetUserDataAsync();
+        data = service.GetUserData();
         
         Assert.Equal("TestUser0",data.UserName);
         Assert.Equal("Robert",data.DisplayName);
@@ -149,7 +149,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         await completionCall.Task.WaitAsync(CancellationToken.None);
         
         // Assert: That since his information is nullified, nothing should change.
-        data = await service.GetUserDataAsync();
+        data = service.GetUserData();
         
         Assert.Equal("TestUser0",data.UserName);
         Assert.Equal("Robert",data.DisplayName);

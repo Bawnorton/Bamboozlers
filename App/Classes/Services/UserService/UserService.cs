@@ -3,6 +3,7 @@ using System.Security.Principal;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Func;
+using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ namespace Bamboozlers.Classes.Services.UserService;
 
 public class UserService : IUserService
 {
+    private bool Initialized { get; set; }
     public AuthenticationStateProvider AuthenticationStateProvider { get; }
     public IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; }
     public UserManager<User> UserManager { get; }
@@ -22,13 +24,12 @@ public class UserService : IUserService
         AuthenticationStateProvider = authenticationStateProvider;
         DbContextFactory = dbContextFactory;
         UserManager = userManager;
-        
-        AuthenticationStateProvider.AuthenticationStateChanged += _ => Invalidate();
+        AuthenticationStateProvider.AuthenticationStateChanged += async _ => await Invalidate();
     }
     
     /* User (Data) Retrieval */
 
-    public UserRecord? UserRecord { get; private set; }
+    private UserRecord? UserRecord { get; set; }
     
     /// <summary>
     /// Gets an awaitable task to retrieve the User from the UserManager service.
@@ -45,32 +46,29 @@ public class UserService : IUserService
     }
 
     /// <summary>
-    /// Build record of current user.
+    /// Builds a display record corresponding to the current user.
     /// </summary>
     private async Task BuildUserDataAsync()
     {
         var user = await GetUserAsync(await GetClaims());
-        if (user is null)
-        {
-            UserRecord = UserRecord.Default;
-            return;
-        }
         
-        UserRecord = new UserRecord(
-            user.Id, 
-            user.UserName, 
-            user.Email, 
-            user.DisplayName, 
-            user.Bio, 
+        UserRecord = user is not null
+        ? new UserRecord(
+            user.Id,
+            user.UserName,
+            user.Email,
+            user.DisplayName,
+            user.Bio,
             user.Avatar
-        );
+        )
+        : UserRecord.Default;
+        
+        NotifyAll();
     }
-
-    public async Task<UserRecord> GetUserDataAsync()
+    
+    public UserRecord GetUserData()
     {
-        if (UserRecord is null)
-            await BuildUserDataAsync();
-        return UserRecord!;
+        return UserRecord ?? UserRecord.Default;
     } 
     
     /* User Management */
@@ -85,8 +83,7 @@ public class UserService : IUserService
         {
             user.DisplayName = newValues.DisplayName ?? user.DisplayName;
             user.Bio = newValues.Bio ?? user.Bio;
-            
-            if (newValues.AvatarBytes is null)
+            if (newValues.AvatarBytes is not null && newValues.AvatarBytes.Length == 0)
             {
                 user.Avatar = null;
             }
@@ -98,8 +95,7 @@ public class UserService : IUserService
         
         var iResult = await UserManager.UpdateAsync(user);
         
-        Invalidate();
-        await BuildUserDataAsync();
+        await Invalidate();
         
         return iResult;
     }
@@ -120,7 +116,7 @@ public class UserService : IUserService
         if (!iResult.Succeeded) return iResult;
 
         iResult = await UserManager.UpdateSecurityStampAsync(user);
-        Invalidate();
+        await Invalidate();
         return iResult;
     }
     
@@ -137,7 +133,7 @@ public class UserService : IUserService
         if (!iResult.Succeeded) return iResult;
 
         iResult = await UserManager.UpdateSecurityStampAsync(user);
-        Invalidate();
+        await Invalidate();
         return iResult;
     }
     
@@ -195,10 +191,40 @@ public class UserService : IUserService
         return UserClaims ??= (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
     }
     
-    public void Invalidate()
+    public async Task Initialize()
+    {
+        if (Initialized) return;
+        Initialized = true;
+        
+        await BuildUserDataAsync();
+    }
+    
+    public async Task Invalidate(bool reinitialize = true)
     {
         UserRecord = null;
         UserClaims = null;
         Identity = null;
+        Initialized = false;
+        if (reinitialize)
+        {
+            await Initialize(); 
+        }
+    }
+
+    public List<ISubscriber> Subscribers { get; } = [];
+    public void AddSubscriber(ISubscriber subscriber)
+    {
+        if (Subscribers.Contains(subscriber)) return;
+        Subscribers.Add(subscriber);
+    }
+
+    public bool RemoveSubscriber(ISubscriber subscriber)
+    {
+        return Subscribers.Remove(subscriber);
+    }
+
+    public void NotifyAll()
+    {
+        Subscribers.ForEach(x => x.OnUpdate());
     }
 }

@@ -9,9 +9,6 @@ public class SettingsComponentBase : UserViewComponentBase
 {
     [Parameter]
     public EventCallback<AlertArguments> AlertEventCallback { get; init; }
-    
-    [Parameter]
-    public EventCallback StateChangedCallback { get; init; }
 
     [Parameter]
     public Func<UserDataRecord, Task<bool>>? DataChangeFunction { get; init; }

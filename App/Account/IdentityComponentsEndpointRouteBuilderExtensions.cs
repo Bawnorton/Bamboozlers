@@ -26,9 +26,9 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
         accountGroup.MapPost("/Logout", async (
             ClaimsPrincipal user,
             SignInManager<User> signInManager,
-            [FromServices] UserService userService) =>
+            [FromServices] IUserService userService) =>
         {
-            userService.Invalidate();
+            await userService.Invalidate(false);
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect($"~/Account/Login");
         });
@@ -36,7 +36,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
         accountGroup.MapPost("/DeAuth", async (
             ClaimsPrincipal user,
             SignInManager<User> signInManager,
-            [FromServices] UserService userService) =>
+            [FromServices] IUserService userService) =>
         {
             var builder = new UriBuilder();
             var urlParams = HttpUtility.ParseQueryString(string.Empty);
@@ -44,7 +44,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             builder.Query = urlParams.ToString();
             var callbackUrl = "~/Account/Login" + builder.Query;
             
-            userService.Invalidate();
+            await userService.Invalidate(false);
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect(callbackUrl);
         });
@@ -53,7 +53,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             ClaimsPrincipal user,
             SignInManager<User> signInManager,
             [FromServices] UserManager<User> userManager,
-            [FromServices] UserService userService) =>
+            [FromServices] IUserService userService) =>
         {
             await signInManager.SignOutAsync();
             
@@ -71,7 +71,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
                 return TypedResults.LocalRedirect(callbackUrl);
             }
             
-            userService.Invalidate();
+            await userService.Invalidate(false);
             await signInManager.SignInAsync(u, false);
             return TypedResults.LocalRedirect("~/");
         });

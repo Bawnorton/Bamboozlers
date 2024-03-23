@@ -9,7 +9,7 @@
     <Label Width="@Width.Px(256)" Height="@Height.Px(256)" Class="overlay-wrapper" for="input-file">
         <Image ElementId="avatar-display"
                Class="border-mask overlay-base fit"
-               Source="@UserService.UserRecord.Avatar"/>
+               Source="@(UserData?.Avatar ?? "images/default_profile.png")"/>
         <Image ElementId="hover-effect"
                Class="border-mask overlay fit"
                Source="images/edit_overlay.png"/>
@@ -17,7 +17,7 @@
     <InputFile id="input-file" OnChange="@OnFileUpload" hidden/>
 </Row>
 <Row>
-    @if (UserService.UserRecord.AvatarBytes is not null)
+    @if (UserData?.AvatarBytes is not null)
     {
         <CompSettingsActionButton Color="Color.Danger"
                                   IconName="IconName.Delete"
@@ -33,7 +33,7 @@
 
     private async Task DeleteAvatar()
     {
-        if (UserService.UserRecord.AvatarBytes is not null) return;
+        if (UserData?.AvatarBytes is null) return;
     
         if (DataChangeFunction is null)
         {
@@ -100,7 +100,7 @@
                 Color.Danger,
                 true,
                 "Unable to change avatar.",
-                "Avatar must be either a Portable Network Graphics (PNG) or JPEG image."
+                "Avatar must be a Portable Network Graphics (PNG) file."
             ));
             return;
         }

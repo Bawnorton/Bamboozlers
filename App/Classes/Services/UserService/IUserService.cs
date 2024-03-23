@@ -1,23 +1,24 @@
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Func;
+using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.Services.UserService;
 
-public interface IUserService
+public interface IUserService : IPublisher
 {
     protected AuthenticationStateProvider AuthenticationStateProvider { get; }
     protected IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; }
     protected UserManager<User> UserManager { get; }
-    public UserRecord UserRecord { get; } 
     
-    /// <returns>
-    /// Returns the current User's data in UserRecord form.
-    /// </returns>
-    Task<UserRecord> GetUserDataAsync();
+    /// <summary>
+    /// Retrieval method for the User's display variables for classes utilizing this service.
+    /// </summary>
+    /// <returns>The User's display record.</returns>
+    UserRecord GetUserData();
 
     /// <summary>
     /// Update the user's representation in the database.
@@ -81,9 +82,14 @@ public interface IUserService
     /// If <see cref="IsAuthenticated"/> returns false.
     /// </exception>
     public Task<User?> GetUser(Unary<IQueryable<User>>? inclusionCallback = null);
+
+    /// <summary>
+    /// Called to perform initialization of asynchronous attributes, as constructors cannot be async.
+    /// </summary>>
+    Task Initialize();
     
     /// <summary>
     /// Invalidates the currently cached User Claims, Identity and the Record used for displaying attributes
     /// </summary>>
-    void Invalidate();
+    Task Invalidate(bool reinitialize = true);
 }

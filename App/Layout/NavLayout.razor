@@ -85,7 +85,7 @@
                  id="profile-button"
                  @onclick="ProfileButtonCallback">
                 <Text>
-                    @(UserService.UserRecord.DisplayName.IsNullOrEmpty() ? UserService.UserRecord.UserName : UserService.UserRecord.DisplayName)
+                    @(User is null ? UserRecord.Default.UserName : User.DisplayName.IsNullOrEmpty() ? User.UserName : User.DisplayName)
                 </Text>
                 <Icon Name="Icons.UserTie" IconSize="IconSize.Large"></Icon>
             </Div>

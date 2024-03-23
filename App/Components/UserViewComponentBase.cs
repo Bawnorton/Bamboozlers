@@ -1,16 +1,31 @@
+
 using System.Diagnostics;
+using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services.UserService;
+using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components;
 
-public class UserViewComponentBase : ComponentBase
+public class UserViewComponentBase : ComponentBase, ISubscriber
 {
     [Inject] 
-    public IUserService UserService { get; set; } = default!;
+    protected IUserService UserService { get; set; } = default!;
 
-    protected override Task OnInitializedAsync()
+    protected UserRecord? UserData { get; private set; }
+
+    protected override async Task OnInitializedAsync()
     {
-        return base.OnInitializedAsync();
+        await base.OnInitializedAsync();
+        await UserService.Initialize();
+        UserService.AddSubscriber(this);
+        OnUpdate();
+    }
+
+    public virtual void OnUpdate()
+    {
+        Debug.WriteLine("RECEIVED SIGNAL");
+        UserData = UserService.GetUserData();
+        StateHasChanged();
     }
 }
