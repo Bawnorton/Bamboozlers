@@ -10,9 +10,9 @@ using Blazorise;
 using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Tests.Provider;
 using Xunit.Abstractions;
 
 namespace Tests;

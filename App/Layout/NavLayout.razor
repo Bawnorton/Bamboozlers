@@ -1,0 +1,226 @@
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Events
+@using Bamboozlers.Classes
+@using AngleSharp.Diffing.Extensions
+@using Bamboozlers.Classes.Events
+@using Bamboozlers.Classes.Interop
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Data.ViewModel
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Components.Settings
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Components.Chat
+@using Blazorise.Extensions
+
+@rendermode InteractiveServer
+
+@inject IDbContextFactory<AppDbContext> Db
+@inject AuthenticationStateProvider AuthStateProvider;
+
+<Layout Sider>
+    <LayoutSider>
+        <LayoutSiderContent>
+            <Div Background="Background.Secondary"
+                 Padding="Padding.Is3"
+                 TextSize="TextSize.Heading5">
+                <Icon Name="Icons.UserTimes"></Icon>
+                <Text>Bamboozlers</Text>
+            </Div>
+            <Bar Mode="BarMode.VerticalInline"
+                 CollapseMode="BarCollapseMode.Hide"
+                 ThemeContrast="ThemeContrast.Dark"
+                 Class="scrollbar-container">
+                <BarMenu>
+                    <BarItem>
+                        <BarLink ElementId="friends" @onclick="() => ChangeView(View.Friends)">
+                            <BarIcon Class="fa-user-circle"></BarIcon>
+                            Friends
+                        </BarLink>
+                    </BarItem>
+                    <BarItem>
+                        <BarDropdown>
+                            <BarDropdownToggle>
+                                <BarIcon IconName="Icons.User"></BarIcon>
+                                Direct Messages
+                            </BarDropdownToggle>
+                            <BarDropdownMenu ElementId="dms_dropdown">
+                                @foreach (var chat in DmChats)
+                                {
+                                    <BarItem>
+                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => ChangeView(View.Dm, chat.DbReference)">
+                                            <BarIcon IconName="Icons.User"></BarIcon>
+                                            @chat.User.DisplayName
+                                        </BarLink>
+                                    </BarItem>
+                                }
+                            </BarDropdownMenu>
+                        </BarDropdown>
+                    </BarItem>
+                    <BarItem>
+                        <BarDropdown>
+                            <BarDropdownToggle>
+                                <BarIcon IconName="Icons.Users"></BarIcon>
+                                Group Chats
+                            </BarDropdownToggle>
+                            <BarDropdownMenu ElementId="groups_dropdown">
+                                @foreach (var chat in GroupChats)
+                                {
+                                    <BarItem>
+                                        <BarLink ElementId="@("group_" + chat.ID)" @onclick="() => ChangeView(View.Group, chat)">
+                                            <BarIcon IconName="Icons.Users"></BarIcon>
+                                            @chat.Name
+                                        </BarLink>
+                                    </BarItem>
+                                }
+                            </BarDropdownMenu>
+                        </BarDropdown>
+                    </BarItem>
+                </BarMenu>
+            </Bar>
+            <Div Padding="Padding.Is3"
+                 TextSize="TextSize.Heading5"
+                 Class="sidebar-footer"
+                 id="profile-button"
+                 @onclick="ProfileButtonCallback">
+                <Text>
+                    @(UserDisplayRecord.DisplayName.IsNullOrEmpty() ? UserDisplayRecord.UserName : UserDisplayRecord.DisplayName) 
+                </Text>
+                <Icon Name="Icons.UserTie" IconSize="IconSize.Large"></Icon>
+            </Div>
+        </LayoutSiderContent>
+    </LayoutSider>
+    <Layout>
+        <LayoutHeader Fixed
+                      Padding="Padding.Is3"
+                      TextSize="TextSize.Heading5"
+                      TextColor="TextColor.Primary"
+                      Background="Background.Dark">
+            <Text ElementId="header-text">@Views[CurrentView].Name</Text>
+        </LayoutHeader>
+        <LayoutContent Padding="Padding.Is3"
+                       Background="Background.Primary"
+                       TextColor="TextColor.Primary"
+                       Class="scrollbar-container">
+            <DynamicComponent Type="@Views[CurrentView].HeldType" Parameters="@Views[CurrentView].Parameters"/>
+        </LayoutContent>
+    </Layout>
+</Layout>
+
+@code {
+    [Parameter] public EventCallback ProfileButtonCallback { get; set; }
+    private User? User { get; set; }
+    private List<DmChat> DmChats { get; set; } = [];
+
+    private List<GroupChat> GroupChats { get; set; } = [];
+
+    private View CurrentView { get; set; } = View.Friends;
+
+    private int FriendCount { get; set; } = 0;
+
+    private Dictionary<View, ViewHolder> Views { get; } = new()
+    {
+        {View.Friends, ViewHolder.Of(new CompFriendsView())},
+        {View.Dm, ViewHolder.Of(new CompChatView())},
+        {View.Group, ViewHolder.Of(new CompChatView())}
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetDataAsync();
+        ChangeView(CurrentView);       
+    }
+
+    public async Task Refresh()
+    {
+        await GetDataAsync();
+    }
+
+    private async Task GetDataAsync()
+    {
+        User = await AuthHelper.GetSelf(query => 
+            query
+                .Include(u => u.Chats)
+                    .ThenInclude(c => c.Users)
+                .Include(u => u.Chats)
+                    .ThenInclude(c => c.Messages)
+        );
+
+        if (User is null)
+            return;
+        
+        await using var db = await Db.CreateDbContextAsync();
+
+        var chats = User.Chats;
+        if (chats is not null)
+        {
+            GroupChats = User.Chats.OfType<GroupChat>().ToList();
+            DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != User.Id))).ToList();
+        }
+
+        FriendCount = 0;
+        var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
+        foreach (var friendship in friendships)
+        {
+            if (friendship.User1ID == User.Id || friendship.User2ID == User.Id)
+            {
+                FriendCount++;
+            }
+        }
+    }
+    
+    private async void ChangeView(View view, Chat? chat = null)
+    {
+        if (User is null)
+            return;
+        
+        CurrentView = view;
+        switch (CurrentView)
+        {
+            case View.Group:
+                Views[CurrentView].Name = (chat as GroupChat)!.Name;
+                Views[CurrentView].Parameters = new Dictionary<string, object>
+                {
+                    {"Chat", chat}
+                };
+                break;
+            case View.Dm:
+            {
+                var other = chat!.Users.First(u => u.Id != User?.Id);
+                Views[CurrentView].Name = other.DisplayName ?? other.UserName;
+                Views[CurrentView].Parameters = new Dictionary<string, object>
+                {
+                    {"Chat", chat}
+                };
+                break;
+            }
+            case View.Friends:
+                Views[CurrentView].Name = $"Friends ({FriendCount})"; 
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private enum View
+    {
+        Dm,
+        Group,
+        Friends
+    }
+    
+    private record DmChat(Chat DbReference, User User);
+
+    private class ViewHolder(ComponentBase component)
+    {
+        public ComponentBase Held { get; } = component;
+
+        public string? Name { get; set; }
+        
+        public IDictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
+        
+        public Type HeldType => Held.GetType();
+        
+        public static ViewHolder Of(ComponentBase component) => new(component);
+    }
+}

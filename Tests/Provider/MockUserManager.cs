@@ -1,6 +1,3 @@
-
-using Bamboozlers;
-using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
 using Bunit.Extensions;
 using Microsoft.AspNetCore.Identity;
@@ -8,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MockQueryable.Moq;
-using Xunit.Abstractions;
 
 namespace Tests;
 
@@ -31,7 +27,7 @@ public class MockUserManager
         _mockDbContextFactory.Setup(x => x.CreateDbContextAsync(default)).ReturnsAsync(mockDbContext.Object);
         
         /* Build test user data entries */
-        mockDbContext.Setup(x => x.Users).Returns(_mockUsers.AsQueryable().BuildMockDbSet().Object);
+        mockDbContext.Setup(x => x.Users).Returns(() => _mockUsers.AsQueryable().BuildMockDbSet().Object);
         
         /* Build false data sets */
         mockDbContext.Setup(x => x.Chats).Returns(new List<Chat>().AsQueryable().BuildMockDbSet().Object);

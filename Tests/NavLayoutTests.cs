@@ -1,45 +1,21 @@
-using AngleSharp.Dom;
-using Bamboozlers.Account;
-using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Layout;
-using Bamboozlers.Pages;
-using Blazorise.Modules;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Tests;
 
-[Collection("Sequential")]
-public class NavLayoutTests : BlazoriseTestBase
+public class NavLayoutTests : AuthenticatedBlazoriseTestBase
 {
-    private readonly MockDatabaseProvider _mockDatabaseProvider;
-    private readonly MockAuthenticationProvider _mockAuthenticationProvider;
-    
-    private readonly User _self;
-    
-    public NavLayoutTests()
-    {
-        _mockDatabaseProvider = new MockDatabaseProvider(Ctx);
-        _self = _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.First();
-        _mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, _self);
-
-        Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
-        AuthHelper.Init(_mockAuthenticationProvider.GetAuthStateProvider(), _mockDatabaseProvider.GetDbContextFactory());
-    }
-
     [Fact]
     public async Task NavLayoutTests_FindAndOpenDms()
     {
         AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
-        await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var dms = _self.Chats.Except(_self.Chats.OfType<GroupChat>()).ToList();
-        var others = dms.SelectMany(c => c.Users).Where(u => u.Id != _self.Id).ToList();
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        var dms = Self.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
+        var others = dms.SelectMany(c => c.Users).Where(u => u.Id != Self.Id).ToList();
         
         var expectedCount = others.Count;
         var dmDropdown = component.Find("#dms_dropdown");
@@ -65,8 +41,8 @@ public class NavLayoutTests : BlazoriseTestBase
         AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
-        await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var groups = _self.Chats.OfType<GroupChat>().ToList();
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        var groups = Self.Chats.OfType<GroupChat>().ToList();
         
         var expectedCount = groups.Count;
         var groupDropdown = component.Find("#groups_dropdown");
@@ -92,9 +68,9 @@ public class NavLayoutTests : BlazoriseTestBase
         AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
-        await using var db = await _mockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
-        var friends = friendships.Where(f => f.User1ID == _self.Id || f.User2ID == _self.Id).Select(f => f.User1ID == _self.Id ? f.User2 : f.User1).ToList();
+        var friends = friendships.Where(f => f.User1ID == Self.Id || f.User2ID == Self.Id).Select(f => f.User1ID == Self.Id ? f.User2 : f.User1).ToList();
         
         var count = friends.Count;
         component.Find("#friends").Click();

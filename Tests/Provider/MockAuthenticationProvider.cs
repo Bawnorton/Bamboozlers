@@ -3,7 +3,7 @@ using Bamboozlers.Classes.AppDbContext;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Tests;
+namespace Tests.Provider;
 
 public class MockAuthenticationProvider
 {
@@ -14,7 +14,6 @@ public class MockAuthenticationProvider
     {
         _user = user;
         _mockAuthStateProvider = new Mock<AuthenticationStateProvider>();
-        
         _mockAuthStateProvider.Setup(x => x.GetAuthenticationStateAsync()).Returns(CreateAuthState());
         
         ctx.Services.AddSingleton(GetAuthStateProvider());
