@@ -3,8 +3,11 @@
 @using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking.Packets.Serverbound
 
 @inject IWebSocketService WebSocketService
+@inject IDbContextFactory<AppDbContext> Db;
 
 <Layout ElementId="message-container" Style="height: 92%" Class="scrollbar-container">
     <LayoutContent>
@@ -25,7 +28,8 @@
 </Div>
 
 @code {
-    [Parameter] public Chat? Chat { get; set; }
+    [Parameter] 
+    public Chat? Chat { get; set; }
 
     private User Self { get; set; }
 
@@ -34,6 +38,8 @@
     private string TypedMessage { get; set; }
 
     private List<LinkedMessage> Messages { get; set; } = [];
+
+    private int _lastMessageId = -1;
 
     protected override async Task OnInitializedAsync()
     {
@@ -56,6 +62,7 @@
         messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
         Messages = linkedMessages;
+        _lastMessageId = messages.LastOrDefault()?.ID ?? -1;
 
         await WebSocketService.ConnectAsync(Self.Id);
     }
@@ -102,6 +109,21 @@
             await InvokeAsync(StateHasChanged);
             return content;
         });
+        NetworkEvents.ReadDatabaseRequest.Register(async entry =>
+        {
+            if (entry != DbEntry.ChatMessage) return;
+
+            var messages = await (await Db.CreateDbContextAsync()).Messages
+                .Where(m => m.ChatID == Chat!.ID && m.ID > _lastMessageId)
+                .ToListAsync();
+            if (messages.Count == 0) return;
+            
+            messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
+            var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
+            Messages.AddRange(linkedMessages);
+            _lastMessageId = messages.LastOrDefault()?.ID ?? -1;
+            await InvokeAsync(StateHasChanged);
+        });
         
         StateHasChanged();
     }
@@ -123,15 +145,10 @@
         };
         await MessageEvents.MessageCreated.Invoker().Invoke(message);
 
-        // var recipientIds = Chat.Users.Select(u => u.Id).ToList();
-        // recipientIds.Remove(Self.Id);
-        // var readDatabaseRequest = new ReadDatabaseC2SPacket
-        // {
-        //     SenderId = Self.Id,
-        //     RecipientIds = recipientIds,
-        //     DataType = DataType.ChatMessage
-        // };
-        // WebSocketService.SendPacket(readDatabaseRequest);
+        var recipientIds = Chat.Users.Select(u => u.Id).ToList();
+        recipientIds.Remove(Self.Id);
+        var readDatabaseRequest = TellOthersToReadDatabaseC2SPacket.Create(Self.Id, recipientIds, DbEntry.ChatMessage);
+        WebSocketService.SendPacket(readDatabaseRequest);
         
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
     }

@@ -1,4 +1,7 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Bamboozlers.Classes.Networking;
+using Bamboozlers.Classes.Networking.Packets.Serverbound;
 using Websocket.Client;
 
 namespace Bamboozlers.Classes.Services;
@@ -6,6 +9,7 @@ namespace Bamboozlers.Classes.Services;
 public class WebSocketService : IWebSocketService, IDisposable
 {
     private readonly WebsocketClient _client;
+    private readonly NetworkHandler _networkHandler = new();
     private readonly Uri _serverUri = new("ws://localhost:8000/ws");
 
     public WebSocketService()
@@ -25,6 +29,7 @@ public class WebSocketService : IWebSocketService, IDisposable
                 throw new Exception("Websocket message has no text. Message: " + msg);
             }
         });
+
     }
 
     public async Task ConnectAsync(int id)
@@ -33,14 +38,24 @@ public class WebSocketService : IWebSocketService, IDisposable
         await _client.Start();
     }
 
-    public void SendPacket(IPacket packet)
+    public void SendPacket(IServerboundPacket packet)
     {
-        _client.Send(packet.AsJson());
+        var obj = new JsonObject();
+        packet.Write(obj);
+        
+        obj.Add("id", packet.PacketType().GetId());
+        _client.Send(obj.ToString());
     }
     
     private void PacketRecieved(string packetJson) 
     {
-        
+        var json = JsonDocument.Parse(packetJson).RootElement;
+        var id = json.GetProperty("id").GetString();
+        if (id == null)
+        {
+            throw new Exception("Received packet with no id. JSON: " + json);
+        }
+        _networkHandler.HandlePacket(id, json);
     }
 
     public void Dispose()
@@ -53,5 +68,5 @@ public class WebSocketService : IWebSocketService, IDisposable
 public interface IWebSocketService
 {
     public Task ConnectAsync(int id);
-    public void SendPacket(IPacket packet);
+    public void SendPacket(IServerboundPacket packet);
 }
