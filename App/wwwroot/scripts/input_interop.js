@@ -5,11 +5,18 @@ window.persistentStorageInterop = {
     clipboardInteropElements: [],
 }
 
+window.invokeInterop = async function (functionName, data) {
+    try {
+        return await DotNet.invokeMethodAsync("Bamboozlers", functionName, data);
+    } catch (error) {
+        if (error.message !== "No call dispatcher has been set.") {
+            throw error;
+        }
+    }
+}
+
 window.keyboardInterop = {
-    init: function (dotNetReference) {
-        this.addListener(dotNetReference, document);
-    },
-    addListener: function (dotNetReference, element) {
+    addListener: function (element) {
         console.log("Adding keyboard listener for element: ", element);
         element.addEventListener("keydown", async function (event) {
             const data = {
@@ -20,7 +27,7 @@ window.keyboardInterop = {
                 alt: event.altKey,
                 meta: event.metaKey
             };
-            await dotNetReference.invokeMethodAsync("OnKeydown", data);
+            await window.invokeInterop("OnKeydown", data);
         });
         
         element.addEventListener("keyup", async function (event) {
@@ -32,10 +39,10 @@ window.keyboardInterop = {
                 alt: event.altKey,
                 meta: event.metaKey
             };
-            await dotNetReference.invokeMethodAsync("OnKeyup", data);
+            await window.invokeInterop("OnKeyup", data);
         });
     },
-    register: async function (dotNetReference, keyboardListenerClass) {
+    register: async function (keyboardListenerClass) {
         let elements = window.persistentStorageInterop.keyboardInteropElements;
         let newElements = [];
         newElements.push(...document.getElementsByClassName(keyboardListenerClass));
@@ -49,13 +56,13 @@ window.keyboardInterop = {
         }
         
         for (let i = 0; i < newElements.length; i++) {
-            this.addListener(dotNetReference, newElements[i]);
+            this.addListener(newElements[i]);
         }
     }
 }
 
 window.inputInterop = {
-    addListener: function (dotNetReference, disallowedKeys, element) {
+    addListener: function (disallowedKeys, element) {
         console.log("Adding input listener for element: ", element);
         let passed = true;
         element.addEventListener("keydown", async function (event) {
@@ -80,7 +87,7 @@ window.inputInterop = {
                     passed = true;
                 }
             }
-            await dotNetReference.invokeMethodAsync("OnInputKeydown", data);
+            await window.invokeInterop("OnInputKeydown", data);
         });
         
         element.addEventListener("keyup", async function (event) {
@@ -95,10 +102,10 @@ window.inputInterop = {
                 content: element.innerText,
                 passed: passed
             };
-            await dotNetReference.invokeMethodAsync("OnInputKeyup", data);
+            await window.invokeInterop("OnInputKeyup", data);
         });
     },
-    register: async function (dotNetReference, inputListenerClass) {
+    register: async function (inputListenerClass) {
         let elements = window.persistentStorageInterop.inputInteropElements;
         let newElements = [];
         newElements.push(...document.getElementsByClassName(inputListenerClass));
@@ -111,10 +118,10 @@ window.inputInterop = {
             return;
         }
         
-        const disallowedKeys = await dotNetReference.invokeMethodAsync("OnGetDisallowedInputs");
+        const disallowedKeys = await window.invokeInterop("OnGetDisallowedInputs");
         
         for (let i = 0; i < newElements.length; i++) {
-            this.addListener(dotNetReference, disallowedKeys, newElements[i]);
+            this.addListener(disallowedKeys, newElements[i]);
         }
     },
     clear: async function (elementId) {
@@ -128,7 +135,7 @@ window.inputInterop = {
 }
 
 window.mouseInterop = {
-    addListener: function (dotNetReference, element) {
+    addListener: function (element) {
         console.log("Adding mouse listener for element: ", element);
         let passed = true;
         element.addEventListener("mouseover", async function (event) {
@@ -136,7 +143,7 @@ window.mouseInterop = {
                 elementId: element.id,
                 passed: passed,
             };
-            await dotNetReference.invokeMethodAsync("OnMouseOver", data);
+            await window.invokeInterop("OnMouseOver", data);
         });
 
         element.addEventListener("mouseout", async function (event) {
@@ -144,10 +151,10 @@ window.mouseInterop = {
                 elementId: element.id,
                 passed: passed,
             };
-            await dotNetReference.invokeMethodAsync("OnMouseOut", data);
+            await window.invokeInterop("OnMouseOut", data);
         });
     },
-    register: async function (dotNetReference, inputListenerClass) {
+    register: async function (inputListenerClass) {
         let elements = window.persistentStorageInterop.mouseInteropElements;
         let newElements = [];
         newElements.push(...document.getElementsByClassName(inputListenerClass));
@@ -161,13 +168,13 @@ window.mouseInterop = {
         }
 
         for (let i = 0; i < newElements.length; i++) {
-            this.addListener(dotNetReference, newElements[i]);
+            this.addListener(newElements[i]);
         }
     },
 }
 
 window.clipboardInterop = {
-    register: async function (dotNetReference, clipboardListenerClass) {
+    register: async function (clipboardListenerClass) {
         let elements = window.persistentStorageInterop.clipboardInteropElements;
         let newElements = [];
         newElements.push(...document.getElementsByClassName(clipboardListenerClass));
@@ -181,10 +188,10 @@ window.clipboardInterop = {
         }
         
         for (let i = 0; i < newElements.length; i++) {
-            this.addListener(dotNetReference, newElements[i]);
+            this.addListener(newElements[i]);
         }
     },
-    addListener: function (dotNetReference, element) {
+    addListener: function (element) {
         console.log("Adding clipboard listener for element: ", element);
         element.addEventListener("paste", async function (event) {
             event.preventDefault();
@@ -194,14 +201,26 @@ window.clipboardInterop = {
                 elementId: element.id,
                 text: text
             };
-            element.innerHTML += await dotNetReference.invokeMethodAsync("OnPaste", data);
-        
-            const range = document.createRange();
+            let result = await window.invokeInterop("OnPaste", data);
+            if (result && result !== "") {
+                text = result;
+            }
+
             const sel = window.getSelection();
-            range.selectNodeContents(element);
-            range.collapse(false);
+            const range = sel.getRangeAt(0);
+
+            range.deleteContents();
+
+            const textNode = document.createTextNode(text);
+            range.insertNode(textNode);
+
+            range.setStartAfter(textNode);
+            range.collapse(true);
+
             sel.removeAllRanges();
+
             sel.addRange(range);
+
             element.focus();
         });
         
@@ -214,7 +233,7 @@ window.clipboardInterop = {
                 elementId: element.id,
                 text: text
             };
-            const result = await dotNetReference.invokeMethodAsync("OnCopy", data);
+            const result = await window.invokeInterop("OnCopy", data);
             clipdata.setData('text', result);
         });
         
@@ -227,8 +246,10 @@ window.clipboardInterop = {
                 elementId: element.id,
                 text: text
             };
-            const result = await dotNetReference.invokeMethodAsync("OnCut", data);
+            const result = await window.invokeInterop("OnCut", data);
             clipdata.setData('text', result);
         });
     }
 }
+
+window.keyboardInterop.addListener(document);

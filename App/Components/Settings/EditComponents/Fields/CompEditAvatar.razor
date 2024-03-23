@@ -3,9 +3,6 @@
 @using Azure.Core
 @inherits SettingsComponentBase
 
-@inject IEventService EventService;
-@inject IJSRuntime JsRuntime;
-
 <Row>
     <Label Width="@Width.Px(256)" Height="@Height.Px(256)" Class="overlay-wrapper" for="input-file">
         <Image ElementId="avatar-display"

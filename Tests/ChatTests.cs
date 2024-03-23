@@ -1,6 +1,3 @@
-using Bamboozlers.Classes.AppDbContext;
-using Bamboozlers.Classes.Events;
-using Bamboozlers.Classes.Interop;
 using Bamboozlers.Components.Chat;
 using Microsoft.EntityFrameworkCore;
 using Tests.Provider;
@@ -11,7 +8,6 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
 {
     public ChatTests()
     {
-        _ = new MockEventServiceProvider(Ctx);
         _ = new MockJsRuntimeProvider(Ctx);
     }
     

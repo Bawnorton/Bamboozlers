@@ -6,6 +6,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Components.Settings
 @using IMessageService = Bamboozlers.Classes.Services.IMessageService
@@ -14,6 +15,7 @@
 @inject AuthenticationStateProvider AuthStateProvider;
 @inject IMessageService MessageService;
 @inject IServiceProvider ServiceProvider;
+@inject IJSRuntime JsRuntime;
 
 @attribute [Authorize]
 
@@ -56,6 +58,7 @@
     protected override async Task OnInitializedAsync()
     {
         MessageService.Init(Db);
+        JsInteropHelper.Init(JsRuntime);
         AuthHelper.Init(AuthStateProvider, Db);
         await UserService.Init(new ServiceProviderWrapper(ServiceProvider));
     }

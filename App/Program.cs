@@ -29,7 +29,6 @@ builder.Services.AddScoped<IIdentityRedirectManager, IdentityRedirectManager>();
 builder.Services.AddScoped<IdentityRedirectManagerWrapper>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<IWebSocketService, WebSocketService>();
 

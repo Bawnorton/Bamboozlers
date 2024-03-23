@@ -3,8 +3,7 @@
 @using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes
-@inject IJSRuntime JsRuntime
-@inject IEventService EventService
+
 @inject IWebSocketService WebSocketService
 
 <Layout ElementId="message-container" Style="height: 92%" Class="scrollbar-container">
@@ -26,17 +25,16 @@
 </Div>
 
 @code {
-    [Parameter]
-    public Chat? Chat { get; set; }
-    
+    [Parameter] public Chat? Chat { get; set; }
+
     private User Self { get; set; }
-    
+
     private string ChatName { get; set; }
-    
+
     private string TypedMessage { get; set; }
-    
+
     private List<LinkedMessage> Messages { get; set; } = [];
-    
+
     protected override async Task OnInitializedAsync()
     {
         Self = await AuthHelper.GetSelf();
@@ -61,12 +59,12 @@
 
         await WebSocketService.ConnectAsync(Self.Id);
     }
-    
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
 
-        await EventService.Register(JsRuntime);
+        await JsInteropHelper.Register();
 
         InputEvents.DisallowedInputs.Register(() => Task.FromResult(new List<KeyData>
         {
@@ -76,43 +74,45 @@
         {
             if (elementId != "message-input") return;
             if (key != "Enter" || shift) return;
-                
-            await JsRuntime.InvokeVoidAsync("inputInterop.clear", "message-input");
+
+            await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
             await SendMessage();
             await InvokeAsync(StateHasChanged);
         });
         InputEvents.InputKeyup.Register(async (elementId, key, _, _, shift, _, _, content, _) =>
         {
             if (elementId != "message-input") return;
-            
+
             TypedMessage = content;
             switch (key)
             {
                 case "Backspace" when TypedMessage.Equals("\n"):
-                    await JsRuntime.InvokeVoidAsync("inputInterop.clear", "message-input");
+                    await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
                     break;
                 case "Enter" when !shift:
-                    await JsRuntime.InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
+                    await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
                     break;
             }
         });
         ClipboardEvents.OnPaste.Register(async (elementId, content) =>
         {
             if (elementId != "message-input") return content;
-            
+
             TypedMessage = content;
             await InvokeAsync(StateHasChanged);
             return content;
         });
+        
+        StateHasChanged();
     }
-    
+
     private async Task SendMessage()
     {
         if (string.IsNullOrWhiteSpace(TypedMessage)) return;
 
-        while(TypedMessage.EndsWith("\n")) TypedMessage = TypedMessage[..^1];
-        while(TypedMessage.StartsWith("\n")) TypedMessage = TypedMessage[1..];
-        
+        while (TypedMessage.EndsWith("\n")) TypedMessage = TypedMessage[..^1];
+        while (TypedMessage.StartsWith("\n")) TypedMessage = TypedMessage[1..];
+
         var message = new Message
         {
             ChatID = Chat!.ID,
@@ -135,7 +135,7 @@
         
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
     }
-    
+
     public class LinkedMessage(Message message, Message? previous)
     {
         public MessageState GetMessageState()
@@ -144,9 +144,11 @@
             {
                 return MessageState.First;
             }
+
             return previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
         }
-        
+
         public Message Message { get; } = message;
     }
+
 }
