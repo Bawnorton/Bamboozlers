@@ -25,7 +25,7 @@ public class ChatJsTests : PlaywrightTestBase
         });
         var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
-            StorageStatePath = "/Users/bawnorton/Documents/Developer/C#/Bamboozlers/auth.json"
+            StorageStatePath = "../../../../auth.json"
         });
         var page = await context.NewPageAsync();
         await page.GotoAsync(ServerAddress);
@@ -68,7 +68,7 @@ public class ChatJsTests : PlaywrightTestBase
         });
         var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
-            StorageStatePath = "/Users/bawnorton/Documents/Developer/C#/Bamboozlers/auth.json"
+            StorageStatePath = "../../../../auth.json"
         });
         var page = await context.NewPageAsync();
         await page.GotoAsync(ServerAddress);
