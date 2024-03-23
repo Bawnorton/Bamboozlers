@@ -1,3 +1,5 @@
+@inherits UserViewComponentBase;
+
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes
@@ -6,7 +8,6 @@
 @using Bamboozlers.Classes.Interop
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Data.ViewModel
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Components.Settings
 @using Bamboozlers.Classes.Services
@@ -84,7 +85,7 @@
                  id="profile-button"
                  @onclick="ProfileButtonCallback">
                 <Text>
-                    @(UserDisplayRecord.DisplayName.IsNullOrEmpty() ? UserDisplayRecord.UserName : UserDisplayRecord.DisplayName) 
+                    @(UserService.UserRecord.DisplayName.IsNullOrEmpty() ? UserService.UserRecord.UserName : UserService.UserRecord.DisplayName)
                 </Text>
                 <Icon Name="Icons.UserTie" IconSize="IconSize.Large"></Icon>
             </Div>
@@ -138,7 +139,7 @@
 
     private async Task GetDataAsync()
     {
-        User = await AuthHelper.GetSelf(query => 
+        User = await UserService.GetUser(query => 
             query
                 .Include(u => u.Chats)
                     .ThenInclude(c => c.Users)

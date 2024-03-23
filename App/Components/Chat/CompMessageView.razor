@@ -1,3 +1,5 @@
+@inherits UserViewComponentBase;
+
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
@@ -60,17 +62,17 @@
 
     private bool Loaded { get; set; }
 
-    private User Self { get; set; }
+    private User? Self { get; set; }
 
     private bool IsShiftHeld { get; set; }
 
-    private bool IsSelfMessage => Message.Sender!.Id == Self.Id;
+    private bool IsSelfMessage => Message.Sender!.Id == Self!.Id;
 
     private bool ShowEdit => IsSelfMessage && IsShiftHeld;
 
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthHelper.GetSelf();
+        Self = await UserService.GetUser();
 
         if (Message.Sender == null)
         {

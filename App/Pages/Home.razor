@@ -12,9 +12,7 @@
 @using IMessageService = Bamboozlers.Classes.Services.IMessageService
 
 @inject IDbContextFactory<AppDbContext> Db
-@inject AuthenticationStateProvider AuthStateProvider;
 @inject IMessageService MessageService;
-@inject IServiceProvider ServiceProvider;
 @inject IJSRuntime JsRuntime;
 
 @attribute [Authorize]
@@ -59,7 +57,5 @@
     {
         MessageService.Init(Db);
         JsInteropHelper.Init(JsRuntime);
-        AuthHelper.Init(AuthStateProvider, Db);
-        await UserService.Init(new ServiceProviderWrapper(ServiceProvider));
     }
 }

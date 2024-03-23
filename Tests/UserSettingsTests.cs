@@ -1,8 +1,6 @@
 using AngleSharp.Dom;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Data.ViewModel;
-using Bamboozlers.Classes.Services;
 using Bamboozlers.Components.Settings;
 using Bamboozlers.Components.Settings.EditComponents.Bases;
 using Bamboozlers.Components.Settings.EditComponents.Fields;
@@ -18,33 +16,22 @@ using Xunit.Abstractions;
 namespace Tests;
 
 [Collection("Sequential")]
-public class UserSettingsTests : BlazoriseTestBase
+public class UserSettingsTests : AuthenticatedBlazoriseTestBase
 {
-    private readonly MockAuthenticationProvider _mockAuthenticationProvider;
-    private readonly MockUserManager _mockUserManager;
-    private readonly MockServiceProviderWrapper _mockServices;
-    
-    public UserSettingsTests(ITestOutputHelper output)
+    public UserSettingsTests()
     {
-        // Setup UserManager, Mock AuthProvider (Helper)
-        _mockUserManager = new MockUserManager(Ctx);
-        _mockServices = new MockServiceProviderWrapper(Ctx, _mockUserManager);
-        _mockAuthenticationProvider = new MockAuthenticationProvider(Ctx, _mockUserManager.GetMockUser(0));
-        AuthHelper.Init(_mockAuthenticationProvider.GetAuthStateProvider(), _mockUserManager.GetDbContextFactory());
-        
         // Add Blazorise Necessities
         Ctx.Services.AddBlazorise().Replace(ServiceDescriptor.Transient<IComponentActivator, ComponentActivator>());
         
         // Set-Up JavaScript Interop
         Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
         
-        _mockUserManager.ClearMockUsers();
+        MockUserManager.ClearMockUsers();
     }
     
     [Fact]
     public async Task UserSettingsTests_CompSettings()
     {
-        await UserService.Init(_mockServices.GetServiceProviderWrapper());
         ManageMockUsers(true);
         
         var component = Ctx.RenderComponent<CompSettings>();
@@ -99,16 +86,18 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTest_DisplayUser()
     {
-        await UserService.Init(_mockServices.GetServiceProviderWrapper());
+        var service = MockUserService.GetUserService();
+        UserRecord data;
+        
         // Arrange: Set the user with some non-default variables
-        var user = _mockUserManager.CreateMockUser(0,
+        var user = MockUserManager.CreateMockUser(0,
             true,
             "Bobby",
             "Hi! I'm Bobby."
         );
         user.Email = "bobby.blazor@gmail.com";
-        _mockAuthenticationProvider.SetUser(user);
-        AuthHelper.Invalidate();
+        MockAuthenticationProvider.SetUser(user);
+        //MockUserService.Invalidate();
         
         var component = Ctx.RenderComponent<CompSettings>();
         component.SetParametersAndRender(parameters 
@@ -116,14 +105,15 @@ public class UserSettingsTests : BlazoriseTestBase
         );
         
         // Act: Invoke Data Display Update
-        await UserService.UpdateDisplayRecordAsync();
-
+        //await MockUserService.GetUserService();
+        data = await service.GetUserDataAsync();
+        
         // Assert: Check if assigned values are as expected
-        Assert.Equal("TestUser0",UserDisplayRecord.UserName);
-        Assert.Equal("Bobby",UserDisplayRecord.DisplayName);
-        Assert.Equal("bobby.blazor@gmail.com",UserDisplayRecord.Email);
-        Assert.Equal("Hi! I'm Bobby.",UserDisplayRecord.Bio);
-        Assert.Equal(UserDisplayRecord.GetDisplayableAvatar(user.Avatar), UserDisplayRecord.Avatar);
+        Assert.Equal("TestUser0",data.UserName);
+        Assert.Equal("Bobby",data.DisplayName);
+        Assert.Equal("bobby.blazor@gmail.com",data.Email);
+        Assert.Equal("Hi! I'm Bobby.",data.Bio);
+        Assert.Equal(user.Avatar, data.AvatarBytes);
         
         // Arrange & Act: Change the data present
         
@@ -141,10 +131,12 @@ public class UserSettingsTests : BlazoriseTestBase
         await completionCall.Task.WaitAsync(CancellationToken.None);
         
         // Assert
-        Assert.Equal("TestUser0",UserDisplayRecord.UserName);
-        Assert.Equal("Robert",UserDisplayRecord.DisplayName);
-        Assert.Equal("bobby.blazor@gmail.com",UserDisplayRecord.Email);
-        Assert.Equal("Hello, my name is Robert.",UserDisplayRecord.Bio);
+        data = await service.GetUserDataAsync();
+        
+        Assert.Equal("TestUser0",data.UserName);
+        Assert.Equal("Robert",data.DisplayName);
+        Assert.Equal("bobby.blazor@gmail.com",data.Email);
+        Assert.Equal("Hello, my name is Robert.",data.Bio);
         
         // Arrange & Act: Destroy Bobby "Robert" Blazor for the purposes of testing
         ManageMockUsers();
@@ -157,10 +149,12 @@ public class UserSettingsTests : BlazoriseTestBase
         await completionCall.Task.WaitAsync(CancellationToken.None);
         
         // Assert: That since his information is nullified, nothing should change.
-        Assert.Equal("TestUser0",UserDisplayRecord.UserName);
-        Assert.Equal("Robert",UserDisplayRecord.DisplayName);
-        Assert.Equal("bobby.blazor@gmail.com",UserDisplayRecord.Email);
-        Assert.Equal("Hello, my name is Robert.",UserDisplayRecord.Bio);
+        data = await service.GetUserDataAsync();
+        
+        Assert.Equal("TestUser0",data.UserName);
+        Assert.Equal("Robert",data.DisplayName);
+        Assert.Equal("bobby.blazor@gmail.com",data.Email);
+        Assert.Equal("Hello, my name is Robert.",data.Bio);
     }
 
     /// <summary>
@@ -390,7 +384,6 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_DeleteAccount()
     {
-        await UserService.Init(_mockServices.GetServiceProviderWrapper());
         UserUpdateResult? result = null;
         
         var component = Ctx.RenderComponent<CompSettings>();
@@ -450,12 +443,11 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_CompEditUsername()
     {
-        await UserService.Init(_mockServices.GetServiceProviderWrapper());
         UserSettingsTests_TabToggle<CompEditUsername>();
         await UserSettingsTests_NoDataChangeFunction<CompEditUsername>();
         
         ManageMockUsers(true);
-        _mockUserManager.GetMockUser(1);
+        MockUserManager.GetMockUser(1);
 
         UserUpdateResult? result = null;
         
@@ -520,7 +512,6 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_CompEditPassword()
     {
-        await UserService.Init(_mockServices.GetServiceProviderWrapper());
         UserSettingsTests_TabToggle<CompEditPassword>();
         await UserSettingsTests_NoDataChangeFunction<CompEditPassword>();
         
@@ -578,7 +569,6 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_CompEditEmail()
     {
-        await UserService.Init(_mockServices.GetServiceProviderWrapper());
         UserSettingsTests_TabToggle<CompEditEmail>();
         await UserSettingsTests_NoDataChangeFunction<CompEditEmail>();
         
@@ -630,7 +620,6 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_CompEditDisplayName()
     {
-        await UserService.Init(_mockServices.GetServiceProviderWrapper());
         UserSettingsTests_TabToggle<CompEditDisplayName>();
         await UserSettingsTests_NoDataChangeFunction<CompEditDisplayName>();
         
@@ -665,7 +654,6 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_CompEditBio()
     {
-        await UserService.Init(_mockServices.GetServiceProviderWrapper());
         UserSettingsTests_TabToggle<CompEditBio>();
         await UserSettingsTests_NoDataChangeFunction<CompEditBio>();
         
@@ -710,7 +698,6 @@ public class UserSettingsTests : BlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_CompDeleteAccount()
     {
-        await UserService.Init(_mockServices.GetServiceProviderWrapper());
         UserSettingsTests_TabToggle<CompDeleteAccount>();
         await UserSettingsTests_NoDataChangeFunction<CompDeleteAccount>();
         
@@ -758,15 +745,14 @@ public class UserSettingsTests : BlazoriseTestBase
 
     private User? ManageMockUsers(bool reinit = false)
     {
-        AuthHelper.Invalidate();
         if (reinit)
         {
-            var user = _mockUserManager.GetMockUser(0);
-            _mockAuthenticationProvider.SetUser(user);
+            var user = MockUserManager.GetMockUser(0);
+            MockAuthenticationProvider.SetUser(user);
             return user;
         }
         
-        _mockUserManager.ClearMockUsers();
+        MockUserManager.ClearMockUsers();
         return null;
     }
 

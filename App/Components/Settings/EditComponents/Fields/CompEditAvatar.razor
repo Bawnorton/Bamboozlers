@@ -1,13 +1,15 @@
 @using Bamboozlers.Classes.Events
 @using System.Diagnostics
 @using Azure.Core
+@using Bamboozlers.Classes
+@using Blazorise.Extensions
 @inherits SettingsComponentBase
 
 <Row>
     <Label Width="@Width.Px(256)" Height="@Height.Px(256)" Class="overlay-wrapper" for="input-file">
         <Image ElementId="avatar-display"
                Class="border-mask overlay-base fit"
-               Source="@UserDisplayRecord.Avatar"/>
+               Source="@UserService.UserRecord.Avatar"/>
         <Image ElementId="hover-effect"
                Class="border-mask overlay fit"
                Source="images/edit_overlay.png"/>
@@ -15,8 +17,7 @@
     <InputFile id="input-file" OnChange="@OnFileUpload" hidden/>
 </Row>
 <Row>
-    <!-- TODO: This will work fine once the avatar can truly be a null string, but right now, I've prevented that from occurring.-->
-    @if (UserDisplayRecord.Avatar is not null)
+    @if (UserService.UserRecord.AvatarBytes is not null)
     {
         <CompSettingsActionButton Color="Color.Danger"
                                   IconName="IconName.Delete"
@@ -26,13 +27,13 @@
 
 @code
 {
-    private static readonly string[] Allowed_Formats = ["jpeg","png"];
+    private static readonly string[] Allowed_Formats = ["png"];
     
     private string? UploadedImageSource { get; set; }
 
     private async Task DeleteAvatar()
     {
-        if (UserDisplayRecord.Avatar is null) return;
+        if (UserService.UserRecord.AvatarBytes is not null) return;
     
         if (DataChangeFunction is null)
         {
@@ -43,7 +44,7 @@
         var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Visual,
-            Avatar = Array.Empty<byte>()
+            AvatarBytes = Array.Empty<byte>()
         });
                                   
         if (result) 
@@ -103,8 +104,8 @@
             ));
             return;
         }
-        
-        var image = new ArraySegment<byte>(); 
+
+        ArraySegment<byte> image; 
         var success = false;
         using (var stream = new MemoryStream())
         {
@@ -141,7 +142,7 @@
         }
     }
 
-    public async Task ProcessFile(string format, byte[] image)
+    private async Task ProcessFile(string format, byte[] image)
     {
         if (DataChangeFunction is null)
         {
@@ -163,7 +164,7 @@
         var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Visual,
-            Avatar = image
+            AvatarBytes = image,
         });
         // Avatar = $"data:{format};base64,{Convert.ToBase64String(image)}"
         

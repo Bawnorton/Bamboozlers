@@ -2,6 +2,7 @@ using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Layout;
 using Microsoft.EntityFrameworkCore;
+using Tests.Provider;
 
 namespace Tests;
 
@@ -10,7 +11,6 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenDms()
     {
-        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
@@ -38,7 +38,6 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenGroups()
     {
-        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
@@ -65,7 +64,6 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async Task NavLayoutTests_FindAndOpenFriends()
     {
-        AuthHelper.Invalidate();
         var component = Ctx.RenderComponent<NavLayout>();
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();

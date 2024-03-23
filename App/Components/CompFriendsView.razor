@@ -1,3 +1,5 @@
+@inherits UserViewComponentBase;
+
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Services
 
@@ -12,9 +14,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await AuthHelper.IsAuthenticated()) return;
+        if (!await UserService.IsAuthenticated()) return;
 
-        var self = await AuthHelper.GetSelf();
+        var self = await UserService.GetUser();
         await using var db = await Db.CreateDbContextAsync();
         foreach (var friendship in db.FriendShips.Include(f => f.User1).Include(f => f.User2))
         {
