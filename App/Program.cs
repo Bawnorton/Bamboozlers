@@ -5,7 +5,6 @@ using Blazorise.Icons.FontAwesome;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
-using Bamboozlers.Classes.Service;
 using Bamboozlers.Classes.Services;
 using Blazorise.Bootstrap5;
 using Microsoft.AspNetCore.Components.Authorization;

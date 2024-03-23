@@ -1,4 +1,3 @@
-using Bamboozlers.Classes.Service;
 using Bamboozlers.Classes.Services;
 using Microsoft.Extensions.DependencyInjection;
 

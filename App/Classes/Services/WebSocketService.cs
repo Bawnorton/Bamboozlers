@@ -2,7 +2,7 @@ using System.Text.Json;
 using Bamboozlers.Classes.AppDbContext;
 using Websocket.Client;
 
-namespace Bamboozlers.Classes.Service;
+namespace Bamboozlers.Classes.Services;
 
 using System;
 using System.Threading.Tasks;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 public class WebSocketService : IWebSocketService, IDisposable
 {
     private readonly WebsocketClient _client;
-    private readonly Uri _serverUri = new("ws://localhost:8000/ws"); // Adjust the URI to your Python server's address
+    private readonly Uri _serverUri = new("ws://localhost:8000/ws");
 
     public WebSocketService()
     {
