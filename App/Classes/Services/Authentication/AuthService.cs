@@ -58,7 +58,8 @@ public class AuthService : IAuthService
     /// </returns>
     public virtual async Task<ClaimsPrincipal> GetClaims()
     {
-        return UserClaims ??= (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        UserClaims ??= (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        return UserClaims;
     }
 
     public void Invalidate()

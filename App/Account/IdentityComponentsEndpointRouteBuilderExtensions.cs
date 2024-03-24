@@ -72,7 +72,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             }
             
             await signInManager.SignInAsync(u, false);
-            await userService.RebuildAndNotify();
+            await userService.RebuildAndNotify(true);
             return TypedResults.LocalRedirect("~/");
         });
 

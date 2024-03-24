@@ -59,7 +59,8 @@ public class UserService : IUserService
     
     public virtual async Task<UserRecord> GetUserDataAsync()
     {
-        return UserRecord ??= await BuildUserDataAsync();
+        UserRecord ??= await BuildUserDataAsync();
+        return UserRecord;
     } 
     
     public virtual async Task<IdentityResult> UpdateUserAsync(UserRecord? newValues = null)
@@ -83,9 +84,9 @@ public class UserService : IUserService
         }
         
         var iResult = await UserManager.UpdateAsync(user);
-        
-        await BuildUserDataAsync();
-        NotifyAll();
+
+        if (iResult.Succeeded)
+            await RebuildAndNotify(true);
         
         return iResult;
     }
@@ -139,9 +140,10 @@ public class UserService : IUserService
         return iResult;
     }
     
-    public virtual async Task RebuildAndNotify()
+    public virtual async Task RebuildAndNotify(bool invalidate = false)
     {
-        Invalidate();
+        if (invalidate)
+            Invalidate();
         await BuildUserDataAsync();
         NotifyAll();
     }
@@ -230,9 +232,9 @@ public interface IUserService : IPublisher
     /// Invalidates the AuthService and the Record used for displaying attributes, Identity and the Record used for displaying attributes
     /// </summary>>
     void Invalidate();
-    
+
     /// <summary>
     /// Invalidates the AuthService and the Record used for displaying attributes, then rebuilds from new data and notifies listeners.
     /// </summary>>
-    Task RebuildAndNotify();
+    Task RebuildAndNotify(bool invalidate = false);
 }

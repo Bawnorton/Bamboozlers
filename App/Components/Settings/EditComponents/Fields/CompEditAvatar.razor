@@ -28,10 +28,8 @@
 @code
 {
     private static readonly string[] Allowed_Formats = ["png"];
-    
-    private string? UploadedImageSource { get; set; }
 
-    private async Task DeleteAvatar()
+    public async Task DeleteAvatar()
     {
         if (UserData?.AvatarBytes is null) return;
     
@@ -58,7 +56,7 @@
         }
     }
     
-    private async Task OnFileUpload(InputFileChangeEventArgs args)
+    public async Task OnFileUpload(InputFileChangeEventArgs args)
     {
         if (DataChangeFunction is null)
         {
@@ -71,7 +69,7 @@
         {
             upload = args.File;
         }
-        catch (ArgumentNullException)
+        catch (InvalidOperationException)
         {
             await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Danger,
@@ -144,12 +142,6 @@
 
     private async Task ProcessFile(string format, byte[] image)
     {
-        if (DataChangeFunction is null)
-        {
-            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
-            return;
-        }
-        
         if (image.IsNullOrEmpty())
         {
             await AlertEventCallback.InvokeAsync(new AlertArguments(
@@ -161,7 +153,7 @@
             return;
         }
 
-        var result = await DataChangeFunction.Invoke(new UserDataRecord
+        var result = await DataChangeFunction!.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Visual,
             AvatarBytes = image,

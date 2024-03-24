@@ -8,8 +8,8 @@ namespace Tests.Provider;
 public class MockAuthenticationProvider
 {
     private readonly Mock<AuthenticationStateProvider> _mockAuthStateProvider;
-    private AuthenticationState _authenticationState;
-    private User _user;
+    private AuthenticationState? _authenticationState;
+    private User? _user;
     
     public MockAuthenticationProvider(TestContextBase ctx)
     {
@@ -21,10 +21,16 @@ public class MockAuthenticationProvider
     
     private async Task CreateAuthState()
     {
-        _authenticationState = await Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, _user.UserName!) }, "TestAuthType"))));
+        _authenticationState = await Task.FromResult(new AuthenticationState(
+                new ClaimsPrincipal(
+                    new ClaimsIdentity(_user is null 
+                        ? new[] { new Claim(ClaimTypes.Name, "null")} 
+                        : new[] { new Claim(ClaimTypes.Name, _user.UserName!) }, 
+                        "TestAuthType")))
+            );
     }
     
-    public async Task SetUser(User user)
+    public async Task SetUser(User? user)
     {
         _user = user;
         await CreateAuthState();

@@ -19,8 +19,11 @@ public partial class CompSettings : SettingsComponentBase
     [Parameter] public EventCallback StateChangedCallback { get; set; }
     [Parameter] public bool Visible { get; set; }
     [Parameter] public string? SectionName { get; set; }
+    
+    /*
     [Parameter] public string? SentStatusMessage { get; set; }
     [Parameter] public string? SentStatusDescription { get; set; }
+    */
     
     protected override void OnInitialized()
     {
@@ -30,6 +33,7 @@ public partial class CompSettings : SettingsComponentBase
     // TODO: Impl with events?
     protected override async Task OnParametersSetAsync()
     {
+        /*
         if (!(SentStatusMessage is null || SentStatusDescription is null))
         {
             await OnAlertChange(new AlertArguments(
@@ -39,6 +43,7 @@ public partial class CompSettings : SettingsComponentBase
                 SentStatusDescription
             ));
         }
+        */
     }
 
     [Parameter] public EventCallback<UserUpdateResult> UserUpdateCallback { get; set; }
@@ -94,7 +99,8 @@ public partial class CompSettings : SettingsComponentBase
     
     private async Task<bool> ChangeUsername(string? input, string? pass)
     {
-        if (UserData is null)
+        UserData = await UserService.GetUserDataAsync();
+        if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Username, 
@@ -203,7 +209,8 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task<bool> ChangePassword(string? currentPassword, string? newPassword)
     {
-        if (UserData is null)
+        UserData = await UserService.GetUserDataAsync();
+        if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Password, 
@@ -278,7 +285,8 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task<bool> ChangeEmail(string? newEmail)
     {
-        if (UserData is null)
+        UserData = await UserService.GetUserDataAsync();
+        if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Email, 
@@ -332,7 +340,8 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task<bool> DeleteAccount(string? pass)
     {
-        if (UserData is null)
+        UserData = await UserService.GetUserDataAsync();
+        if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Deletion, 

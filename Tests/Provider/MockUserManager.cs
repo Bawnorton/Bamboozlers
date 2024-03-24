@@ -16,14 +16,11 @@ public class MockUserManager
     private readonly Mock<UserManager<User>> _mockUserManager;
     
     private readonly MockDatabaseProvider _mockDatabaseProvider;
-
-    private readonly AppDbContext _mockAppDbContext;
     
     public MockUserManager(TestContextBase ctx, MockDatabaseProvider mockDatabaseProvider)
     {
         /* Build test user data entries */
         _mockDatabaseProvider = mockDatabaseProvider;
-        _mockAppDbContext = _mockDatabaseProvider.GetDbContextFactory().CreateDbContext();
         
         _mockUserManager = new Mock<UserManager<User>>(
             Mock.Of<IUserStore<User>>(), 
@@ -38,7 +35,7 @@ public class MockUserManager
         );
         
         ctx.Services.AddSingleton(_mockUserManager.Object);
-
+        
         /* Leave the testing of these methods to Microsoft */
         _mockUserManager.Setup(x
             => x.CreateAsync(It.IsAny<User>()) 
@@ -50,6 +47,8 @@ public class MockUserManager
         
         _mockUserManager.Setup(x 
             => x.UpdateAsync(It.IsAny<User>())
+        ).Callback(
+            (User user) => _mockDatabaseProvider.AddMockUser(user)
         ).ReturnsAsync(IdentityResult.Success);
         
         _mockUserManager.Setup(x 
@@ -59,26 +58,30 @@ public class MockUserManager
         _mockUserManager.Setup(x 
                 => x.GetUserAsync(It.IsAny<ClaimsPrincipal>())
             ).ReturnsAsync((ClaimsPrincipal claimsPrincipal) 
-                => claimsPrincipal.Identity is null ? null : _mockAppDbContext.Users.FirstOrDefault(u => u.UserName == claimsPrincipal.Identity.Name)
+                => claimsPrincipal.Identity is null 
+                    ? null : 
+                    _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.FirstOrDefault(u => u.UserName == claimsPrincipal.Identity.Name)
         );
         
         /* Methods that can/need to be tested */
         _mockUserManager.Setup(x 
             => x.FindByEmailAsync(It.IsAny<string>())
         ).ReturnsAsync((string? email) 
-            => _mockAppDbContext.Users.FirstOrDefault(m => m.Email == email)
+            => _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.FirstOrDefault(m => m.Email == email)
         );
         
         _mockUserManager.Setup(x 
             => x.FindByIdAsync(It.IsAny<string>())
         ).ReturnsAsync((string? userId) 
-            => userId is not null ? _mockAppDbContext.Users.FirstOrDefault(m => m.Id == int.Parse(userId)) : null
+            => userId is null 
+                ? null 
+                : _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.FirstOrDefault(m => m.Id == int.Parse(userId)) 
         );
         
         _mockUserManager.Setup(x 
             => x.FindByNameAsync(It.IsAny<string>())
         ).ReturnsAsync((string? userName) 
-            => _mockAppDbContext.Users.FirstOrDefault(m => m.UserName == userName)
+            => _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.FirstOrDefault(m => m.UserName == userName)
         );
 
         _mockUserManager.Setup(x 
@@ -100,9 +103,9 @@ public class MockUserManager
             => {
             if (newEmail.IsNullOrEmpty())
                 return IdentityResult.Failed([new IdentityError { Description = "Email entered was null or empty." }]);
-            return _mockAppDbContext.Users.FirstOrDefault(m => m.Email == newEmail) is null 
-                    ? IdentityResult.Success : 
-                      IdentityResult.Failed([new IdentityError { Description = "Email is already in use." }]);
+            return _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.FirstOrDefault(m => m.Email == newEmail) is null 
+                    ? IdentityResult.Success 
+                    : IdentityResult.Failed([new IdentityError { Description = "Email is already in use." }]);
         });
 
         _mockUserManager.Setup(x
@@ -111,53 +114,44 @@ public class MockUserManager
             => {
             if (newUsername.IsNullOrEmpty())
                 return IdentityResult.Failed([new IdentityError { Description = "Username entered was null or empty." }]);
-            return _mockAppDbContext.Users.FirstOrDefault(m => m.UserName == newUsername) is null 
-                ? IdentityResult.Success : 
-                  IdentityResult.Failed([new IdentityError { Description = "Username is already in use." }]);
+            return _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.FirstOrDefault(m => m.UserName == newUsername) is null 
+                ? IdentityResult.Success 
+                : IdentityResult.Failed([new IdentityError { Description = "Username is already in use." }]);
         });
     }
 
     public User CreateMockUser(
         int idx = -1, 
         bool emailConfirmed = true, 
+        string? email = null,
         string? displayName = null, 
         string? description = null, 
         byte[]? avatar = null)
     {
-        if (idx == -1) idx = _mockAppDbContext.Users.Count();
+        if (idx == -1) idx = _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.Count();
         var newUser = new User
         {
             Id = idx,
             UserName = $"TestUser{idx}",
-            Email = $"test.user{idx}@gmail.com",
+            Email = email ?? $"test.user{idx}@gmail.com",
             EmailConfirmed = emailConfirmed,
             PasswordHash = $"@Password{idx}",
             DisplayName = displayName,
             Bio = description,
             Avatar = avatar
         };
+        _mockDatabaseProvider.AddMockUser(newUser);
         
-        _mockAppDbContext.Users.Add(newUser);
         return newUser;
-    }
-
-    public User? GetMockUser(int idx)
-    {
-        return _mockAppDbContext.Users.FirstOrDefault(u => u.Id == idx);
     }
     
     public void ClearMockUsers()
     {
-        _mockAppDbContext.Users.RemoveRange(_mockAppDbContext.Users);
+        _mockDatabaseProvider.ClearMockUsers();
     }
     
     public UserManager<User> GetUserManager()
     {
         return _mockUserManager.Object;
-    }
-
-    public AppDbContext GetWorkingDbContext()
-    {
-        return _mockAppDbContext;
     }
 }

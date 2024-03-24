@@ -19,7 +19,6 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
     {
         await SetUser((await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync())
             .Users.First(u => u.Id == 0));
-        AuthService.Invalidate();
         
         var claims = await AuthService.GetClaims();
         var identity = await AuthService.GetIdentity();
@@ -45,7 +44,6 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
     {
         await SetUser((await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync())
             .Users.First(u => u.Id == 0));
-        UserService.Invalidate();
         
         var dbContext = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var claims = await AuthService.GetClaims();
@@ -59,8 +57,7 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("test_user0@gmail.com",userData.Email);
         
         user = dbContext.Users.First(u => u.Id == 1);
-        await MockAuthenticationProvider.SetUser(user);
-        UserService.Invalidate();
+        await SetUser(user);
         
         userData = await UserService.GetUserDataAsync();
         Assert.NotNull(userData);
@@ -80,7 +77,7 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         Assert.False(result);
         
         user = dbContext.Users.First(u => u.Id == 2);
-        await MockAuthenticationProvider.SetUser(user);
+        await SetUser(user);
         await UserService.RebuildAndNotify();
         
         Assert.True(notified);
@@ -98,5 +95,18 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         subscriber = new Mock<ISubscriber>();
         result = UserService.RemoveSubscriber(subscriber.Object);
         Assert.False(result);
+        
+        await SetUser(null);
+        var identityResult = await UserService.ChangePasswordAsync("", "");
+        Assert.Equal("User not found.", identityResult.Errors.First().Description);
+        
+        identityResult = await UserService.DeleteAccountAsync("");
+        Assert.Equal("User not found.", identityResult.Errors.First().Description);
+        
+        identityResult = await UserService.ChangeUsernameAsync("","");
+        Assert.Equal("User not found.", identityResult.Errors.First().Description);
+        
+        identityResult = await UserService.UpdateUserAsync();
+        Assert.Equal("User not found.", identityResult.Errors.First().Description);
     }
 }

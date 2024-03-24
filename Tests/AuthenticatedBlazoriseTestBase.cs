@@ -1,7 +1,10 @@
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Interop;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.Authentication;
+using Blazorise.Modules;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.JSInterop;
 using Tests.Provider;
 
 namespace Tests;
@@ -17,7 +20,7 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
     protected AuthService AuthService;
     protected UserService UserService;
     
-    protected User Self;
+    protected User? Self;
 
     protected AuthenticatedBlazoriseTestBase()
     {
@@ -34,7 +37,7 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
         Ctx.Services.AddSingleton<IAuthService>(AuthService);
     }
 
-    protected async Task SetUser(User user)
+    protected async Task SetUser(User? user)
     {
         Self = user;
         await MockAuthenticationProvider.SetUser(user);
