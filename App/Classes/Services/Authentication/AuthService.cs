@@ -45,17 +45,11 @@ public class AuthService : IAuthService
         return await GetIdentity() is { IsAuthenticated: true };
     }
     
-    /// <returns>
-    /// The identity of the current user, or null if the user is not authenticated.
-    /// </returns>
     public virtual async Task<IIdentity?> GetIdentity()
     {
         return Identity ??= (await GetClaims()).Identity;
     }
-
-    /// <returns>
-    /// The claims principal that describes the current user.
-    /// </returns>
+    
     public virtual async Task<ClaimsPrincipal> GetClaims()
     {
         UserClaims ??= (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
@@ -88,7 +82,17 @@ public interface IAuthService
     /// <exception cref="Exception">
     /// If <see cref="IsAuthenticated"/> returns false.
     /// </exception>
-    public Task<User?> GetUser(Unary<IQueryable<User>>? inclusionCallback = null);
+    Task<User?> GetUser(Unary<IQueryable<User>>? inclusionCallback = null);
+
+    /// <returns>
+    /// The identity of the current user, or null if the user is not authenticated.
+    /// </returns>
+    Task<IIdentity?> GetIdentity();
+    
+    /// <returns>
+    /// The claims principal that describes the current user.
+    /// </returns>
+    Task<ClaimsPrincipal> GetClaims();
     
     /// <summary>
     /// Invalidates the currently cached User Claims, Identity and the Record used for displaying attributes

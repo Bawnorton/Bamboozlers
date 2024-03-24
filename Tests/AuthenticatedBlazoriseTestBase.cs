@@ -32,7 +32,7 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
         
         AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
         UserService = new UserService(AuthService, MockUserManager.GetUserManager());
-
+        
         Ctx.Services.AddSingleton<IUserService>(UserService);
         Ctx.Services.AddSingleton<IAuthService>(AuthService);
     }

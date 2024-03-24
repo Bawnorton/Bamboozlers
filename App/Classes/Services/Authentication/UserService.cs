@@ -9,10 +9,10 @@ namespace Bamboozlers.Classes.Services.Authentication;
 
 public class UserService : IUserService
 {
-    private AuthService AuthService { get; }
+    private IAuthService AuthService { get; }
     private UserManager<User> UserManager { get; }
 
-    public UserService(AuthService authService,
+    public UserService(IAuthService authService,
         UserManager<User> userManager)
     {
         AuthService = authService;

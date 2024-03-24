@@ -30,7 +30,7 @@ public class MockDatabaseProvider
 
     private Mock<DbSet<User>> _mockUsers;
     
-    private void SetupMockDbContext(List<User>? userList = null)
+    public void SetupMockDbContext(List<User>? userList = null)
     {
         _mockUsers = SetupMockUsers(userList);
         

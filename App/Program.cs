@@ -32,8 +32,6 @@ builder.Services.AddScoped<IIdentityRedirectManager, IdentityRedirectManager>();
 builder.Services.AddScoped<IdentityRedirectManagerWrapper>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<IWebSocketService, WebSocketService>();
 
@@ -58,6 +56,9 @@ builder.Services.AddIdentityCore<User>(options =>
 
 builder.Services.AddTransient<IEmailSender<User>, EmailSender>();
 builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
