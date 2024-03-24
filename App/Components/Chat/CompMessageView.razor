@@ -72,7 +72,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Self = await UserService.GetUser();
+        Self = await AuthService.GetUser();
 
         if (Message.Sender == null)
         {

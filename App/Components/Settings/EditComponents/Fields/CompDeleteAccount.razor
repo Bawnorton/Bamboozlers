@@ -93,13 +93,7 @@
 }
 
 @code {
-    private DeleteAccountInputModel? Model { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        Model = new DeleteAccountInputModel();
-    }
+    private DeleteAccountInputModel? Model { get; set; } = new();
     
     public override async Task<bool> OnValidSubmitAsync()
     {

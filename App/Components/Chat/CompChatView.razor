@@ -1,12 +1,12 @@
+@inherits UserViewComponentBase;
+
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Services
-@using Bamboozlers.Classes.Services.UserService
 
 @inject IWebSocketService WebSocketService
-@inject IUserService UserService
 
 <Layout ElementId="message-container" Style="height: 92%" Class="scrollbar-container">
     <LayoutContent>
@@ -39,7 +39,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Self = await UserService.GetUser();
+        Self = await AuthService.GetUser();
         if (Chat is GroupChat groupChat)
         {
             ChatName = groupChat.Name;

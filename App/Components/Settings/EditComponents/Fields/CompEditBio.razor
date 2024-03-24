@@ -53,15 +53,9 @@
 }
 
 @code {
-    private BioInputModel? Model { get; set; }
+    private BioInputModel? Model { get; set; } = new();
 
     private static readonly int MaxLength = 1000;
-    
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        Model = new BioInputModel();
-    }
     
     public override async Task OnValidSubmitAsync()
     {

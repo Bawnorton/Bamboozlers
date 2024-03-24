@@ -48,13 +48,7 @@
 }
 
 @code {
-    private UsernameInputModel? Model { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        Model = new UsernameInputModel();
-    }
+    private UsernameInputModel Model { get; set; } = new();
     
     public override async Task OnValidSubmitAsync()
     {

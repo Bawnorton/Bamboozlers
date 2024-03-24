@@ -139,7 +139,7 @@
 
     private async Task GetDataAsync()
     {
-        User = await UserService.GetUser(query => 
+        User = await AuthService.GetUser(query => 
             query
                 .Include(u => u.Chats)
                     .ThenInclude(c => c.Users)

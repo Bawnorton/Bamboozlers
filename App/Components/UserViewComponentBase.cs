@@ -1,7 +1,7 @@
 
 using System.Diagnostics;
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Services.UserService;
+using Bamboozlers.Classes.Services.Authentication;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components;
 
@@ -9,23 +9,22 @@ namespace Bamboozlers.Components;
 
 public class UserViewComponentBase : ComponentBase, ISubscriber
 {
-    [Inject] 
-    protected IUserService UserService { get; set; } = default!;
+    [Inject] protected IUserService UserService { get; set; } = default!;
 
-    protected UserRecord? UserData { get; private set; }
+    [Inject] protected IAuthService AuthService { get; set; } = default!;
+
+    public UserRecord? UserData { get; private set; }
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        await UserService.Initialize();
         UserService.AddSubscriber(this);
-        OnUpdate();
+        await OnUpdateAsync();
     }
 
-    public virtual void OnUpdate()
+    public virtual async Task OnUpdateAsync()
     {
-        Debug.WriteLine("RECEIVED SIGNAL");
-        UserData = UserService.GetUserData();
+        UserData = await UserService.GetUserDataAsync();
         StateHasChanged();
     }
 }

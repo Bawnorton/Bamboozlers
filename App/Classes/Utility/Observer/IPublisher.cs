@@ -8,7 +8,8 @@ public interface IPublisher
     /// Adds the given subscriber to this publisher's list of subscribers.
     /// </summary>
     /// <param name="subscriber">The subscriber to be added.</param>
-    void AddSubscriber(ISubscriber subscriber);
+    /// <returns>A boolean indicating whether the subscriber was added to the list.</returns>
+    bool AddSubscriber(ISubscriber subscriber);
     
     /// <summary>
     /// Removes, if present, the given subscriber from this publisher's list of subscribers.

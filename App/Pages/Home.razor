@@ -7,8 +7,6 @@
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Interop
-@using Bamboozlers.Classes.Services
-@using Bamboozlers.Classes.Services.UserService
 @using Bamboozlers.Components.Settings
 @using IMessageService = Bamboozlers.Classes.Services.IMessageService
 
@@ -54,7 +52,7 @@
     private NavLayout? _navLayout;
     private CompSettings? _settingsComponent;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         MessageService.Init(Db);
         JsInteropHelper.Init(JsRuntime);

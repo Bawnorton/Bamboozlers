@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
+using Bamboozlers.Classes.Services.Authentication;
 using Bamboozlers.Components.Settings;
 using Bamboozlers.Components.Settings.EditComponents.Bases;
 using Bamboozlers.Components.Settings.EditComponents.Fields;
@@ -8,8 +9,10 @@ using Blazorise;
 using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using MockQueryable.Moq;
 using Tests.Provider;
 using Xunit.Abstractions;
 
@@ -18,8 +21,33 @@ namespace Tests;
 [Collection("Sequential")]
 public class UserSettingsTests : AuthenticatedBlazoriseTestBase
 {
+    private readonly MockAuthenticationProvider MockAuthenticationProvider;
+    private readonly MockDatabaseProvider MockDatabaseProvider;
+    private readonly MockUserManager MockUserManager;
+    
+    private readonly AuthService AuthService;
+    private readonly UserService UserService;
+    
     public UserSettingsTests()
     {
+        // Set-up Mock Services
+        MockDatabaseProvider = new MockDatabaseProvider(Ctx);
+        MockAuthenticationProvider = new MockAuthenticationProvider(Ctx);
+        MockUserManager = new MockUserManager(Ctx, MockDatabaseProvider);
+
+        MockUserManager.ClearMockUsers();
+        for (var i = 0; i < 3; i++)
+        {
+            MockUserManager.CreateMockUser(i);
+        }
+        
+        // Set-up true Auth and User Services
+        AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
+        UserService = new UserService(AuthService, MockUserManager.GetUserManager());
+
+        Ctx.Services.AddSingleton<IUserService>(UserService);
+        Ctx.Services.AddSingleton<IAuthService>(AuthService);
+        
         // Add Blazorise Necessities
         Ctx.Services.AddBlazorise().Replace(ServiceDescriptor.Transient<IComponentActivator, ComponentActivator>());
         
@@ -32,7 +60,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_CompSettings()
     {
-        ManageMockUsers(true);
+        await ManageMockUsers(true);
         
         var component = Ctx.RenderComponent<CompSettings>();
         
@@ -76,7 +104,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("Test",component.Instance.Arguments.AlertMessage);
         Assert.Equal("This is a test.",component.Instance.Arguments.AlertDescription);
         
-        ManageMockUsers();
+        await ManageMockUsers();
         component.Dispose();
     }
 
@@ -86,7 +114,6 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async Task UserSettingsTest_DisplayUser()
     {
-        var service = MockUserService.GetUserService();
         UserRecord data;
         
         // Arrange: Set the user with some non-default variables
@@ -96,8 +123,8 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
             "Hi! I'm Bobby."
         );
         user.Email = "bobby.blazor@gmail.com";
-        MockAuthenticationProvider.SetUser(user);
-        //MockUserService.Invalidate();
+        await MockAuthenticationProvider.SetUser(user);
+        UserService.Invalidate();
         
         var component = Ctx.RenderComponent<CompSettings>();
         component.SetParametersAndRender(parameters 
@@ -105,8 +132,8 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         );
         
         // Act: Invoke Data Display Update
-        //await MockUserService.GetUserService();
-        data = service.GetUserData();
+        UserService.Invalidate();
+        data = await UserService.GetUserDataAsync();
         
         // Assert: Check if assigned values are as expected
         Assert.Equal("TestUser0",data.UserName);
@@ -131,7 +158,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         await completionCall.Task.WaitAsync(CancellationToken.None);
         
         // Assert
-        data = service.GetUserData();
+        data = await UserService.GetUserDataAsync();
         
         Assert.Equal("TestUser0",data.UserName);
         Assert.Equal("Robert",data.DisplayName);
@@ -139,7 +166,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("Hello, my name is Robert.",data.Bio);
         
         // Arrange & Act: Destroy Bobby "Robert" Blazor for the purposes of testing
-        ManageMockUsers();
+        await ManageMockUsers();
         completionCall = new TaskCompletionSource<bool>();
         await component.InvokeAsync(async () =>
         {
@@ -149,7 +176,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         await completionCall.Task.WaitAsync(CancellationToken.None);
         
         // Assert: That since his information is nullified, nothing should change.
-        data = service.GetUserData();
+        data = await UserService.GetUserDataAsync();
         
         Assert.Equal("TestUser0",data.UserName);
         Assert.Equal("Robert",data.DisplayName);
@@ -163,7 +190,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async Task UserSettingsTests_ChangeUsername()
     {
-        var user = ManageMockUsers(true);
+        var user = await ManageMockUsers(true);
         
         UserUpdateResult? result = null;
         var component = Ctx.RenderComponent<CompSettings>();
@@ -237,7 +264,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("Empty Password",result.Reason);
         
         // Arrange: User is null
-        ManageMockUsers();
+        await ManageMockUsers();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -296,7 +323,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("Missing Input",result.Reason);
         
         // Arrange: User is null
-        ManageMockUsers();
+        await ManageMockUsers();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -334,7 +361,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         );
         
         // Arrange: Null Email
-        ManageMockUsers(true);
+        await ManageMockUsers(true);
         var completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -355,7 +382,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("Email Invalid Or Same",result.Reason);
         
         // Arrange: User is null
-        ManageMockUsers();
+        await ManageMockUsers();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -393,7 +420,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         );
         
         // Arrange: Null password
-        ManageMockUsers(true);
+        await ManageMockUsers(true);
         var completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -414,7 +441,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("Empty Password",result.Reason);
         
         // Arrange: User is null
-        ManageMockUsers();
+        await ManageMockUsers();
         completionCall = new TaskCompletionSource<bool>();
         
         // Act
@@ -446,8 +473,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditUsername>();
         await UserSettingsTests_NoDataChangeFunction<CompEditUsername>();
         
-        ManageMockUsers(true);
-        MockUserManager.GetMockUser(1);
+        await ManageMockUsers(true);
 
         UserUpdateResult? result = null;
         
@@ -463,7 +489,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         var submit = component.Find("#submit-button");
         
         // Arrange: Successful Change (Username is not taken)
-        nameField.Change("TestUser2");
+        nameField.Change("TestUser3");
         passField.Change("@Password0");
         
         // Act
@@ -489,7 +515,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("Error: Username is already in use.",result.Reason);
         
         // Arrange: Unsuccessful Change (Password is incorrect)
-        nameField.Change("TestUser2");
+        nameField.Change("TestUser3");
         passField.Change("@Password1");
         
         // Act
@@ -501,7 +527,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.False(result.Success);
         Assert.Equal("Error: Password was incorrect.",result.Reason);
         
-        ManageMockUsers();
+        await ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -515,7 +541,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditPassword>();
         await UserSettingsTests_NoDataChangeFunction<CompEditPassword>();
         
-        ManageMockUsers(true);
+        await ManageMockUsers(true);
 
         UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
@@ -558,7 +584,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.False(result.Success);
         Assert.Equal("Error: Password does not match.",result.Reason);
         
-        ManageMockUsers();
+        await ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -572,7 +598,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditEmail>();
         await UserSettingsTests_NoDataChangeFunction<CompEditEmail>();
         
-        var user = ManageMockUsers(true);
+        var user = await ManageMockUsers(true);
 
         UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
@@ -609,7 +635,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.False(result.Success);
         Assert.Equal("Email Invalid Or Same",result.Reason);
         
-        ManageMockUsers();
+        await ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -623,7 +649,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditDisplayName>();
         await UserSettingsTests_NoDataChangeFunction<CompEditDisplayName>();
         
-        var user = ManageMockUsers(true);
+        var user = await ManageMockUsers(true);
 
         UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
@@ -641,9 +667,9 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         // Act
         await submit.ClickAsync(new MouseEventArgs());
         // Assert
-        Assert.Equal("UserZero",user.DisplayName);
+        Assert.Equal("UserZero",user!.DisplayName);
         
-        ManageMockUsers();
+        await ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -657,7 +683,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditBio>();
         await UserSettingsTests_NoDataChangeFunction<CompEditBio>();
         
-        var user = ManageMockUsers(true);
+        var user = await ManageMockUsers(true);
         
         UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
@@ -677,7 +703,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         // Assert
         Assert.Equal("This is my new bio!",user!.Bio);
 
-        ManageMockUsers();
+        await ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
@@ -738,17 +764,18 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.False(result.Success);
         Assert.Equal("Error: Password was incorrect.",result.Reason);
 
-        ManageMockUsers();
+        await ManageMockUsers();
         parentComponent.Dispose();
         component.Dispose();
     }
 
-    private User? ManageMockUsers(bool reinit = false)
+    private async Task<User?> ManageMockUsers(bool reinit = false)
     {
         if (reinit)
         {
             var user = MockUserManager.GetMockUser(0);
-            MockAuthenticationProvider.SetUser(user);
+            if (user is not null) 
+                await MockAuthenticationProvider.SetUser(user);
             return user;
         }
         
@@ -769,7 +796,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.NotNull(viewTab);
         Assert.NotNull(editTab);
 
-        /* Blazorise has "show" as part of tab class when visible" */
+        /* Blazorise has "show" as part of tab class when visible */
         const string visClass = "show";
         CheckElementClassContains(viewTab,visClass);
         CheckElementClassContains(editTab,visClass,true);

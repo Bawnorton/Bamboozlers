@@ -14,9 +14,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await UserService.IsAuthenticated()) return;
+        if (!await AuthService.IsAuthenticated()) return;
 
-        var self = await UserService.GetUser();
+        var self = await AuthService.GetUser();
         await using var db = await Db.CreateDbContextAsync();
         foreach (var friendship in db.FriendShips.Include(f => f.User1).Include(f => f.User2))
         {

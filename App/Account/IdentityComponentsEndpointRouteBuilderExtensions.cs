@@ -6,7 +6,7 @@ using System.Web;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services;
-using Bamboozlers.Classes.Services.UserService;
+using Bamboozlers.Classes.Services.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +28,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             SignInManager<User> signInManager,
             [FromServices] IUserService userService) =>
         {
-            await userService.Invalidate(false);
+            userService.Invalidate();
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect($"~/Account/Login");
         });
@@ -44,7 +44,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             builder.Query = urlParams.ToString();
             var callbackUrl = "~/Account/Login" + builder.Query;
             
-            await userService.Invalidate(false);
+            userService.Invalidate();
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect(callbackUrl);
         });
@@ -71,8 +71,8 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
                 return TypedResults.LocalRedirect(callbackUrl);
             }
             
-            await userService.Invalidate(false);
             await signInManager.SignInAsync(u, false);
+            await userService.RebuildAndNotify();
             return TypedResults.LocalRedirect("~/");
         });
 

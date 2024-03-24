@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
 using Bamboozlers.Classes.Services;
-using Bamboozlers.Classes.Services.UserService;
+using Bamboozlers.Classes.Services.Authentication;
 using Blazorise.Bootstrap5;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Identity.Client;
@@ -32,6 +32,7 @@ builder.Services.AddScoped<IIdentityRedirectManager, IdentityRedirectManager>();
 builder.Services.AddScoped<IdentityRedirectManagerWrapper>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<IWebSocketService, WebSocketService>();
