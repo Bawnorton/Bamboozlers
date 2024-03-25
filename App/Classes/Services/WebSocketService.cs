@@ -10,11 +10,10 @@ public class WebSocketService : IWebSocketService, IDisposable
 {
     private readonly WebsocketClient _client;
     private readonly NetworkHandler _networkHandler = new();
-    private readonly Uri _serverUri = new("ws://localhost:8000/ws");
 
-    public WebSocketService()
+    public WebSocketService(int id)
     {
-        _client = new WebsocketClient(_serverUri);
+        _client = new WebsocketClient(new Uri($"ws://localhost:8080/ws/{id}"));
         _client.ReconnectTimeout = TimeSpan.FromSeconds(30);
         _client.ReconnectionHappened.Subscribe(info =>
             Console.WriteLine($"Reconnected: {info.Type}"));
@@ -29,12 +28,12 @@ public class WebSocketService : IWebSocketService, IDisposable
                 throw new Exception("Websocket message has no text. Message: " + msg);
             }
         });
-
+        _client.DisconnectionHappened.Subscribe(info => Console.WriteLine($"Disconnected: {info.Type}"));
     }
 
-    public async Task ConnectAsync(int id)
+    public async Task ConnectAsync()
     {
-        _client.Url = new Uri(_serverUri, id.ToString());
+        Console.WriteLine("Connecting to websocket with url: " + _client.Url);
         await _client.Start();
     }
 
@@ -67,6 +66,6 @@ public class WebSocketService : IWebSocketService, IDisposable
 
 public interface IWebSocketService
 {
-    public Task ConnectAsync(int id);
+    public Task ConnectAsync();
     public void SendPacket(IServerboundPacket packet);
 }

@@ -29,11 +29,7 @@ public class NetworkHandler
         }
         if(_packetRegistry.IsServerBound(id))
         {
-            throw new Exception($"Received server-bound packet {id} on client");
-        }
-        if (!_packetRegistry.IsClientBound(id))
-        {
-            throw new Exception("Received packet with unknown type");
+            throw new Exception($"Received serverbound packet {id} on client");
         }
         var packetType = _packetRegistry.GetPacketType(id);
         var packet = packetType.Read(json);

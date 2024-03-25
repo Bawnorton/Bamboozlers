@@ -37,9 +37,9 @@
 
     private string TypedMessage { get; set; }
 
-    private List<LinkedMessage> Messages { get; set; } = [];
+    private List<LinkedMessage> Messages { get; } = [];
 
-    private int _lastMessageId = -1;
+    private DateTime? _lastMessageSentAt;
 
     protected override async Task OnInitializedAsync()
     {
@@ -58,13 +58,8 @@
             throw new InvalidOperationException("Chat is null");
         }
 
-        var messages = new List<Message>(Chat?.Messages ?? []);
-        messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
-        var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
-        Messages = linkedMessages;
-        _lastMessageId = messages.LastOrDefault()?.ID ?? -1;
-
-        await WebSocketService.ConnectAsync(Self.Id);
+        await UpdateMessages();
+        await WebSocketService.ConnectAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -113,19 +108,24 @@
         {
             if (entry != DbEntry.ChatMessage) return;
 
-            var messages = await (await Db.CreateDbContextAsync()).Messages
-                .Where(m => m.ChatID == Chat!.ID && m.ID > _lastMessageId)
-                .ToListAsync();
-            if (messages.Count == 0) return;
-            
-            messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
-            var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
-            Messages.AddRange(linkedMessages);
-            _lastMessageId = messages.LastOrDefault()?.ID ?? -1;
-            await InvokeAsync(StateHasChanged);
+            await UpdateMessages();
         });
         
-        StateHasChanged();
+        await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
+    }
+
+    private async Task UpdateMessages()
+    {
+        var messages = await (await Db.CreateDbContextAsync()).Messages
+            .Where(m => m.ChatID == Chat!.ID && (_lastMessageSentAt == null || m.SentAt > _lastMessageSentAt))
+            .ToListAsync();
+        if (messages.Count == 0) return;
+            
+        messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
+        var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
+        Messages.AddRange(linkedMessages);
+        _lastMessageSentAt = messages.Last().SentAt;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SendMessage()

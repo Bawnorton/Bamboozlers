@@ -1,4 +1,9 @@
+import json
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+
+from networking import PacketRegistry
+from packets import TellOthersToReadDatabaseC2SPacket, ReadDatabaseS2CPacket
 
 app = FastAPI()
 
@@ -6,6 +11,11 @@ app = FastAPI()
 class ConnectionManager:
     def __init__(self):
         self.connected_clients = []
+        self.packet_registry = PacketRegistry()
+
+        self.packet_registry.register_packet(TellOthersToReadDatabaseC2SPacket.packet_type(),
+                                             lambda packet: handle_tell_others_to_read_database_c2s(packet))
+        self.packet_registry.register_packet(ReadDatabaseS2CPacket.packet_type())
 
     async def connect(self, client_id: int, websocket: WebSocket):
         await websocket.accept()
@@ -24,25 +34,26 @@ class ConnectionManager:
                 return connected_client
         return None
 
+    def handle_packet(self, packet_id, json_obj: dict):
+        packet_type_actual = self.packet_registry.get_actual_type(packet_id)
+        if packet_type_actual is None:
+            raise Exception(f"Packet type {packet_id} is not registered")
+        if self.packet_registry.is_clientbound(packet_id):
+            raise Exception(f"Received clientbound packet {packet_id} on server")
+        packet_type = self.packet_registry.get_packet_type(packet_id)
+        packet = packet_type.read(json_obj)
+        if type(packet) is not packet_type_actual:
+            raise Exception(f"Packet type mismatch: Expected {packet_type_actual}, got {type(packet)}")
+        self.packet_registry.handle_packet(packet_id, packet)
+
 
 class ConnectedClient:
     def __init__(self, client_id: int, websocket: WebSocket):
         self.client_id = client_id
         self.websocket = websocket
 
-    async def send_message(self, message: str):
-        await self.websocket.send_text(message)
-
-
-class CallbackMessage:
-    def __init__(self, sender_id: int, target_ids: list, content: str):
-        self.sender_id = sender_id
-        self.target_ids = target_ids
-        self.content = content
-
-    @staticmethod
-    def from_json(json):
-        return CallbackMessage(json["sender_id"], json["target_ids"], json["content"])
+    async def send_message(self, json_obj: dict):
+        await self.websocket.send_text(json.dumps(json_obj))
 
 
 manager = ConnectionManager()
@@ -53,13 +64,26 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await manager.connect(client_id, websocket)
     try:
         while True:
-            json = await websocket.receive_json()
-            message = CallbackMessage.from_json(json)
-            for target_id in message.target_ids:
-                connected_client = manager.get_connected_client(target_id)
-                if connected_client:
-                    await connected_client.send_message(message.content)
+            json_obj = await websocket.receive_json()
+            packet_id = json_obj["id"]
+            if packet_id is None:
+                print(f"Received packet with no id: {json_obj} from client {client_id}")
+                continue
+            manager.handle_packet(packet_id, json_obj)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast(f"Client {client_id} disconnected")
 
+
+async def handle_tell_others_to_read_database_c2s(packet: TellOthersToReadDatabaseC2SPacket):
+    sender = manager.get_connected_client(packet.sender_id)
+    if sender is None:
+        raise Exception(f"Sender {packet.sender_id} not found")
+    for recipient_id in packet.recipient_ids:
+        recipient = manager.get_connected_client(recipient_id)
+        if recipient is None:
+            raise Exception(f"Recipient {recipient_id} not found")
+        read_db_s2c_packet = ReadDatabaseS2CPacket(packet.db_entry)
+        json_obj = {}
+        read_db_s2c_packet.write(json_obj)
+        await recipient.send_message(json)
