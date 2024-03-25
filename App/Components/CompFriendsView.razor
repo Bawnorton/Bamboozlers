@@ -3,9 +3,17 @@
 
 @inject IDbContextFactory<AppDbContext> Db
 
-<Div>
-    <h3>Friend Window</h3>
-</Div>
+<Layout>
+    <LayoutHeader Fixed
+                  Padding="Padding.Is3"
+                  TextSize="TextSize.Heading5"
+                  TextColor="TextColor.Primary"
+                  Background="Background.Dark">
+        <Text ElementId="header-text">Friends (@(Friends.Count))</Text>
+    </LayoutHeader>
+    <LayoutContent>
+    </LayoutContent>
+</Layout>
 
 @code {
     private List<User> Friends = [];
