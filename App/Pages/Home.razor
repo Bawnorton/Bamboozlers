@@ -61,7 +61,14 @@
         MessageService.Init(Db);
         JsInteropHelper.Init(JsRuntime);
         AuthHelper.Init(AuthStateProvider, Db);
-        WebSocketHandler.Init(AuthHelper.GetSelf().Id);
+        WebSocketHandler.Init();
         await UserService.Init(new ServiceProviderWrapper(ServiceProvider));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        
+        await WebSocketHandler.ConnectAsync();
     }
 }

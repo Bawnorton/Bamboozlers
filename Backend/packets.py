@@ -23,4 +23,4 @@ class TellOthersToReadDatabaseC2SPacket(IServerboundPacket):
 
     @staticmethod
     def packet_type() -> PacketType[IServerboundPacket]:
-        return PacketType("tell_others_to_read_database_c2s", TellOthersToReadDatabaseC2SPacket)
+        return PacketType("tell_others_to_read_db_c2s", TellOthersToReadDatabaseC2SPacket)

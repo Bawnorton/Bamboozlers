@@ -19,6 +19,6 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
         MockAuthenticationProvider = new MockAuthenticationProvider(Ctx, Self);
         
         AuthHelper.Init(MockAuthenticationProvider.GetAuthStateProvider(), MockDatabaseProvider.GetDbContextFactory());
-        WebSocketHandler.Init(AuthHelper.GetSelf().Id);
+        WebSocketHandler.Init();
     }
 }

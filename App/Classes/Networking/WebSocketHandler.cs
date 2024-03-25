@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Networking.Packets.Serverbound;
+using Bamboozlers.Classes.Services;
 using Websocket.Client;
 
 namespace Bamboozlers.Classes.Networking;
@@ -9,11 +11,12 @@ public static class WebSocketHandler
 {
     private static readonly NetworkHandler NetworkHandler = new();
     private static WebsocketClient _client;
+    private static readonly Uri Url = new("ws://localhost:5810/ws/");
 
-    public static void Init(int id)
+    public static void Init()
     {
-        _client = new WebsocketClient(new Uri($"ws://localhost:8080/ws/{id}"));
-        _client.ReconnectTimeout = TimeSpan.FromSeconds(30);
+        _client = new WebsocketClient(Url);
+        _client.ReconnectTimeout = TimeSpan.FromMinutes(10);
         _client.ReconnectionHappened.Subscribe(info =>
             Console.WriteLine($"Reconnected: {info.Type}"));
         _client.MessageReceived.Subscribe(msg =>
@@ -32,7 +35,8 @@ public static class WebSocketHandler
 
     public static async Task ConnectAsync()
     {
-        Console.WriteLine("Connecting to websocket with url: " + _client.Url);
+        var self = await AuthHelper.GetSelf();
+        _client.Url = new Uri(Url, $"{self.Id}");
         await _client.Start();
     }
 

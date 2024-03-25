@@ -30,7 +30,7 @@
         </Layout>
     </LayoutContent>
     <LayoutFooter>
-        <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Class="rounded-pill m-4" Style="bottom: 0">
+        <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Class="m-4" Style="bottom: 0">
             <Div Display="Display.Flex" Overflow="Overflow.Hidden" >
                 <Div contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
                      id="message-input" class="@($"message-input word-break {InputEvents.EventCssClass} {ClipboardEvents.EventCssClass}")" data-placeholder="@($"Message {ChatName}")">
@@ -81,7 +81,6 @@
         }
 
         await UpdateMessages();
-        await WebSocketHandler.ConnectAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -129,8 +128,9 @@
         NetworkEvents.ReadDatabaseRequest.Register(async entry =>
         {
             if (entry != DbEntry.ChatMessage) return;
-
+            
             await UpdateMessages();
+            Console.WriteLine("Updated messages");
         });
         
         await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");

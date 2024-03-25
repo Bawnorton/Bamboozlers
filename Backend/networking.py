@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Type
 
 T = TypeVar("T", bound="IPacket")
 
@@ -57,7 +57,8 @@ class PacketRegistry:
     def __init__(self):
         self._packets: dict[str, "PacketRegistry.PacketInfo"] = {}
 
-    def register_packet(self, packet_type: PacketType, on_packet_received: callable(IPacket) = None):
+    def register_packet(self, packet_reference: Type[IPacket], on_packet_received: callable(IPacket) = None):
+        packet_type = packet_reference.packet_type()
         packet_id = packet_type.get_packet_id()
         if packet_id in self._packets:
             raise Exception(f"Packet type {packet_id} is already registered")
@@ -65,25 +66,29 @@ class PacketRegistry:
             raise Exception(f"Handler provided for clientbound packet {packet_id}")
         if on_packet_received is None and not packet_type.is_clientbound():
             raise Exception(f"No handler provided for serverbound packet {packet_id}")
-        self._packets[packet_id] = PacketRegistry.PacketInfo(packet_type, type(packet_type), on_packet_received)
+        self._packets[packet_id] = PacketRegistry.PacketInfo(packet_type, packet_reference, on_packet_received)
 
-    def get_packet_type(self, packet_id: str) -> PacketType:
+    def get_packet_type(self, packet_id: str) -> PacketType | None:
+        if packet_id not in self._packets:
+            return None
         return self._packets[packet_id].packet_type
 
-    def get_actual_type(self, packet_id: str) -> type:
+    def get_actual_type(self, packet_id: str) -> Type | None:
+        if packet_id not in self._packets:
+            return None
         return self._packets[packet_id].actual_type
 
     def is_clientbound(self, packet_id: str) -> bool:
         return self._packets[packet_id].packet_type.is_clientbound()
 
-    def handle_packet(self, packet_id: str, packet: IPacket):
+    async def handle_packet(self, packet_id: str, packet: IPacket):
         if packet_id not in self._packets:
             raise Exception(f"Packet type {packet_id} is not registered")
         packet_info = self._packets[packet_id]
-        packet_info.on_packet_received(packet)
+        await packet_info.on_packet_received(packet)
 
     class PacketInfo:
-        def __init__(self, packet_type: PacketType, actual_type: type, on_packet_received: callable(IPacket)):
+        def __init__(self, packet_type: PacketType, actual_type: Type, on_packet_received: callable(IPacket)):
             self.packet_type = packet_type
             self.actual_type = actual_type
             self.on_packet_received = on_packet_received
