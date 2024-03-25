@@ -71,8 +71,8 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
                 return TypedResults.LocalRedirect(callbackUrl);
             }
             
+            userService.Invalidate();
             await signInManager.SignInAsync(u, false);
-            await userService.RebuildAndNotify(true);
             return TypedResults.LocalRedirect("~/");
         });
 

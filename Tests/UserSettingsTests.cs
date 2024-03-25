@@ -389,7 +389,6 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
             {
                 DataType = UserDataType.Email
             });
-            await component.Instance.OnUpdateAsync();
             completionCall.SetResult(true);
         });
         await completionCall.Task.WaitAsync(CancellationToken.None);

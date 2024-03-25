@@ -66,12 +66,12 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("test_user1@gmail.com",userData.Email);
         
         var notified = false;
-        var subscriber = new Mock<ISubscriber>();
+        var subscriber = new Mock<IAsyncSubscriber>();
         subscriber.Setup(x => x.OnUpdate()).Callback(() => notified = true);
         
         var result = UserService.AddSubscriber(subscriber.Object);
         Assert.True(result);
-        Assert.Contains(subscriber.Object,UserService.Subscribers);
+        Assert.Contains(subscriber.Object, UserService.Subscribers);
         
         result = UserService.AddSubscriber(subscriber.Object);
         Assert.False(result);
@@ -92,7 +92,7 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         Assert.True(result);
         Assert.DoesNotContain(subscriber.Object,UserService.Subscribers);
         
-        subscriber = new Mock<ISubscriber>();
+        subscriber = new Mock<IAsyncSubscriber>();
         result = UserService.RemoveSubscriber(subscriber.Object);
         Assert.False(result);
         

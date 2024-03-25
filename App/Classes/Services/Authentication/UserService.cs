@@ -7,20 +7,12 @@ using Xunit;
 
 namespace Bamboozlers.Classes.Services.Authentication;
 
-public class UserService : IUserService
+public class UserService(IAuthService authService, UserManager<User> userManager) : IUserService
 {
-    private IAuthService AuthService { get; }
-    private UserManager<User> UserManager { get; }
+    private IAuthService AuthService { get; } = authService;
+    private UserManager<User> UserManager { get; } = userManager;
 
-    public UserService(IAuthService authService,
-        UserManager<User> userManager)
-    {
-        AuthService = authService;
-        UserManager = userManager;
-    }
-    
     /* User (Data) Retrieval */
-
     private UserRecord? UserRecord { get; set; }
     
     /// <summary>
@@ -42,7 +34,8 @@ public class UserService : IUserService
     /// </summary>
     private async Task<UserRecord> BuildUserDataAsync()
     {
-        var user = await GetUserAsync(await AuthService.GetClaims());
+        var claims = await AuthService.GetClaims();
+        var user = await UserManager.GetUserAsync(claims);
         
         var record = user is not null
         ? new UserRecord(
@@ -56,6 +49,11 @@ public class UserService : IUserService
         : UserRecord.Default;
         return record;
     }
+    
+    public virtual UserRecord GetUserData()
+    {
+        return UserRecord ?? UserRecord.Default;
+    } 
     
     public virtual async Task<UserRecord> GetUserDataAsync()
     {
@@ -140,12 +138,17 @@ public class UserService : IUserService
         return iResult;
     }
     
+    public virtual async Task Initialize()
+    {
+        await BuildUserDataAsync();
+    }
+    
     public virtual async Task RebuildAndNotify(bool invalidate = false)
     {
         if (invalidate)
             Invalidate();
         await BuildUserDataAsync();
-        NotifyAll();
+        await NotifyAllAsync();
     }
     
     public virtual void Invalidate()
@@ -153,32 +156,45 @@ public class UserService : IUserService
         AuthService.Invalidate();
         UserRecord = null;
     }
-
-    public List<ISubscriber> Subscribers { get; } = [];
-    public bool AddSubscriber(ISubscriber subscriber)
+    
+    public List<IAsyncSubscriber> Subscribers { get; } = [];
+    public bool AddSubscriber(IAsyncSubscriber subscriber)
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
+        
+        subscriber.OnUpdate();
+        
         return true;
     }
 
-    public bool RemoveSubscriber(ISubscriber subscriber)
+    public bool RemoveSubscriber(IAsyncSubscriber subscriber)
     {
         return Subscribers.Remove(subscriber);
     }
 
-    public void NotifyAll()
+    public async Task NotifyAllAsync()
     {
-        Subscribers.ForEach(x => x.OnUpdate());
+        foreach (var sub in Subscribers)
+        {
+            await sub.OnUpdate();
+        }
     }
 }
 
-public interface IUserService : IPublisher
+public interface IUserService : IAsyncPublisher
 {
     /// <summary>
     /// Retrieval method for the User's display variables for classes utilizing this service.
     /// </summary>
-    /// <returns>The User's display record.</returns>
+    /// <returns>The User's display record, or a default display record if the UserRecord is not set.</returns>
+    UserRecord GetUserData();
+    
+    /// <summary>
+    /// Retrieval method for the User's display variables for classes utilizing this service.
+    /// If the User Record does not currently exist, it is built for this request.
+    /// </summary>
+    /// <returns>The User's display record, or a default display record if the user is not found.</returns>
     Task<UserRecord> GetUserDataAsync();
 
     /// <summary>
@@ -229,12 +245,17 @@ public interface IUserService : IPublisher
     public Task<IdentityResult> DeleteAccountAsync(string password);
     
     /// <summary>
-    /// Invalidates the AuthService and the Record used for displaying attributes, Identity and the Record used for displaying attributes
+    /// Calls to initialize the User Record for retrieval by subscribers
     /// </summary>>
-    void Invalidate();
+    Task Initialize();
 
     /// <summary>
     /// Invalidates the AuthService and the Record used for displaying attributes, then rebuilds from new data and notifies listeners.
     /// </summary>>
     Task RebuildAndNotify(bool invalidate = false);
+    
+    /// <summary>
+    /// Invalidates the AuthService and the Record used for displaying attributes, Identity and the Record used for displaying attributes
+    /// </summary>>
+    void Invalidate();
 }
