@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components;
 
-public class UserViewComponentBase : ComponentBase, IAsyncSubscriber
+public class UserViewComponentBase : OwningComponentBase<IUserService>, IAsyncSubscriber
 {
-    [Inject] protected IUserService UserService { get; set; } = default!;
+    protected IUserService UserService => Service;
 
     [Inject] protected IAuthService AuthService { get; set; } = default!;
     protected UserRecord? UserData { get; set; }
