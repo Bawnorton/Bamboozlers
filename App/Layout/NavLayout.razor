@@ -33,7 +33,7 @@
                  Class="scrollbar-container">
                 <BarMenu>
                     <BarItem>
-                        <BarLink ElementId="friends" @onclick="() => ChangeView(View.Friends)">
+                        <BarLink ElementId="friends" @onclick="() => {CurrentView = View.Friends; CurrentChatId = -1; }">
                             <BarIcon Class="fa-user-circle"></BarIcon>
                             Friends
                         </BarLink>
@@ -48,7 +48,7 @@
                                 @foreach (var chat in DmChats)
                                 {
                                     <BarItem>
-                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => ChangeView(View.Dm, chat.DbReference)">
+                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => {CurrentView = View.Dm; CurrentChatId = chat.ID; }">
                                             <BarIcon IconName="Icons.User"></BarIcon>
                                             @chat.User.DisplayName
                                         </BarLink>
@@ -67,7 +67,7 @@
                                 @foreach (var chat in GroupChats)
                                 {
                                     <BarItem>
-                                        <BarLink ElementId="@("group_" + chat.ID)" @onclick="() => ChangeView(View.Group, chat)">
+                                        <BarLink ElementId="@("group_" + chat.ID)" @onclick="() => { CurrentView = View.Group; CurrentChatId = chat.ID; }">
                                             <BarIcon IconName="Icons.Users"></BarIcon>
                                             @chat.Name
                                         </BarLink>
@@ -90,21 +90,14 @@
             </Div>
         </LayoutSiderContent>
     </LayoutSider>
-    <Layout>
-        <LayoutHeader Fixed
-                      Padding="Padding.Is3"
-                      TextSize="TextSize.Heading5"
-                      TextColor="TextColor.Primary"
-                      Background="Background.Dark">
-            <Text ElementId="header-text">@Views[CurrentView].Name</Text>
-        </LayoutHeader>
-        <LayoutContent Padding="Padding.Is3"
-                       Background="Background.Primary"
-                       TextColor="TextColor.Primary"
-                       Class="scrollbar-container">
-            <DynamicComponent Type="@Views[CurrentView].HeldType" Parameters="@Views[CurrentView].Parameters"/>
-        </LayoutContent>
-    </Layout>
+        @if(CurrentView == View.Friends)
+        {
+            <CompFriendsView />
+        }
+        else
+        {
+            <CompChatView ChatID="CurrentChatId"/>
+        }
 </Layout>
 
 @code {
@@ -115,20 +108,13 @@
     private List<GroupChat> GroupChats { get; set; } = [];
 
     private View CurrentView { get; set; } = View.Friends;
+    private int CurrentChatId { get; set; } = -1;
 
     private int FriendCount { get; set; } = 0;
-
-    private Dictionary<View, ViewHolder> Views { get; } = new()
-    {
-        {View.Friends, ViewHolder.Of(new CompFriendsView())},
-        {View.Dm, ViewHolder.Of(new CompChatView())},
-        {View.Group, ViewHolder.Of(new CompChatView())}
-    };
-
+    
     protected override async Task OnInitializedAsync()
     {
-        await GetDataAsync();
-        ChangeView(CurrentView);       
+        await GetDataAsync();     
     }
 
     public async Task Refresh()
@@ -142,8 +128,6 @@
             query
                 .Include(u => u.Chats)
                     .ThenInclude(c => c.Users)
-                .Include(u => u.Chats)
-                    .ThenInclude(c => c.Messages)
         );
 
         if (User is null)
@@ -155,7 +139,7 @@
         if (chats is not null)
         {
             GroupChats = User.Chats.OfType<GroupChat>().ToList();
-            DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat, chat.Users.First(u => u.Id != User.Id))).ToList();
+            DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat.ID, chat.Users.First(u => u.Id != User.Id))).ToList();
         }
 
         FriendCount = 0;
@@ -169,39 +153,6 @@
         }
     }
     
-    private async void ChangeView(View view, Chat? chat = null)
-    {
-        if (User is null)
-            return;
-        
-        CurrentView = view;
-        switch (CurrentView)
-        {
-            case View.Group:
-                Views[CurrentView].Name = (chat as GroupChat)!.Name;
-                Views[CurrentView].Parameters = new Dictionary<string, object>
-                {
-                    {"Chat", chat}
-                };
-                break;
-            case View.Dm:
-            {
-                var other = chat!.Users.First(u => u.Id != User?.Id);
-                Views[CurrentView].Name = other.DisplayName ?? other.UserName;
-                Views[CurrentView].Parameters = new Dictionary<string, object>
-                {
-                    {"Chat", chat}
-                };
-                break;
-            }
-            case View.Friends:
-                Views[CurrentView].Name = $"Friends ({FriendCount})"; 
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
-
     private enum View
     {
         Dm,
@@ -209,18 +160,6 @@
         Friends
     }
     
-    private record DmChat(Chat DbReference, User User);
+    private record DmChat(int ID, User User);
 
-    private class ViewHolder(ComponentBase component)
-    {
-        public ComponentBase Held { get; } = component;
-
-        public string? Name { get; set; }
-        
-        public IDictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
-        
-        public Type HeldType => Held.GetType();
-        
-        public static ViewHolder Of(ComponentBase component) => new(component);
-    }
 }

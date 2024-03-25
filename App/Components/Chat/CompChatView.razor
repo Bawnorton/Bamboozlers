@@ -7,29 +7,43 @@
 @using Bamboozlers.Classes.Networking
 @using Bamboozlers.Classes.Networking.Packets.Serverbound
 
-@inject IDbContextFactory<AppDbContext> Db;
+@inject IDbContextFactory<AppDbContext> Db
 
-<Layout ElementId="message-container" Style="height: 92%" Class="scrollbar-container">
-    <LayoutContent>
-        <Div>
-            @foreach (var message in Messages)
-            {
-                <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()"></CompMessageView>
-            }
-        </Div>
+<Layout>
+    <LayoutHeader Fixed
+                  Padding="Padding.Is3"
+                  TextSize="TextSize.Heading5"
+                  TextColor="TextColor.Primary"
+                  Background="Background.Dark">
+        <Text ElementId="header-text">@ChatName</Text>
+    </LayoutHeader>
+    <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
+        <Layout>
+            <LayoutContent>
+                <Div>
+                    @foreach (var message in Messages)
+                    {
+                        <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()"></CompMessageView>
+                    }
+                </Div>
+            </LayoutContent>
+        </Layout>
     </LayoutContent>
-</Layout>
-<Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Style="bottom: 0">
-    <Div Display="Display.Flex" Overflow="Overflow.Hidden">
-        <Div contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
-             id="message-input" class="@($"message-input word-break {InputEvents.EventCssClass} {ClipboardEvents.EventCssClass}")" data-placeholder="@($"Message {ChatName}")">
+    <LayoutFooter>
+        <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Class="rounded-pill m-4" Style="bottom: 0">
+            <Div Display="Display.Flex" Overflow="Overflow.Hidden" >
+                <Div contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
+                     id="message-input" class="@($"message-input word-break {InputEvents.EventCssClass} {ClipboardEvents.EventCssClass}")" data-placeholder="@($"Message {ChatName}")">
+                </Div>
+            </Div>
         </Div>
-    </Div>
-</Div>
+    </LayoutFooter>
+</Layout>
+
 
 @code {
-    [Parameter] 
-    public Chat? Chat { get; set; }
+    [Parameter] public int ChatID { get; set; }
+    private Chat? Chat { get; set; }
 
     private User Self { get; set; }
 
@@ -44,6 +58,14 @@
     protected override async Task OnInitializedAsync()
     {
         Self = await AuthHelper.GetSelf();
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        Chat = await db.Chats.Include(i => i.Users)
+            .Include(i => i.Messages)
+            .FirstOrDefaultAsync(c => c.ID == ChatID);
         if (Chat is GroupChat groupChat)
         {
             ChatName = groupChat.Name;
