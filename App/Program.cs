@@ -39,7 +39,11 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING")));
+{
+    options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING"), 
+        o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+        );
+});
 
 builder.Services.AddIdentityCore<User>(options =>
                         {

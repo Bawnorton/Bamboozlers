@@ -11,7 +11,7 @@ public static class WebSocketHandler
 {
     private static readonly NetworkHandler NetworkHandler = new();
     private static WebsocketClient _client;
-    private static readonly Uri Url = new("ws://localhost:5810/ws/");
+    private static readonly Uri Url = new("ws://localhost:5180/ws/");
 
     public static void Init()
     {

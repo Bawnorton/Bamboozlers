@@ -84,6 +84,7 @@ async def handle_tell_others_to_read_database_c2s(packet: TellOthersToReadDataba
     sender = manager.get_connected_client(packet.sender_id)
     if sender is None:
         raise Exception(f"Sender {packet.sender_id} not found")
+    packet.recipient_ids.append(packet.sender_id)  # For testing purposes
     for recipient_id in packet.recipient_ids:
         recipient = manager.get_connected_client(recipient_id)
         if recipient is None:

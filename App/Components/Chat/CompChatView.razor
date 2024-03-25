@@ -64,18 +64,24 @@
     
     protected override async Task OnParametersSetAsync()
     {
-        if (Chat is GroupChat groupChat)
+        await using var db = await Db.CreateDbContextAsync();
+        
+        Chat = await db.Chats
+            .Include(c => c.Users)
+            .FirstOrDefaultAsync(c => c.ID == ChatID);
+        switch (Chat)
         {
-            ChatName = groupChat.Name;
-        }
-        else if (Chat is not null)
-        {
-            var other = Chat.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? Self;
-            ChatName = (other!.DisplayName ?? other.UserName)!;
-        }
-        else
-        {
-            throw new InvalidOperationException("Chat is null");
+            case null:
+                throw new InvalidOperationException($"Chat from ID {ChatID} not found"); 
+            case GroupChat groupChat:
+                ChatName = groupChat.Name;
+                break;
+            default:
+            {
+                var other = Chat.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? Self;
+                ChatName = (other!.DisplayName ?? other.UserName)!;
+                break;
+            }
         }
 
         await UpdateMessages();
@@ -131,7 +137,7 @@
             Console.WriteLine("Updated messages");
         });
         
-        await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
+        StateHasChanged();
     }
 
     private async Task UpdateMessages()
