@@ -38,12 +38,54 @@
         </Div>
     </LayoutFooter>
 </Layout>
+@if (Chat is GroupChat)
+{
+    <LayoutSider>
+        <LayoutSiderContent>
+            
+            <Bar Mode="BarMode.VerticalInline"
+                 CollapseMode="BarCollapseMode.Hide"
+                 ThemeContrast="ThemeContrast.Dark"
+                 Class="h-100">
+                <BarMenu>
+                    <BarItem Class="mb-2">
+                        <Div TextColor="TextColor.Primary"
+                             Background="Background.Dark"
+                             Padding="Padding.Is3"
+                             TextSize="TextSize.Heading5">
+                            <Text>Members - @Chat.Users.Count</Text>
+                            <Icon Name="IconName.Add" @onclick="() => compAddMember.ShowModal()"/>
+                        </Div>
+                    </BarItem>
+                    @foreach (var friend in Chat.Users)
+                    {
+                        <BarItem>
+                            <BarLink Class="rounded">
+                                @if (friend.Avatar != null)
+                                {
+                                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(friend.Avatar)}") Class="message-avatar" alt=""/>
+                                }
+                                
+                                @(friend.DisplayName ?? friend.UserName)
+                            </BarLink>
+                        </BarItem>
+                        
+                    }
+                </BarMenu>
+            </Bar>
+        </LayoutSiderContent>
+    </LayoutSider>
+}
+@if (Chat is GroupChat)
+{
+    <CompAddMember @ref="compAddMember" Chat="@(Chat as GroupChat)"></CompAddMember>
+}
 
 
 @code {
     [Parameter] public int ChatID { get; set; }
     private Chat? Chat { get; set; }
-
+    private CompAddMember compAddMember { get; set; }
     private User Self { get; set; }
 
     private string ChatName { get; set; }

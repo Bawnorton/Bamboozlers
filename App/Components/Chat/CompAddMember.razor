@@ -1,0 +1,68 @@
+@using Bamboozlers.Classes.AppDbContext
+@using AngleSharp.Diffing.Extensions
+@using Bamboozlers.Classes.Services
+@using Microsoft.IdentityModel.Tokens
+@inject IDbContextFactory<AppDbContext> Db
+
+<Modal @ref="modalRef">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>Employee edit</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            @if (Users.IsNullOrEmpty())
+            {
+                <p>Sorry all your friends are already here</p>
+            }
+            else
+            {
+                @foreach (var user in Users)
+                {
+                    <Checkbox Value="@user" OnChange="e => { if (e.Value) UsersToAdd.Add(user); else UsersToAdd.Remove(user); }">
+                        @(user.DisplayName ?? user.UserName)
+                    </Checkbox>
+                }
+            }
+            
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Danger" Clicked="@HideModal">Cancel</Button>
+            <Button Color="Color.Success" Clicked="@AddMembers">Save Changes</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+@code{
+    [Parameter] public GroupChat Chat {get; set;}
+    private List<User> UsersToAdd { get; set; }
+    private List<User> Users { get; set; }
+    private Modal modalRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        UsersToAdd = new List<User>();
+        await using var db = await Db.CreateDbContextAsync();
+        var self = await AuthHelper.GetSelf();
+        var friends = await self.GetFriends(db);
+        Users = friends.Except(Chat.Users).ToList() ?? new List<User>();
+
+    }
+
+    public Task ShowModal()
+    {
+        return modalRef.Show();
+    }
+
+    private Task HideModal()
+    {
+        return modalRef.Hide();
+    }
+
+    private async Task AddMembers()
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        Chat.Users.AddRange(UsersToAdd);
+        await db.SaveChangesAsync();
+        await HideModal();
+    }
+}
