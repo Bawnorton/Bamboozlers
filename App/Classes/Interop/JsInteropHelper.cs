@@ -24,6 +24,8 @@ public abstract class JsInteropHelper
     
     public static IJSRuntime GetJsRuntime()
     {
+        if (_jsRuntime == null) throw new NullReferenceException("JsInteropHelper has not been initialized.");
+        
         return _jsRuntime;
     }
 
@@ -86,5 +88,4 @@ public abstract class JsInteropHelper
     {
         return await ClipboardEvents.OnPaste.Invoker().Invoke(data.elementId, data.text);
     }
-
 }

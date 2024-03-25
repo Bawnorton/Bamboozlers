@@ -1,15 +1,13 @@
 using Bamboozlers;
-using Bamboozlers.Classes.AppDbContext;
-using Blazorise;
-using Blazorise.Icons.FontAwesome;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
-using Bamboozlers.Classes.Services;
+using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services.Authentication;
+using Blazorise;
 using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
 using Microsoft.AspNetCore.Components.Authorization;
-using IMessageService = Bamboozlers.Classes.Services.IMessageService;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,7 +27,6 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IIdentityRedirectManager, IdentityRedirectManager>();
 builder.Services.AddScoped<IdentityRedirectManagerWrapper>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
-builder.Services.AddScoped<IMessageService, MessageService>();
 
 builder.Services.AddAuthentication(options =>
     {

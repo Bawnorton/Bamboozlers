@@ -11,6 +11,7 @@ class ReadDatabaseS2CPacket(IClientboundPacket):
         return PacketType("read_database_s2c")
 
     def write(self, json):
+        super().write(json)
         json["db_entry"] = self.db_entry
 
 
@@ -20,6 +21,7 @@ class TellOthersToReadDatabaseC2SPacket(IServerboundPacket):
         self.sender_id = json["sender_id"]
         self.recipient_ids = json["recipient_ids"]
         self.db_entry = json["db_entry"]
+        self.recipient_ids.append(self.sender_id)
 
     @staticmethod
     def packet_type() -> PacketType[IServerboundPacket]:

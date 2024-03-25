@@ -29,7 +29,9 @@
             </Div>
         }
         <Div Class="message-content">
-            <CompMessageContentView Content=@Message.Content/>
+            <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
+                <CompMessageContentView Content=@Message.Content/>
+            </Div>
             <Div Class="message-actions">
                 @switch (ShowEdit)
                 {
@@ -59,6 +61,8 @@
     [Parameter] public Message Message { get; set; }
 
     [Parameter] public MessageState MessageState { get; set; }
+    
+    [Parameter] public bool EchoRecieved { get; set; }
 
     private bool Loaded { get; set; }
 
@@ -88,7 +92,8 @@
     {
         if (!firstRender) return;
 
-        KeyboardEvents.Keydown.Register((key, _, _, _, _, _) =>
+        var messageViewEventId = $"message-view-{Message.ID}";
+        KeyboardEvents.Keydown.Register(messageViewEventId, (key, _, _, _, _, _) =>
         {
             if (key != "Shift") return Task.CompletedTask;
 
@@ -97,7 +102,7 @@
             return Task.CompletedTask;
         });
 
-        KeyboardEvents.Keyup.Register((key, _, _, _, _, _) =>
+        KeyboardEvents.Keyup.Register(messageViewEventId, (key, _, _, _, _, _) =>
         {
             if (key != "Shift") return Task.CompletedTask;
 

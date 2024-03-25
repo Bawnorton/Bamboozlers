@@ -25,7 +25,7 @@
                 <Div>
                     @foreach (var message in Messages)
                     {
-                        <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()"></CompMessageView>
+                        <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()" EchoRecieved="@message.OthersCanSee"/>
                     }
                 </Div>
             </LayoutContent>
@@ -92,64 +92,96 @@
 
         await JsInteropHelper.Register();
 
-        InputEvents.DisallowedInputs.Register(() => Task.FromResult(new List<KeyData>
-        {
-            KeyData.Normal("Enter", "Enter")
-        }));
-        InputEvents.InputKeydown.Register(async (elementId, key, _, _, shift, _, _, _, _) =>
-        {
-            if (elementId != "message-input") return;
-            if (key != "Enter" || shift) return;
-
-            await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
-            await SendMessage();
-            await InvokeAsync(StateHasChanged);
-        });
-        InputEvents.InputKeyup.Register(async (elementId, key, _, _, shift, _, _, content, _) =>
-        {
-            if (elementId != "message-input") return;
-
-            TypedMessage = content;
-            switch (key)
-            {
-                case "Backspace" when TypedMessage.Equals("\n"):
-                    await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
-                    break;
-                case "Enter" when !shift:
-                    await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
-                    break;
-            }
-        });
-        ClipboardEvents.OnPaste.Register(async (elementId, content) =>
-        {
-            if (elementId != "message-input") return content;
-
-            TypedMessage = content;
-            await InvokeAsync(StateHasChanged);
-            return content;
-        });
-        NetworkEvents.ReadDatabaseRequest.Register(async entry =>
-        {
-            if (entry != DbEntry.ChatMessage) return;
-            
-            await UpdateMessages();
-            Console.WriteLine("Updated messages");
-        });
+        const string chatEventViewId = "chat-view";
+        InputEvents.DisallowedInputs.Register(chatEventViewId, DisallowedInputsCallback);
+        InputEvents.InputKeydown.Register(chatEventViewId, KeydownListener);
+        InputEvents.InputKeyup.Register(chatEventViewId, KeyupListener);
+        ClipboardEvents.OnPaste.Register(chatEventViewId, PasteListener);
+        NetworkEvents.ReadDatabaseRequest.Register(chatEventViewId, DatabaseRequestListener);
         
         StateHasChanged();
+    }
+    
+    private Task<List<KeyData>> DisallowedInputsCallback()
+    {
+        return Task.FromResult(new List<KeyData> { KeyData.Normal("Enter", "Enter") });
+    }
+
+    private async Task DatabaseRequestListener(DbEntry entry)
+    {
+        if (entry != DbEntry.ChatMessage) return;
+
+        await UpdateMessages();
+        Console.WriteLine("Updated messages");
+    }
+
+    private async Task<string> PasteListener(string elementId, string content)
+    {
+        if (elementId != "message-input") return content;
+
+        TypedMessage = content;
+        await InvokeAsync(StateHasChanged);
+        return content;
+    }
+
+    private async Task KeyupListener(string elementId, string key, string s, bool b, bool shift, bool b1, bool b2, string content, bool b3)
+    {
+        if (elementId != "message-input") return;
+
+        TypedMessage = content;
+        switch (key)
+        {
+            case "Backspace" when TypedMessage.Equals("\n"):
+                await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
+                break;
+            case "Enter" when !shift:
+                await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
+                break;
+        }
+    }
+
+    private async Task KeydownListener(string elementId, string key, string s, bool b, bool shift, bool b1, bool b2, string s1, bool b3)
+    {
+        if (elementId != "message-input") return;
+        if (key != "Enter" || shift) return;
+
+        await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
+        await SendMessage();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task UpdateMessages()
     {
-        var messages = await (await Db.CreateDbContextAsync()).Messages
+        var newMessages = await (await Db.CreateDbContextAsync()).Messages
             .Where(m => m.ChatID == Chat!.ID && (_lastMessageSentAt == null || m.SentAt > _lastMessageSentAt))
             .ToListAsync();
-        if (messages.Count == 0) return;
+        if (newMessages.Count == 0) return;
             
-        messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
-        var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
-        Messages.AddRange(linkedMessages);
-        _lastMessageSentAt = messages.Last().SentAt;
+        newMessages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
+        Dictionary<int, int> clientOnlyMessages = new();
+        for (var index = 0; index < Messages.Count; index++)
+        {
+            var message = Messages[index];
+            if (message.OthersCanSee) continue;
+            
+            clientOnlyMessages[message.Message.ID] = index;
+        }
+
+        var previousLastMessage = Messages.Count == 0 ? null : Messages[^1].Message;
+        for (var i = 0; i < newMessages.Count; i++)
+        {
+            var previous = i == 0 ? previousLastMessage : newMessages[i - 1];
+            var newMessage = newMessages[i];
+            if (clientOnlyMessages.TryGetValue(newMessage.ID, value: out var existingMessageIndex))
+            {
+                var clientMessage = Messages[existingMessageIndex];
+                clientMessage.OthersCanSee = true;
+                clientMessage.Previous = previous;
+                continue;
+            }
+            Messages.Add(new LinkedMessage(newMessage, previous));
+        }
+        _lastMessageSentAt = newMessages[^1].SentAt;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -168,6 +200,10 @@
             SentAt = DateTime.Now,
             IsPinned = false
         };
+        await using var db = await Db.CreateDbContextAsync();
+            
+        db.Messages.Add(message);
+        await db.SaveChangesAsync();
         await MessageEvents.MessageCreated.Invoker().Invoke(message);
 
         var recipientIds = Chat.Users.Select(u => u.Id).ToList();
@@ -175,22 +211,26 @@
         var readDatabaseRequest = TellOthersToReadDatabaseC2SPacket.Create(Self.Id, recipientIds, DbEntry.ChatMessage);
         WebSocketHandler.SendPacket(readDatabaseRequest);
         
-        Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
+        Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message, othersCanSee: false));
     }
 
-    public class LinkedMessage(Message message, Message? previous)
+    public class LinkedMessage(Message message, Message? previous, bool othersCanSee = true)
     {
         public MessageState GetMessageState()
         {
-            if (previous is null)
+            if (Previous is null)
             {
                 return MessageState.First;
             }
 
-            return previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
+            return Previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
         }
 
         public Message Message { get; } = message;
+        
+        public Message? Previous { get; set;  } = previous;
+        
+        public bool OthersCanSee { get; set; } = othersCanSee;
     }
 
 }

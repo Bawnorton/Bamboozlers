@@ -37,7 +37,7 @@ class IClientboundPacket(IPacket):
         super().__init__()
 
     def write(self, json):
-        pass
+        json["id"] = self.packet_type().get_packet_id()
 
     @staticmethod
     def packet_type() -> PacketType["IClientboundPacket"]:
