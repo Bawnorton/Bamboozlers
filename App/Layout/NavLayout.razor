@@ -51,7 +51,7 @@
                                     <BarItem>
                                         <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => {CurrentView = View.Dm; CurrentChatId = chat.ID; }">
                                             <BarIcon IconName="Icons.User"></BarIcon>
-                                            @chat.User.DisplayName
+                                            @chat.User.DisplayName ?? @chat.User.UserName
                                         </BarLink>
                                     </BarItem>
                                 }
