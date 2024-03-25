@@ -8,6 +8,7 @@
 
 <h2>All friends - @Friends.Count</h2>
 <br/>
+<p>@noFriends</p>
 
 @foreach (var friend in Friends)
 {
@@ -17,6 +18,7 @@
 
 @code {
     private List<User> Friends = [];
+    private string? noFriends;
     
     protected override async Task OnInitializedAsync()
     {
@@ -35,6 +37,8 @@
                 Friends.Add(friendship.User1);
             }
         }
+        if (Friends.Count == 0)
+            noFriends = "You do not have any friends added at this time :(";
     }
     
 }

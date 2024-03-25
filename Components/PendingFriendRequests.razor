@@ -8,6 +8,7 @@
 
 <h2>Pending Friend Requests - @total</h2>
 <br/>
+<p>@noRequests</p>
 @foreach (var prospect in IncomingFriendReqs)
 {
     <span style="font-size:1.4em;">Incoming request from @prospect.UserName</span>
@@ -35,6 +36,7 @@
     private List<User> OutgoingFriendReqs = [];
     private List<User> DeniedFriendReqs = [];
     private int total = 0;
+    private string? noRequests;
     
     protected override async Task OnInitializedAsync()
     {
@@ -61,6 +63,8 @@
             }
         }
         total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
+        if (total == 0)
+            noRequests = "You have no incoming or outgoing friend requests at this time";
     }
 
     private async Task ManageRequest(User prospect, Boolean accepted)
@@ -89,6 +93,7 @@
         db.SaveChanges();
         IncomingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
         total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
+        noRequests = total == 0 ? "You have no incoming or outgoing friend requests at this time" : null;
     }
 
     private async Task CancelRequest(User prospect)
@@ -100,6 +105,7 @@
         db.SaveChanges();
         OutgoingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
         total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
+        noRequests = total == 0 ? "You have no incoming or outgoing friend requests at this time" : null;
     }
     
     private async Task ResendRequest(User prospect)
@@ -112,5 +118,6 @@
         DeniedFriendReqs.RemoveAll(user => user.Id == prospect.Id);
         OutgoingFriendReqs.Add(prospect);
         total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
+        noRequests = total == 0 ? "You have no incoming or outgoing friend requests at this time" : null;
     }
 }

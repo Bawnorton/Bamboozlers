@@ -8,6 +8,7 @@
 
 <h2>Blocked - @BlockedList.Count</h2>
 <br/>
+<p>@noBlocks</p>
 
 @foreach (var blockedUser in BlockedList)
 {
@@ -18,6 +19,7 @@
 @code {
     
     private List<User> BlockedList = [];
+    private string? noBlocks;
 
     protected override async Task OnInitializedAsync()
     {
@@ -32,6 +34,8 @@
                 BlockedList.Add(block.Blocked);
             }
         }
+        if (BlockedList.Count == 0)
+            noBlocks = "You do not have anyone blocked at this time";
     }
     
 }
