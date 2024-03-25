@@ -1,17 +1,16 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Bamboozlers.Classes.Networking;
 using Bamboozlers.Classes.Networking.Packets.Serverbound;
 using Websocket.Client;
 
-namespace Bamboozlers.Classes.Services;
+namespace Bamboozlers.Classes.Networking;
 
-public class WebSocketService : IWebSocketService, IDisposable
+public static class WebSocketHandler
 {
-    private readonly WebsocketClient _client;
-    private readonly NetworkHandler _networkHandler = new();
+    private static readonly NetworkHandler NetworkHandler = new();
+    private static WebsocketClient _client;
 
-    public WebSocketService(int id)
+    public static void Init(int id)
     {
         _client = new WebsocketClient(new Uri($"ws://localhost:8080/ws/{id}"));
         _client.ReconnectTimeout = TimeSpan.FromSeconds(30);
@@ -31,13 +30,13 @@ public class WebSocketService : IWebSocketService, IDisposable
         _client.DisconnectionHappened.Subscribe(info => Console.WriteLine($"Disconnected: {info.Type}"));
     }
 
-    public async Task ConnectAsync()
+    public static async Task ConnectAsync()
     {
         Console.WriteLine("Connecting to websocket with url: " + _client.Url);
         await _client.Start();
     }
 
-    public void SendPacket(IServerboundPacket packet)
+    public static void SendPacket(IServerboundPacket packet)
     {
         var obj = new JsonObject();
         packet.Write(obj);
@@ -46,7 +45,7 @@ public class WebSocketService : IWebSocketService, IDisposable
         _client.Send(obj.ToString());
     }
     
-    private void PacketRecieved(string packetJson) 
+    private static void PacketRecieved(string packetJson) 
     {
         var json = JsonDocument.Parse(packetJson).RootElement;
         var id = json.GetProperty("id").GetString();
@@ -54,18 +53,6 @@ public class WebSocketService : IWebSocketService, IDisposable
         {
             throw new Exception("Received packet with no id. JSON: " + json);
         }
-        _networkHandler.HandlePacket(id, json);
+        NetworkHandler.HandlePacket(id, json);
     }
-
-    public void Dispose()
-    {
-        _client.Dispose();
-        GC.SuppressFinalize(this);
-    }
-}
-
-public interface IWebSocketService
-{
-    public Task ConnectAsync();
-    public void SendPacket(IServerboundPacket packet);
 }

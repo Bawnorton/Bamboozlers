@@ -28,9 +28,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IIdentityRedirectManager, IdentityRedirectManager>();
 builder.Services.AddScoped<IdentityRedirectManagerWrapper>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
-
 builder.Services.AddScoped<IMessageService, MessageService>();
-builder.Services.AddScoped<IWebSocketService, WebSocketService>(_ => new WebSocketService(AuthHelper.GetSelf().Id));
 
 builder.Services.AddAuthentication(options =>
     {

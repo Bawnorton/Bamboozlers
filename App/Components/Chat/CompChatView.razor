@@ -4,9 +4,9 @@
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking
 @using Bamboozlers.Classes.Networking.Packets.Serverbound
 
-@inject IWebSocketService WebSocketService
 @inject IDbContextFactory<AppDbContext> Db;
 
 <Layout ElementId="message-container" Style="height: 92%" Class="scrollbar-container">
@@ -59,7 +59,7 @@
         }
 
         await UpdateMessages();
-        await WebSocketService.ConnectAsync();
+        await WebSocketHandler.ConnectAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -148,7 +148,7 @@
         var recipientIds = Chat.Users.Select(u => u.Id).ToList();
         recipientIds.Remove(Self.Id);
         var readDatabaseRequest = TellOthersToReadDatabaseC2SPacket.Create(Self.Id, recipientIds, DbEntry.ChatMessage);
-        WebSocketService.SendPacket(readDatabaseRequest);
+        WebSocketHandler.SendPacket(readDatabaseRequest);
         
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
     }
