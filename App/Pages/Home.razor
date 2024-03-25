@@ -7,14 +7,12 @@
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Interop
-@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.Authentication
 @using Bamboozlers.Components.Settings
 @using IMessageService = Bamboozlers.Classes.Services.IMessageService
 
 @inject IDbContextFactory<AppDbContext> Db
-@inject AuthenticationStateProvider AuthStateProvider;
 @inject IMessageService MessageService;
-@inject IServiceProvider ServiceProvider;
 @inject IJSRuntime JsRuntime;
 
 @attribute [Authorize]
@@ -55,11 +53,9 @@
     private NavLayout? _navLayout;
     private CompSettings? _settingsComponent;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         MessageService.Init(Db);
         JsInteropHelper.Init(JsRuntime);
-        AuthHelper.Init(AuthStateProvider, Db);
-        await UserService.Init(new ServiceProviderWrapper(ServiceProvider));
     }
 }

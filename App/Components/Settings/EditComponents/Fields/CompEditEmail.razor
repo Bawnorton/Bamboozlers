@@ -2,7 +2,7 @@
 
 @{
     ViewPanelContent =
-        @<ViewPanelBase DisplayData="@UserDisplayRecord.Email"
+        @<ViewPanelBase DisplayData="@UserData?.Email"
                         FieldName="Email"
                         Button="ToggleEditButton"/>;
 
@@ -39,13 +39,7 @@
 }
 
 @code {
-    private EmailInputModel? Model { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        Model = new EmailInputModel();
-    }
+    private EmailInputModel? Model { get; set; } = new();
 
     public override async Task OnValidSubmitAsync()
     {
