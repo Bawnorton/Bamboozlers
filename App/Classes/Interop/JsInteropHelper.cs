@@ -5,7 +5,7 @@ namespace Bamboozlers.Classes.Interop;
 
 public abstract class JsInteropHelper
 {
-    private static IJSRuntime _jsRuntime;
+    private static IJSRuntime? _jsRuntime;
     
     public static void Init(IJSRuntime jsRuntime)
     {
@@ -14,10 +14,12 @@ public abstract class JsInteropHelper
     
     public static async Task Register()
     {
-        await _jsRuntime.InvokeVoidAsync("keyboardInterop.register", KeyboardEvents.EventCssClass);
-        await _jsRuntime.InvokeVoidAsync("inputInterop.register", InputEvents.EventCssClass);
-        await _jsRuntime.InvokeVoidAsync("mouseInterop.register", MouseEvents.EventCssClass);
-        await _jsRuntime.InvokeVoidAsync("clipboardInterop.register", ClipboardEvents.EventCssClass);
+        if (_jsRuntime is not null) {
+            await _jsRuntime.InvokeVoidAsync("keyboardInterop.register", KeyboardEvents.EventCssClass);
+            await _jsRuntime.InvokeVoidAsync("inputInterop.register", InputEvents.EventCssClass);
+            await _jsRuntime.InvokeVoidAsync("mouseInterop.register", MouseEvents.EventCssClass);
+            await _jsRuntime.InvokeVoidAsync("clipboardInterop.register", ClipboardEvents.EventCssClass);
+        }
     }
     
     public static IJSRuntime GetJsRuntime()

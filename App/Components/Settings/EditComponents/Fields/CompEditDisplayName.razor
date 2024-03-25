@@ -2,7 +2,7 @@
 
 @{
     ViewPanelContent =
-        @<ViewPanelBase DisplayData="@UserDisplayRecord.DisplayName"
+        @<ViewPanelBase DisplayData="@UserData?.DisplayName"
                         FieldName="Display Name"
                         Button="ToggleEditButton"
                         />;
@@ -38,13 +38,7 @@
 }
 
 @code {
-    private DisplayNameInputModel? Model { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        Model = new DisplayNameInputModel();
-    }
+    private DisplayNameInputModel? Model { get; set; } = new();
 
     public override async Task OnValidSubmitAsync()
     {

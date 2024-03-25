@@ -33,10 +33,9 @@ public static class WebSocketHandler
         _client.DisconnectionHappened.Subscribe(info => Console.WriteLine($"Disconnected: {info.Type}"));
     }
 
-    public static async Task ConnectAsync()
+    public static async Task ConnectAsync(int id)
     {
-        var self = await AuthHelper.GetSelf();
-        _client.Url = new Uri(Url, $"{self.Id}");
+        _client.Url = new Uri(Url, id.ToString());
         await _client.Start();
     }
 

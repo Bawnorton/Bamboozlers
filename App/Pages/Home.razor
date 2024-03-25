@@ -8,15 +8,14 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes.Networking
-@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.Authentication
 @using Bamboozlers.Components.Settings
 @using IMessageService = Bamboozlers.Classes.Services.IMessageService
 
 @inject IDbContextFactory<AppDbContext> Db
-@inject AuthenticationStateProvider AuthStateProvider;
 @inject IMessageService MessageService;
-@inject IServiceProvider ServiceProvider;
 @inject IJSRuntime JsRuntime;
+@inject IUserService UserService;
 
 @attribute [Authorize]
 
@@ -56,19 +55,21 @@
     private NavLayout? _navLayout;
     private CompSettings? _settingsComponent;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         MessageService.Init(Db);
         JsInteropHelper.Init(JsRuntime);
-        AuthHelper.Init(AuthStateProvider, Db);
         WebSocketHandler.Init();
-        await UserService.Init(new ServiceProviderWrapper(ServiceProvider));
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+
+        var user = await UserService.GetUserDataAsync();
+        var id = user.Id;
+        if (id == null) return;
         
-        await WebSocketHandler.ConnectAsync();
+        await WebSocketHandler.ConnectAsync((int) id);
     }
 }

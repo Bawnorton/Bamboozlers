@@ -8,12 +8,15 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
 {
     public ChatTests()
     {
+        MockDatabaseProvider.SetupMockDbContext();
+        
         _ = new MockJsRuntimeProvider(Ctx);
     }
     
     [Fact]
     public async void ComponentInitializesCorrectly()
     {
+        await SetUser(MockDatabaseProvider.GetMockUser(0));
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var chat = db.Chats.Include(chat => chat.Messages).First();
 

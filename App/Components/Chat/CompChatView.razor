@@ -1,3 +1,5 @@
+@inherits UserViewComponentBase;
+
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes.Interop
@@ -45,7 +47,7 @@
     [Parameter] public int ChatID { get; set; }
     private Chat? Chat { get; set; }
 
-    private User Self { get; set; }
+    private User? Self { get; set; }
 
     private string ChatName { get; set; }
 
@@ -57,23 +59,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthHelper.GetSelf();
+        Self = await AuthService.GetUser();
     }
     
     protected override async Task OnParametersSetAsync()
     {
-        await using var db = await Db.CreateDbContextAsync();
-        Chat = await db.Chats.Include(i => i.Users)
-            .Include(i => i.Messages)
-            .FirstOrDefaultAsync(c => c.ID == ChatID);
         if (Chat is GroupChat groupChat)
         {
             ChatName = groupChat.Name;
         }
         else if (Chat is not null)
         {
-            var other = Chat.Users.FirstOrDefault(u => u.Id != Self.Id) ?? Self;
-            ChatName = (other.DisplayName ?? other.UserName)!;
+            var other = Chat.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? Self;
+            ChatName = (other!.DisplayName ?? other.UserName)!;
         }
         else
         {
@@ -160,7 +158,7 @@
         var message = new Message
         {
             ChatID = Chat!.ID,
-            SenderID = Self.Id,
+            SenderID = Self!.Id,
             Content = TypedMessage,
             SentAt = DateTime.Now,
             IsPinned = false

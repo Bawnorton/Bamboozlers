@@ -4,8 +4,9 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Web;
 using Bamboozlers.Classes.AppDbContext;
-using Bamboozlers.Classes.Data.ViewModel;
+using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services;
+using Bamboozlers.Classes.Services.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -24,16 +25,18 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
         
         accountGroup.MapPost("/Logout", async (
             ClaimsPrincipal user,
-            SignInManager<User> signInManager) =>
+            SignInManager<User> signInManager,
+            [FromServices] IUserService userService) =>
         {
-            AuthHelper.Invalidate();
+            userService.Invalidate();
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect($"~/Account/Login");
         });
         
         accountGroup.MapPost("/DeAuth", async (
             ClaimsPrincipal user,
-            SignInManager<User> signInManager) =>
+            SignInManager<User> signInManager,
+            [FromServices] IUserService userService) =>
         {
             var builder = new UriBuilder();
             var urlParams = HttpUtility.ParseQueryString(string.Empty);
@@ -41,7 +44,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             builder.Query = urlParams.ToString();
             var callbackUrl = "~/Account/Login" + builder.Query;
             
-            AuthHelper.Invalidate();
+            userService.Invalidate();
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect(callbackUrl);
         });
@@ -49,7 +52,8 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
         accountGroup.MapPost("/ReAuth", async (
             ClaimsPrincipal user,
             SignInManager<User> signInManager,
-            [FromServices] UserManager<User> userManager) =>
+            [FromServices] UserManager<User> userManager,
+            [FromServices] IUserService userService) =>
         {
             await signInManager.SignOutAsync();
             
@@ -67,7 +71,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
                 return TypedResults.LocalRedirect(callbackUrl);
             }
             
-            AuthHelper.Invalidate();
+            userService.Invalidate();
             await signInManager.SignInAsync(u, false);
             return TypedResults.LocalRedirect("~/");
         });
