@@ -24,7 +24,9 @@ public static class AuthHelper
     } 
     
     /// <returns>
-    /// The current user.
+    /// The current user.<br/><br/>
+    /// **WARNING**<br/>
+    /// <code>await AuthHelper.GetSelf().Id</code> returns the task Id, not the user Id.
     /// </returns>
     /// <param name="inclusionCallback">
     /// What data to include in the query.
