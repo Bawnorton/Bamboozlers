@@ -2,7 +2,7 @@ using System.Text.Json;
 using Bamboozlers.Classes.AppDbContext;
 using Websocket.Client;
 
-namespace Bamboozlers.Classes.Service;
+namespace Bamboozlers.Classes.Services;
 
 using System;
 using System.Threading.Tasks;

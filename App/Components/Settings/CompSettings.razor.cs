@@ -5,7 +5,6 @@ using System.Text.Json;
 using Bamboozlers.Classes;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Data.ViewModel;
 using Bamboozlers.Classes.Services;
 using Blazorise;
 using Microsoft.AspNetCore.Components;
@@ -17,10 +16,14 @@ namespace Bamboozlers.Components.Settings;
 
 public partial class CompSettings : SettingsComponentBase
 {
+    [Parameter] public EventCallback StateChangedCallback { get; set; }
     [Parameter] public bool Visible { get; set; }
     [Parameter] public string? SectionName { get; set; }
+    
+    /*
     [Parameter] public string? SentStatusMessage { get; set; }
     [Parameter] public string? SentStatusDescription { get; set; }
+    */
     
     protected override void OnInitialized()
     {
@@ -30,6 +33,7 @@ public partial class CompSettings : SettingsComponentBase
     // TODO: Impl with events?
     protected override async Task OnParametersSetAsync()
     {
+        /*
         if (!(SentStatusMessage is null || SentStatusDescription is null))
         {
             await OnAlertChange(new AlertArguments(
@@ -39,6 +43,7 @@ public partial class CompSettings : SettingsComponentBase
                 SentStatusDescription
             ));
         }
+        */
     }
 
     [Parameter] public EventCallback<UserUpdateResult> UserUpdateCallback { get; set; }
@@ -94,8 +99,8 @@ public partial class CompSettings : SettingsComponentBase
     
     private async Task<bool> ChangeUsername(string? input, string? pass)
     {
-        var user = await UserService.GetUserDataAsync();
-        if (user is null)
+        UserData = await UserService.GetUserDataAsync();
+        if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Username, 
@@ -129,7 +134,7 @@ public partial class CompSettings : SettingsComponentBase
             return false;
         }
         
-        if (input == user.UserName)
+        if (input == UserData.UserName)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Username, 
@@ -204,8 +209,8 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task<bool> ChangePassword(string? currentPassword, string? newPassword)
     {
-        var user = await UserService.GetUserDataAsync();
-        if (user is null)
+        UserData = await UserService.GetUserDataAsync();
+        if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Password, 
@@ -280,8 +285,8 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task<bool> ChangeEmail(string? newEmail)
     {
-        var user = await UserService.GetUserDataAsync();
-        if (user is null)
+        UserData = await UserService.GetUserDataAsync();
+        if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Email, 
@@ -298,7 +303,7 @@ public partial class CompSettings : SettingsComponentBase
             return false;
         }
         
-        if (newEmail is null || newEmail == user.Email)
+        if (newEmail is null || newEmail == UserData.Email)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Email, 
@@ -321,7 +326,7 @@ public partial class CompSettings : SettingsComponentBase
             "")
         );
         
-        await JsRuntime.InvokeVoidAsync("settingsInterop.SendNewEmailConfirmation", user.Id, newEmail);
+        await JsRuntime.InvokeVoidAsync("settingsInterop.SendNewEmailConfirmation", UserData.Id, newEmail);
 
         await OnAlertChange(new AlertArguments(
             Color.Secondary,
@@ -335,9 +340,8 @@ public partial class CompSettings : SettingsComponentBase
 
     private async Task<bool> DeleteAccount(string? pass)
     {
-        var user = await UserService.GetUserDataAsync();
-        
-        if (user is null)
+        UserData = await UserService.GetUserDataAsync();
+        if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
                 UserDataType.Deletion, 
@@ -396,7 +400,7 @@ public partial class CompSettings : SettingsComponentBase
             "")
         );
         
-        Logger.LogInformation("User with name '{user.UserName}' deleted their account.",user.UserName);
+        Logger.LogInformation("User with name '{user.UserName}' deleted their account.",UserData.UserName);
         
         await JsRuntime.InvokeVoidAsync("settingsInterop.ForceLogout");
         

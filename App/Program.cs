@@ -5,11 +5,13 @@ using Blazorise.Icons.FontAwesome;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
-using Bamboozlers.Classes.Service;
 using Bamboozlers.Classes.Services;
+using Bamboozlers.Classes.Services.Authentication;
 using Blazorise.Bootstrap5;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Identity.Client;
 using IMessageService = Bamboozlers.Classes.Services.IMessageService;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +56,9 @@ builder.Services.AddIdentityCore<User>(options =>
 
 builder.Services.AddTransient<IEmailSender<User>, EmailSender>();
 builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
