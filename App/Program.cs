@@ -9,6 +9,7 @@ using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.Authentication;
 using Blazorise.Bootstrap5;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 using IMessageService = Bamboozlers.Classes.Services.IMessageService;
 
