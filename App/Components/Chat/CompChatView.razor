@@ -1,12 +1,17 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes.Interop
-@using Bamboozlers.Classes.Service
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Services
+@using System.Runtime.CompilerServices
+@using System.Diagnostics
+@using AngleSharp.Diffing.Extensions
+@using Microsoft.IdentityModel.Tokens
 
 @inject IWebSocketService WebSocketService
 @inject IDbContextFactory<AppDbContext> Db
+
+@inherits UserViewComponentBase
 
 <Layout>
     <LayoutHeader Fixed
@@ -17,6 +22,13 @@
         <Text ElementId="header-text">@ChatName</Text>
     </LayoutHeader>
     <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
+        <Alert Color="@AlertColor" @bind-Visible="@AlertVisible">
+            <AlertMessage>
+                @AlertMessage
+                <CloseButton Style="--bs-btn-close-white-filter: black;" VerticalAlignment="VerticalAlignment.Middle" Float="Float.End" TextColor="TextColor.Warning"/>
+            </AlertMessage>
+            
+        </Alert>
         <Layout>
             <LayoutContent>
                 <Div>
@@ -42,7 +54,6 @@
 {
     <LayoutSider>
         <LayoutSiderContent>
-            
             <Bar Mode="BarMode.VerticalInline"
                  CollapseMode="BarCollapseMode.Hide"
                  ThemeContrast="ThemeContrast.Dark"
@@ -54,7 +65,7 @@
                              Padding="Padding.Is3"
                              TextSize="TextSize.Heading5">
                             <Text>Members - @Chat.Users.Count</Text>
-                            <Icon Name="IconName.Add" @onclick="() => compAddMember.ShowModal()"/>
+                            <Icon Class="ml-2" Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
                         </Div>
                     </BarItem>
                     @foreach (var friend in Chat.Users)
@@ -78,25 +89,25 @@
 }
 @if (Chat is GroupChat)
 {
-    <CompAddMember @ref="compAddMember" Chat="@(Chat as GroupChat)"></CompAddMember>
+    <CompAddMember @ref="CompAddMember" OnAdd="@((usersAdded) => UpdateMembers(usersAdded))" Chat="@(Chat as GroupChat)"></CompAddMember>
 }
 
 
 @code {
     [Parameter] public int ChatID { get; set; }
     private Chat? Chat { get; set; }
-    private CompAddMember compAddMember { get; set; }
+    private CompAddMember CompAddMember { get; set; }
     private User Self { get; set; }
-
     private string ChatName { get; set; }
-
     private string TypedMessage { get; set; }
-
     private List<LinkedMessage> Messages { get; set; } = [];
-
+    private Color AlertColor { get; set; }
+    private bool AlertVisible { get; set; }
+    private string AlertMessage { get; set; }
+    
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthHelper.GetSelf();
+        Self = await AuthService.GetUser();
     }
     
     protected override async Task OnParametersSetAsync()
@@ -179,7 +190,7 @@
 
         while (TypedMessage.EndsWith("\n")) TypedMessage = TypedMessage[..^1];
         while (TypedMessage.StartsWith("\n")) TypedMessage = TypedMessage[1..];
-
+        
         var message = new Message
         {
             ChatID = Chat!.ID,
@@ -193,7 +204,26 @@
 
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
     }
-
+    
+    private async Task UpdateMembers(List<User> usersAdded)
+    {
+        if (!usersAdded.IsNullOrEmpty())
+        {   
+           await using var db = await Db.CreateDbContextAsync();
+           Chat!.Users.AddRange(usersAdded); 
+           AlertVisible = true;
+           AlertMessage = "Member(s) added successfully!";
+           AlertColor = Color.Success;
+        }
+        else
+        {
+            AlertVisible = true;
+            AlertMessage = "No member(s) added!";
+            AlertColor = Color.Warning;
+        }
+        
+    }
+    
     public class LinkedMessage(Message message, Message? previous)
     {
         public MessageState GetMessageState()

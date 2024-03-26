@@ -3,14 +3,30 @@
 @using Bamboozlers.Classes.Services
 @using Microsoft.IdentityModel.Tokens
 @inject IDbContextFactory<AppDbContext> Db
+@inject IJSRuntime JSRuntime
+@inherits UserViewComponentBase
+
+<script>
+    function resetCheckboxes() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = false;
+        });
+    }
+</script>
 
 <Modal @ref="modalRef">
     <ModalContent Centered>
         <ModalHeader>
-            <ModalTitle>Employee edit</ModalTitle>
+            <ModalTitle>Add Member(s)</ModalTitle>
             <CloseButton />
         </ModalHeader>
         <ModalBody>
+            <Alert Color="Color.Danger" @bind-Visible="@ErrorVisible">
+                <AlertMessage>
+                    Sorry we failed to add your friends :( Please try again
+                </AlertMessage>
+            </Alert>
             @if (Users.IsNullOrEmpty())
             {
                 <p>Sorry all your friends are already here</p>
@@ -19,50 +35,92 @@
             {
                 @foreach (var user in Users)
                 {
-                    <Checkbox Value="@user" OnChange="e => { if (e.Value) UsersToAdd.Add(user); else UsersToAdd.Remove(user); }">
+                    <Check  TValue="bool" CheckedChanged="@(value => Change(value, user))">
                         @(user.DisplayName ?? user.UserName)
-                    </Checkbox>
+                    </Check>
                 }
             }
-            
+
         </ModalBody>
         <ModalFooter>
-            <Button Color="Color.Danger" Clicked="@HideModal">Cancel</Button>
+            <Button Color="Color.Danger" Clicked="@(() => HideModal())">Cancel</Button>
             <Button Color="Color.Success" Clicked="@AddMembers">Save Changes</Button>
         </ModalFooter>
     </ModalContent>
 </Modal>
 @code{
     [Parameter] public GroupChat Chat {get; set;}
-    private List<User> UsersToAdd { get; set; }
-    private List<User> Users { get; set; }
+    [Parameter] public EventCallback<List<User>> OnAdd { get; set; }
+    
+    private List<Names> UsersToAdd { get; set; }
+    private List<Names> Users { get; set; }
     private Modal modalRef;
-
+    private bool ErrorVisible { get; set; } = false;
+    private record Names(string UserName, string? DisplayName);
+    private User Self { get; set; }
+    
     protected override async Task OnInitializedAsync()
     {
-        UsersToAdd = new List<User>();
+        Self = await AuthService.GetUser();
+    }
+
+    private void Change(bool isChecked, Names user)
+    {
+        if (isChecked)
+        {
+            UsersToAdd.Add(user);
+        }
+        else
+        {
+            UsersToAdd.Remove(user);
+        }
+    }
+    
+    public async Task ShowModal()
+    {
+        await JSRuntime.InvokeVoidAsync("resetCheckboxes");
+        UsersToAdd = new List<Names>();
         await using var db = await Db.CreateDbContextAsync();
-        var self = await AuthHelper.GetSelf();
-        var friends = await self.GetFriends(db);
-        Users = friends.Except(Chat.Users).ToList() ?? new List<User>();
-
+        var friends = (await Self.GetFriends(db)).Select(s => new Names(
+            s.UserName,
+            s.DisplayName
+        )).ToList();
+        
+        var current = Chat.Users.Select(s => new Names(
+            s.UserName,
+            s.DisplayName
+        )).ToList();
+        
+        Users = friends.Except(current).ToList();
+        StateHasChanged();
+        await modalRef.Show();
     }
 
-    public Task ShowModal()
+    private async Task HideModal(List<User> usersAdded = null)
     {
-        return modalRef.Show();
-    }
-
-    private Task HideModal()
-    {
-        return modalRef.Hide();
+        await OnAdd.InvokeAsync(usersAdded);
+        await modalRef.Hide();
     }
 
     private async Task AddMembers()
     {
-        await using var db = await Db.CreateDbContextAsync();
-        Chat.Users.AddRange(UsersToAdd);
-        await db.SaveChangesAsync();
-        await HideModal();
+        if(UsersToAdd.IsNullOrEmpty())
+        {
+            await HideModal();
+            return;
+        }
+        try
+        {
+            await using var db = await Db.CreateDbContextAsync();
+            var users = await db.Users.Where(u => UsersToAdd.Select(s => s.UserName).Contains(u.UserName)).ToListAsync();
+            db.Chats.Include(i => i.Users).FirstOrDefault(f => f.ID == Chat.ID)?.Users.AddRange(users);
+            await db.SaveChangesAsync();
+            await HideModal(users);
+        }catch (Exception e)
+        {
+            ErrorVisible = true;
+            Console.WriteLine(e);
+        }
+        
     }
 }
