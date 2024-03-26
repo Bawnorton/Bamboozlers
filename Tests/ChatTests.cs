@@ -108,4 +108,31 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         }
 
     }
+    
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async void TestRemoveMembers(int userId)
+    {
+        //MockJsRuntimeProvider.Setup("showConfirmDialog", true);
+        await SetUser(MockDatabaseProvider.GetMockUser(userId));
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        var chat = db.Chats.Include(chat => chat.Messages).Last();
+        
+        var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
+            .Add(p => p.ChatID, chat.ID));
+        
+        var removeMembersButton = component.FindAll("#removeMember");
+        if (userId == 2)
+        {
+            Assert.Empty(removeMembersButton);
+            return;
+        }
+        Assert.Equal(2, removeMembersButton.Count);
+        removeMembersButton.First().Click();
+        
+        
+        Assert.Equal(2, db.Chats.Include(chat => chat.Users).Last().Users.Count);
+        
+    }
 }
