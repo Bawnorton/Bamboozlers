@@ -1,5 +1,10 @@
 using Bamboozlers.Components.Chat;
+using Blazorise;
+using Blazorise.Modules;
+using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tests.Provider;
 
 namespace Tests;
@@ -9,6 +14,8 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     public ChatTests()
     {
         MockDatabaseProvider.SetupMockDbContext();
+        Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
+        Ctx.Services.AddBlazorise().Replace(ServiceDescriptor.Transient<IComponentActivator, ComponentActivator>());
         
         _ = new MockJsRuntimeProvider(Ctx);
     }

@@ -106,6 +106,7 @@
     private Color AlertColor { get; set; }
     private bool AlertVisible { get; set; }
     private string AlertMessage { get; set; }
+    private bool IsMod { get; set; }
     
     protected override async Task OnInitializedAsync()
     {
@@ -120,7 +121,6 @@
             .FirstOrDefaultAsync(c => c.ID == ChatID);
         if (Chat is GroupChat groupChat)
         {
-            await db.Entry(Chat as GroupChat).Collection(c => c.Moderators).LoadAsync();
             ChatName = groupChat.Name;
         }
         else if (Chat is not null)
@@ -137,7 +137,7 @@
         messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
         Messages = linkedMessages;
-
+        IsMod = IsModerator();
         await WebSocketService.ConnectAsync(Self.Id);
     }
 
@@ -193,8 +193,10 @@
         {
             return false;
         }
-        var gc = (GroupChat) Chat;
-        return gc.OwnerID == Self.Id || (gc.Moderators is not null && gc.Moderators.Any(m => m.Id == Self.Id));
+        
+        using var db = Db.CreateDbContext();
+        var gc = db.GroupChats.Include(i => i.Moderators).FirstOrDefault(f => f.ID == ChatID);
+        return gc.OwnerID == Self.Id ||  gc.Moderators.Any(m => m.Id == Self.Id);
     }
 
     private async Task SendMessage()

@@ -155,7 +155,9 @@ public class MockDatabaseProvider
             user3.Chats.Add(groupChat);
         
             var dbSet = SetupMockDbSet(new List<Chat> { dm, groupChat });
+            var groupDbSet = SetupMockDbSet(new List<GroupChat> { groupChat });
             _mockDbContext.Setup(x => x.Chats).Returns(dbSet.Object);
+            _mockDbContext.Setup(x => x.GroupChats).Returns(groupDbSet.Object);
             return dbSet;
         }
         catch (Exception)
