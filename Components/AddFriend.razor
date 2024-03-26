@@ -10,7 +10,7 @@
 
 <h2>You can add friends with their username</h2>
 
-<Autocomplete TItem="User" TValue="string" Data="@Users"
+<Autocomplete SearchClass="search" TItem="User" TValue="string" Data="@Users"
               TextField="@((user) => user.UserName)"
                 ValueField="@((user) => user.UserName)"
                 Placeholder="Search..."

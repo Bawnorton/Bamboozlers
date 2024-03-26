@@ -1,6 +1,7 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
 @using Microsoft.AspNetCore.Identity
+@using System.Reflection.Metadata
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject UserManager<User> UserManager;
@@ -9,6 +10,7 @@
 <h2>Pending Friend Requests - @total</h2>
 <br/>
 <p>@noRequests</p>
+
 @foreach (var prospect in IncomingFriendReqs)
 {
     <span style="font-size:1.4em;">Incoming request from @prospect.UserName</span>
@@ -77,10 +79,15 @@
             Friendship newFriend = new Friendship();
                 newFriend.User1ID = prospect.Id;
                 newFriend.User2ID = self.Id;
-            
-            db.FriendRequests.Remove(db.FriendRequests.Find(prospect.Id,self.Id));
-            db.FriendRequests.Remove(db.FriendRequests.Find(self.Id,prospect.Id));
-            db.FriendShips.Add(newFriend);
+
+                var oldIncomingRequest = db.FriendRequests.Find(prospect.Id, self.Id);
+                var oldOutgoingRequest = db.FriendRequests.Find(self.Id, prospect.Id);
+
+                if (oldIncomingRequest != null)
+                    db.FriendRequests.Remove(oldIncomingRequest);
+                if (oldOutgoingRequest != null)
+                    db.FriendRequests.Remove(oldOutgoingRequest);
+                db.FriendShips.Add(newFriend);
             
             OutgoingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
             DeniedFriendReqs.RemoveAll(user => user.Id == prospect.Id);

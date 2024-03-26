@@ -1,16 +1,19 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
+@using Force.DeepCloner
 @using Microsoft.AspNetCore.Identity
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject UserManager<User> UserManager;
 
-
-<h2>All friends - @Friends.Count</h2>
 <br/>
-<p>@noFriends</p>
+<input class="search bg-dark w-25 p-2 border-0 rounded" type="search" @bind-value="CurrentSearch" @bind-value:event="oninput" placeholder="Search">
+<br/><br/>
+<h4>Friends - @DisplayedFriends.Count</h4>
+<hr/>
+<span style="font-size:1.4em;">@noFriends</span>
 
-@foreach (var friend in Friends)
+@foreach (var friend in DisplayedFriends)
 {
     <span style="font-size:1.4em;">@friend.UserName</span>
     <p></p>
@@ -18,7 +21,31 @@
 
 @code {
     private List<User> Friends = [];
+    private List<User> DisplayedFriends = [];
     private string? noFriends;
+
+    private string currentSearch;
+    private string CurrentSearch
+    {
+        get
+        {
+            if (currentSearch != null)
+            {
+                List<User> temp = Friends.DeepClone();
+                temp.RemoveAll(user => !user.UserName.Contains(currentSearch));
+                DisplayedFriends = temp;
+                if (DisplayedFriends.Count == 0)
+                    noFriends = "No friends found from this search";
+                else
+                    noFriends = "";
+            }
+            return currentSearch;
+        }
+        set
+        {
+            currentSearch = value;
+        }
+    }
     
     protected override async Task OnInitializedAsync()
     {
@@ -37,8 +64,10 @@
                 Friends.Add(friendship.User1);
             }
         }
+
         if (Friends.Count == 0)
             noFriends = "You do not have any friends added at this time :(";
+        else
+            DisplayedFriends = Friends.DeepClone();
     }
-    
 }
