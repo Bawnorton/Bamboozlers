@@ -1,0 +1,116 @@
+@using System.Data
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Components.Settings.EditComponents.Fields
+@inherits SettingsComponentBase
+
+@inject ILogger<CompSettings> Logger
+@inject IJSRuntime JsRuntime
+
+<Modal ElementId="container"
+       @bind-Visible="@Visible"
+       Closed="@(async Task () =>
+                                {
+                                    await OnAlertChange(new AlertArguments()); 
+                                    SectionName = "Account"; 
+                                })">
+    <ModalContent Size="ModalSize.ExtraLarge"
+                  Centered>
+        <ModalHeader>
+            <h3>Account Settings</h3>
+            <CloseButton/>
+        </ModalHeader>
+        <ModalBody>
+            <Alert ElementId="status-alert" Color="@Arguments.AlertColor"
+                   Visible="@Arguments.AlertVisible">
+                <AlertMessage ElementId="status-message">
+                    @Arguments.AlertMessage
+                </AlertMessage>
+                <AlertDescription ElementId="status-description">
+                    @Arguments.AlertDescription
+                </AlertDescription>
+            </Alert>
+            <Divider/>
+            <Tabs @bind-SelectedTab="SectionName">
+                <Items>
+                    <Tab Name="Account">Account</Tab>
+                    <Tab Name="Accessibility">Accessibility</Tab>
+                    <Tab Name="Privacy">Privacy</Tab>
+                </Items>
+                <Content>
+                    <TabPanel Name="Account" 
+                              Class="settings-tab scrollbar-container">
+                        <Container Class="settings-container">
+                            <Row Class="settings-row">
+                                <h3>Your Profile</h3>
+                                <Divider/>
+                                <Column>
+                                    <Row>
+                                        <h4>Avatar</h4>
+                                    </Row>
+                                    <Row>
+                                        <CompEditAvatar AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                                    </Row>
+                                </Column>
+                                <Column ColumnSize="ColumnSize.Is8">
+                                    <Row>
+                                        <CompEditDisplayName AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                                    </Row>
+                                    <CompSimpleDivider/>
+                                    <Row>
+                                        <CompEditBio AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                                    </Row>
+                                </Column>
+                            </Row>
+                            <Row Class="settings-row">
+                                <h3>Your Login Details</h3>
+                                <Divider/>
+                                <Column ColumnSize="ColumnSize.Is8">
+                                    <Row>
+                                        <CompEditUsername AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                                    </Row>
+                                    <CompSimpleDivider/>
+                                    <Row>
+                                        <CompEditEmail AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                                    </Row>
+                                    <CompSimpleDivider/>
+                                    <Row>
+                                        <CompEditPassword AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                                    </Row>
+                                </Column>
+                            </Row>
+                            <Row Class="settings-row">
+                                <h3>Extended Options</h3>
+                                <Divider/>
+                                <CompDeleteAccount AlertEventCallback="OnAlertChange" DataChangeFunction="OnDataChange"/>
+                            </Row>
+                        </Container>
+                    </TabPanel>
+                    <TabPanel Name="Privacy" 
+                              Class="settings-tab scrollbar-container">
+                        <h3>Not implemented</h3>
+                        <p>This feature is not part of the requirements and is thus not mandatory to complete, but if there is spare time...</p>
+                    </TabPanel>
+                    <TabPanel Name="Accessibility" 
+                              Class="settings-tab scrollbar-container">
+                        <h3>Not implemented</h3>
+                        <p>This feature is not part of the requirements and is thus not mandatory to complete, but if there is spare time...</p>
+                    </TabPanel>
+                </Content>
+            </Tabs>
+        </ModalBody>
+        <ModalFooter>
+            <Form id="logout-form" action="Account/Logout" method="post">
+                <AntiforgeryToken/>
+                <input id="loginRedirectMessage" type="hidden" value="You have been logged out."/>
+                <Button Color="Color.Dark"
+                        Border="Border.White"
+                        Type="ButtonType.Submit">
+                    <Icon Name="IconName.Running"/>
+                    Log Out
+                </Button>
+            </Form>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+
+<script src="scripts/settings_interop.js"></script>

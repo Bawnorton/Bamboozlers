@@ -1,0 +1,171 @@
+@inherits UserViewComponentBase;
+
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Events
+@using Bamboozlers.Classes.Interop
+@using Bamboozlers.Classes
+@using Bamboozlers.Classes.Services
+
+@inject IWebSocketService WebSocketService
+@inject IDbContextFactory<AppDbContext> Db
+
+<Layout>
+    <LayoutHeader Fixed
+                  Padding="Padding.Is3"
+                  TextSize="TextSize.Heading5"
+                  TextColor="TextColor.Primary"
+                  Background="Background.Dark">
+        <Text ElementId="header-text">@ChatName</Text>
+    </LayoutHeader>
+    <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
+        <Layout>
+            <LayoutContent>
+                <Div>
+                    @foreach (var message in Messages)
+                    {
+                        <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()"></CompMessageView>
+                    }
+                </Div>
+            </LayoutContent>
+        </Layout>
+    </LayoutContent>
+    <LayoutFooter>
+        <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Class="rounded-pill m-4" Style="bottom: 0">
+            <Div Display="Display.Flex" Overflow="Overflow.Hidden" >
+                <Div contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
+                     id="message-input" class="@($"message-input word-break {InputEvents.EventCssClass} {ClipboardEvents.EventCssClass}")" data-placeholder="@($"Message {ChatName}")">
+                </Div>
+            </Div>
+        </Div>
+    </LayoutFooter>
+</Layout>
+
+
+@code {
+    [Parameter] public int ChatID { get; set; }
+    private Chat? Chat { get; set; }
+
+    private User? Self { get; set; }
+
+    private string ChatName { get; set; }
+
+    private string TypedMessage { get; set; }
+
+    private List<LinkedMessage> Messages { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Self = await AuthService.GetUser();
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        Chat = await db.Chats.Include(i => i.Users)
+            .Include(i => i.Messages)
+            .FirstOrDefaultAsync(c => c.ID == ChatID);
+        if (Chat is GroupChat groupChat)
+        {
+            ChatName = groupChat.Name;
+        }
+        else if (Chat is not null)
+        {
+            var other = Chat.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? Self;
+            ChatName = (other!.DisplayName ?? other.UserName)!;
+        }
+        else
+        {
+            throw new InvalidOperationException("Chat is null");
+        }
+
+        var messages = new List<Message>(Chat?.Messages ?? []);
+        messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
+        var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
+        Messages = linkedMessages;
+
+        await WebSocketService.ConnectAsync(Self!.Id);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await JsInteropHelper.Register();
+
+        InputEvents.DisallowedInputs.Register(() => Task.FromResult(new List<KeyData>
+        {
+            KeyData.Normal("Enter", "Enter")
+        }));
+        InputEvents.InputKeydown.Register(async (elementId, key, _, _, shift, _, _, _, _) =>
+        {
+            if (elementId != "message-input") return;
+            if (key != "Enter" || shift) return;
+
+            await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
+            await SendMessage();
+            await InvokeAsync(StateHasChanged);
+        });
+        InputEvents.InputKeyup.Register(async (elementId, key, _, _, shift, _, _, content, _) =>
+        {
+            if (elementId != "message-input") return;
+
+            TypedMessage = content;
+            switch (key)
+            {
+                case "Backspace" when TypedMessage.Equals("\n"):
+                    await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
+                    break;
+                case "Enter" when !shift:
+                    await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
+                    break;
+            }
+        });
+        ClipboardEvents.OnPaste.Register(async (elementId, content) =>
+        {
+            if (elementId != "message-input") return content;
+
+            TypedMessage = content;
+            await InvokeAsync(StateHasChanged);
+            return content;
+        });
+        
+        StateHasChanged();
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(TypedMessage)) return;
+
+        while (TypedMessage.EndsWith("\n")) TypedMessage = TypedMessage[..^1];
+        while (TypedMessage.StartsWith("\n")) TypedMessage = TypedMessage[1..];
+
+        var message = new Message
+        {
+            ChatID = Chat!.ID,
+            SenderID = Self!.Id,
+            Content = TypedMessage,
+            SentAt = DateTime.Now,
+            IsPinned = false
+        };
+        await MessageEvents.MessageCreated.Invoker().Invoke(message);
+        WebSocketService.SendMessage(message);
+
+        Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
+    }
+
+    public class LinkedMessage(Message message, Message? previous)
+    {
+        public MessageState GetMessageState()
+        {
+            if (previous is null)
+            {
+                return MessageState.First;
+            }
+
+            return previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
+        }
+
+        public Message Message { get; } = message;
+    }
+
+}

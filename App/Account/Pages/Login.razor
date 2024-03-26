@@ -1,0 +1,118 @@
+﻿@page "/Account/Login"
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using Bamboozlers.Classes.AppDbContext
+@using System.ComponentModel.DataAnnotations
+
+@inject SignInManager<User> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManagerWrapper RedirectManager
+@inject UserManager<User> UserManager;
+
+<PageTitle>Log in</PageTitle>
+
+<div class="d-flex min-vh-100 min-vw-100">
+    <div class="col-md-4 d-flex flex-grow-1 align-items-center justify-content-center">
+        <section class="w-50 p-5 shadow">
+            <StatusMessage Message="@ErrorMessage" Link="@ErrorLink" LinkText="@ErrorLinkText" ReturnUrl="@ReturnUrl"/>
+            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator/>
+                <h2>Welcome!</h2>
+                <hr/>
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.UserNameOrEmail" id="email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com or username"/>
+                    <label for="email" class="form-label">Email or Username</label>
+                    <ValidationMessage For="() => Input.UserNameOrEmail" class="text-danger"/>
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText type="password" @bind-Value="Input.Password" id="password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password"/>
+                    <label for="password" class="form-label">Password</label>
+                    <ValidationMessage For="() => Input.Password" class="text-danger"/>
+                    <p>
+                        <a href="Account/ForgotPassword">Forgot your password?</a>
+                    </p>
+                </div>
+                <div class="checkbox mb-3">
+                    <label class="form-label">
+                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input"/>
+                        Remember me
+                    </label>
+                </div>
+                <div>
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                </div>
+                <p class="mt-2">
+                    Need an Account? 
+                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register</a>
+                </p>
+            </EditForm>
+        </section>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery] private string? ErrorMessage { get; set; }
+    [SupplyParameterFromQuery] private string? ErrorLink { get; set; }
+    [SupplyParameterFromQuery] private string? ErrorLinkText { get; set; }
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        var user = await UserManager.FindByNameAsync(Input.UserNameOrEmail) ?? await UserManager.FindByEmailAsync(Input.UserNameOrEmail);
+        if (user is null)
+        {
+            ErrorMessage = "Error: Invalid login attempt.";
+            return;
+        }
+        var result = await SignInManager.PasswordSignInAsync(user.UserName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+            RedirectManager.RedirectTo(ReturnUrl ?? "/");
+        }
+        else
+        {
+            if (!UserManager.IsEmailConfirmedAsync(user).Result)
+            {
+                ErrorMessage = "Please confirm your email before logging in. ";
+                ErrorLink = "Account/ResendEmailConfirmation";
+                ErrorLinkText = "Resend Confirmation Email";
+            }
+            else
+            {
+                ErrorMessage= "Error: Invalid login attempt.";
+            }
+            
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required] 
+        [DataType(DataType.Text)] 
+        [Display(Name = "Email or Username")]
+        public string UserNameOrEmail { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Remember me?")] public bool RememberMe { get; set; }
+    }
+
+}

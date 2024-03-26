@@ -1,0 +1,18 @@
+@using Microsoft.AspNetCore.Components
+@using System.Net
+
+<Div class="word-break">
+    @((MarkupString)SafelyFormatContentWithLineBreaks(Content))
+</Div>
+
+@code {
+    [Parameter]
+    public string Content { get; set; }
+
+    private string SafelyFormatContentWithLineBreaks(string content)
+    {
+        // No XSS thanks
+        var encodedContent = WebUtility.HtmlEncode(content);
+        return encodedContent.Replace("\n", "<br />");
+    }
+}

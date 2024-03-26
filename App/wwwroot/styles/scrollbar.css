@@ -1,0 +1,30 @@
+:root {
+    --scrollbar-width: 6px;
+    --scrollbar-thumb-radius: 10px;
+    --scrollbar-track-color: transparent;
+    --scrollbar-thumb-color: #596262;
+    --scrollbar-thumb-hover-color: #e0e0e0;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+    .scrollbar-container {
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
+    
+    .scrollbar-container::-webkit-scrollbar {
+        width: var( --scrollbar-width );
+        height: 6px;
+    }
+    
+    .scrollbar-container::-webkit-scrollbar-thumb {
+        background-color: var( --scrollbar-thumb-color );
+        border-radius: var( --scrollbar-thumb-radius );
+    }
+    
+    .scrollbar-container::-webkit-scrollbar-track {
+        background: var( --scrollbar-track-color );
+    }
+}
+
+

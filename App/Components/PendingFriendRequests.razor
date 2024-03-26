@@ -1,0 +1,130 @@
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
+@using Microsoft.AspNetCore.Identity
+@using System.Reflection.Metadata
+
+@inject IDbContextFactory<AppDbContext> Db
+@inject UserManager<User> UserManager;
+@inject NavigationManager NavigationManager
+@inherits UserViewComponentBase
+
+<br/>
+<h4>Pending Friend Requests - @total</h4>
+<hr/>
+<p>@noRequests</p>
+
+@foreach (var prospect in IncomingFriendReqs)
+{
+    <span style="font-size:1.4em;">Incoming request from @prospect.UserName</span>
+    <button @onclick="() => ManageRequest(prospect, true)" class="btn btn-success btn-sm">Accept</button>
+    <button @onclick="() => ManageRequest(prospect, false)" class="btn btn-danger btn-sm">Deny</button>
+    <p></p>
+}
+
+@foreach (var prospect in OutgoingFriendReqs)
+{
+    <span style="font-size:1.4em;">Outgoing request to @prospect.UserName</span>
+    <button @onclick="() => CancelRequest(prospect)" class="btn btn-danger btn-sm">Cancel</button>
+    <p></p>
+}
+
+@foreach (var prospect in DeniedFriendReqs)
+{
+    <span style="font-size:1.4em;">Friend request to @prospect.UserName has been denied</span>
+    <button @onclick="() => ResendRequest(prospect)" class="btn btn-success btn-sm">Resend</button>
+    <p></p>
+}
+
+@code {
+    private List<User> IncomingFriendReqs = [];
+    private List<User> OutgoingFriendReqs = [];
+    private List<User> DeniedFriendReqs = [];
+    private int total = 0;
+    private string? noRequests;
+    private User self { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated().Result) return;
+        
+        self = await AuthService.GetUser();
+        await using var db = await Db.CreateDbContextAsync();
+        foreach (var friendRequest in db.FriendRequests.Include(f => f.Sender).Include(f => f.Receiver))
+        {
+            if (friendRequest.SenderID == self.Id)
+            {
+                if (friendRequest.Status == RequestStatus.Denied)
+                {
+                    DeniedFriendReqs.Add(friendRequest.Receiver);
+                }
+                else
+                {
+                    OutgoingFriendReqs.Add(friendRequest.Receiver);
+                }
+            }
+            else if (friendRequest.ReceiverID == self.Id && friendRequest.Status == RequestStatus.Pending)
+            {   
+                IncomingFriendReqs.Add(friendRequest.Sender);
+            }
+        }
+        total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
+        if (total == 0)
+            noRequests = "You have no incoming or outgoing friend requests at this time";
+    }
+
+    private async Task ManageRequest(User prospect, Boolean accepted)
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        
+        if(accepted) 
+        {
+            Friendship newFriend = new Friendship();
+                newFriend.User1ID = prospect.Id;
+                newFriend.User2ID = self.Id;
+
+                var oldIncomingRequest = db.FriendRequests.Find(prospect.Id, self.Id);
+                var oldOutgoingRequest = db.FriendRequests.Find(self.Id, prospect.Id);
+
+                if (oldIncomingRequest != null)
+                    db.FriendRequests.Remove(oldIncomingRequest);
+                if (oldOutgoingRequest != null)
+                    db.FriendRequests.Remove(oldOutgoingRequest);
+                db.FriendShips.Add(newFriend);
+            
+            OutgoingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
+            DeniedFriendReqs.RemoveAll(user => user.Id == prospect.Id);
+        }
+        else
+        {
+            db.FriendRequests.Find(prospect.Id, self.Id).Status = RequestStatus.Denied;
+        }
+        
+        db.SaveChanges();
+        IncomingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
+        total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
+        noRequests = total == 0 ? "You have no incoming or outgoing friend requests at this time" : null;
+    }
+
+    private async Task CancelRequest(User prospect)
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        
+        db.FriendRequests.Remove(db.FriendRequests.Find(self.Id,prospect.Id));
+        db.SaveChanges();
+        OutgoingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
+        total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
+        noRequests = total == 0 ? "You have no incoming or outgoing friend requests at this time" : null;
+    }
+    
+    private async Task ResendRequest(User prospect)
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        
+        db.FriendRequests.Find(self.Id,prospect.Id).Status = RequestStatus.Pending;
+        db.SaveChanges();
+        DeniedFriendReqs.RemoveAll(user => user.Id == prospect.Id);
+        OutgoingFriendReqs.Add(prospect);
+        total = OutgoingFriendReqs.Count + IncomingFriendReqs.Count;
+        noRequests = total == 0 ? "You have no incoming or outgoing friend requests at this time" : null;
+    }
+}

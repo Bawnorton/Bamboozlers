@@ -1,0 +1,88 @@
+@inherits EditFieldBase
+
+@{
+    ViewPanelContent =
+        @<Container>
+            <Row Class="centre-content">
+                <Column ColumnSize="ColumnSize.Is8">
+                    <Div Class="form-floating">
+                        <textarea name="bio" 
+                                  type="text" 
+                                  style="resize: none; max-height: 400px; min-height: 100px;"
+                                  class="form-control"
+                                  disabled>
+                                @UserData?.Bio
+                              </textarea>
+                        <Label Class="form-label">
+                            Description
+                        </Label>
+                    </Div>
+                </Column>
+                @ToggleEditButton
+            </Row>
+        </Container>;
+
+    List<RenderFragment> formFields = [];
+    formFields.Add(
+        @<Div Class="form-floating mb-3">
+            <InputTextArea id="bio-field" 
+                           @bind-Value="Model!.Bio" 
+                           class="form-control" 
+                           aria-required="true" 
+                           style="resize: vertical; max-height: 400px; min-height: 100px;"
+                           placeholder="Please enter new description."/>
+            <Label for="bio-field"
+                   class="form-label">
+                New Description (@($"{Model!.Bio.Length}/{MaxLength}"))
+            </Label>
+            <ValidationMessage For="() => Model!.Bio" class="text-danger"/>
+        </Div>
+    );
+    
+    EditPanelContent =
+        @<EditPanelBase
+             SubmitCallback="OnValidSubmitAsync"
+             Model="Model"
+             FormName="change-bio"
+             Fields="formFields"
+             Buttons="EditPanelButtons"/>;
+}
+
+@{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    private BioInputModel? Model { get; set; } = new();
+
+    private static readonly int MaxLength = 1000;
+    
+    public override async Task OnValidSubmitAsync()
+    {
+        await base.OnValidSubmitAsync();
+        if (DataChangeFunction is null)
+        {
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
+            return;
+        }
+        
+        var result = await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Visual,
+            Bio = Model!.Bio
+        });
+
+        if (result)
+        {
+
+            await AlertEventCallback.InvokeAsync(new AlertArguments(
+                Color.Primary,
+                true,
+                "Success!",
+                "Your description has been changed."
+            ));
+
+            await Toggle();
+        }
+    }
+}

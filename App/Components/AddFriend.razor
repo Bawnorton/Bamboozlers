@@ -1,0 +1,67 @@
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
+@using Blazorise.Components
+@inject IDbContextFactory<AppDbContext> Db
+@inject UserManager<User> UserManager;
+@inherits UserViewComponentBase
+
+<br/>
+<h4>You can add friends with their username</h4>
+<br/>
+
+<Autocomplete SearchClass="search" TItem="User" TValue="string" Data="@Users"
+              TextField="@((user) => user.UserName)"
+                ValueField="@((user) => user.UserName)"
+                Placeholder="Search..."
+                Filter="AutocompleteFilter.StartsWith"
+                FreeTyping
+              CustomFilter="@(( item, searchValue ) => item.UserName.IndexOf( searchValue, 0, StringComparison.CurrentCultureIgnoreCase ) >= 0 )">
+    <NotFoundContent> Sorry... @context was not found! :( </NotFoundContent>
+    <ItemContent>
+        <Div Flex="Flex.InlineFlex.JustifyContent.Between" Width="Width.Is100">
+            <Text Margin="Margin.Is2.FromBottom">@context.Value</Text>
+            <button class="btn btn-success" onclick="stopPropagation()" @onmousedown="() => SendRequest(context.Value)">Add Friend</button>
+        </Div>
+    </ItemContent>
+</Autocomplete>
+
+@code
+{
+    private List<User> Users = []; 
+    private User self { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        self = await AuthService.GetUser();
+        var blocked = db.BlockList.Where(w => w.BlockerID == self.Id).Select(s => s.BlockerID).ToList();
+        var friends1 = db.FriendShips.Where(w => w.User2ID == self.Id).Select(s => s.User1ID).ToList();
+        var friends2 = db.FriendShips.Where(w => w.User1ID == self.Id).Select(s => s.User2ID).ToList();
+        var outwardsPending = db.FriendRequests.Where(w => w.SenderID == self.Id && w.Status == 0).Select(s => s.ReceiverID).ToList();
+        var inwardsPending = db.FriendRequests.Where(w => w.ReceiverID == self.Id && w.Status == 0).Select(s => s.SenderID).ToList();
+        Users = db.Users
+            .Where(user => !blocked.Contains(user.Id) && !friends1.Contains(user.Id) && !friends2.Contains(user.Id) && !outwardsPending.Contains(user.Id) && (!inwardsPending.Contains(user.Id)))
+            .Where(user => user.UserName != self.UserName)
+            .ToList();    
+    }
+    
+    private async Task SendRequest(String username)
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        var prospect = await UserManager.FindByNameAsync(username);
+        
+        FriendRequest newRequest = new FriendRequest();
+            newRequest.SenderID = self.Id;
+            newRequest.ReceiverID = prospect.Id;
+         newRequest.Status = RequestStatus.Pending;
+                    
+         db.FriendRequests.Add(newRequest);
+         db.SaveChanges();
+         
+         Users.RemoveAll(user => user.UserName == username);
+    }
+    
+}

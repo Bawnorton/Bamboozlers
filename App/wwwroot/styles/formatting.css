@@ -1,0 +1,41 @@
+.message-input:empty:before {
+    content: attr(data-placeholder);
+    color: rgba(200, 201, 206, 0.5) !important;
+}
+
+.message-input:focus {
+    outline: none;
+}
+
+.word-break {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+.centre-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-tab {
+    min-height: 50vh;
+    max-height: 50vh;
+    margin: 2%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth
+}
+
+.settings-container {
+    margin: 2%;
+    padding: 0 10%;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 2%;
+    padding-bottom: 2%
+}

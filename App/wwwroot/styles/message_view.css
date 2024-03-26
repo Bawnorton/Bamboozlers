@@ -1,0 +1,102 @@
+:root {
+    --hover-background-colour: hsl(217, 16%, 20%);
+}
+
+.message-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.message-avatar {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    margin-right: 10px;
+    margin-bottom: 3px;
+}
+
+.message-info {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.message-username {
+    font-weight: bold;
+}
+
+.message-username:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.message-timestamp {
+    color: #8e8e8e;
+    font-size: 12px;
+    margin-left: 10px;
+    align-self: center;
+}
+
+.message-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    position: relative;
+}
+
+.message-content:hover {
+    background-color: var(--hover-background-colour);
+}
+
+.message-actions {
+    display: flex;
+    position: absolute;
+    top: -15px;
+    right: 0;
+    border-radius: 5px;
+    flex-direction: row;
+    align-items: center;
+    z-index: 1;
+}
+
+.message-content:hover .message-actions {
+    background-color: #585858;
+}
+
+.message-content:hover .message-actions button {
+    visibility: visible;
+}
+
+.message-actions button {
+    padding: 2px 15px;
+    visibility: hidden;
+}
+
+.message-actions button:hover {
+    background-color: #727272;
+}
+
+.message-header:hover {
+    background-color: var(--hover-background-colour);
+}
+
+.message-header:hover + .message-content {
+    background-color: var(--hover-background-colour);
+}
+
+.message-header:hover + .message-content .message-actions {
+    background-color: #585858;
+}
+
+.message-header:hover + .message-content .message-actions button {
+    visibility: visible;
+}
+
+/* equivalent to .message-content:hover -previous- .message-header */
+.message-header:has(+ .message-content:hover) {
+    background-color: var(--hover-background-colour);
+}
