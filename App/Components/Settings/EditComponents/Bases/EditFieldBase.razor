@@ -1,5 +1,5 @@
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Components.Settings.VisualUtility
+@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Components.Settings.EditComponents.VisualUtility
 @inherits SettingsComponentBase
 
 <Tabs @bind-SelectedTab="InteractionMode">
@@ -35,7 +35,7 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        ToggleEditButton = @<CompSettingsActionButton ActionCallback="Toggle"
+        ToggleEditButton = @<CompActionButton ActionCallback="Toggle"
                                                 ButtonId="toggle-edit"
                                                 IconName="IconName.Pen"
                                                 Color="Color.Light"

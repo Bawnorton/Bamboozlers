@@ -1,0 +1,73 @@
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Components.VisualUtility
+@using Blazorise.Extensions
+
+<Container>
+    <Row>
+        <Column ColumnSize="ColumnSize.Is8">
+            <Image ElementId="avatar-display"
+                   Class="border-mask fit"
+                   Source="@ViewUser.Avatar"/>
+        </Column>
+        <!-- TODO: Action Buttons (e.g., Send Message (if added), Send Friend Request (if not added))  -->
+        @if (IsFriend)
+        {
+            <CompActionButton ActionCallback="OpenChat"
+                              ColumnWidth="ColumnSize.Is3"
+                              ButtonCaption="Send Message"/>
+        }
+        else
+        {
+            <CompActionButton ActionCallback="SendFriendRequest"
+                              ColumnWidth="ColumnSize.Is3"
+                              ButtonCaption="Send Friend Request"/>
+        }
+        <Column ColumnSize="ColumnSize.Is1">
+            <Icon Name="IconName.MoreVertical"/>
+            <Div Class="profile-options"></Div>
+            <!-- TODO: Ellipsis Menu Options (e.g., Remove Friend, Block, Invite to Group) -->
+        </Column>
+    </Row>
+    <Row>
+        <!-- TODO: Action Buttons -->
+    </Row>
+    @if (!ViewUser.DisplayName.IsNullOrEmpty())
+    {
+        <Row>
+            <h2>@ViewUser.DisplayName</h2>
+        </Row>
+    }
+    <Row>
+        <Text>
+            @if (!ViewUser.DisplayName.IsNullOrEmpty())
+            {
+                <h3>@ViewUser.UserName</h3>
+            }
+            else
+            {
+                <h2>@ViewUser.UserName</h2>
+            }
+        </Text>
+    </Row>
+    <Row>
+        <h2>ABOUT ME</h2>
+        <Divider/>
+        <textarea name="bio" 
+                  type="text" 
+                  style="resize: none; max-height: 400px; min-height: 100px;"
+                  class="form-control"
+                  disabled>
+                    @ViewUser.Bio
+        </textarea>        
+    </Row>
+</Container>
+
+@code {
+    [Parameter] public UserRecord ViewUser { get; set; }
+    [Parameter] public bool IsFriend { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+    }
+}
