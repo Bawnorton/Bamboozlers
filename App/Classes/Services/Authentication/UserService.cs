@@ -1,9 +1,7 @@
-using System.Security.Claims;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Identity;
-using Xunit;
 
 namespace Bamboozlers.Classes.Services.Authentication;
 
@@ -26,9 +24,9 @@ public class UserService : IUserService
     /// </summary>
     private async Task<UserRecord> BuildUserDataAsync()
     {
-        using var scope = ServiceProvider.CreateScope();
-        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
-        var user = await userManager.GetUserAsync(await AuthService.GetClaims());
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var user = await userManager.GetUserAsync(await AuthService.GetClaims()).ConfigureAwait(false);
         
         var record = user is not null
         ? new UserRecord(
@@ -57,7 +55,7 @@ public class UserService : IUserService
     public virtual async Task<IdentityResult> UpdateUserAsync(UserRecord? newValues = null)
     {
         using var scope = ServiceProvider.CreateScope();
-        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var user = await userManager.GetUserAsync(await AuthService.GetClaims());
         
         if (user is null) 
@@ -88,7 +86,7 @@ public class UserService : IUserService
     public virtual async Task<IdentityResult> ChangeUsernameAsync(string username, string password)
     {
         using var scope = ServiceProvider.CreateScope();
-        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
+        var userManager = scope.ServiceProvider.GetService<UserManager<User>>()!;
         var user = await userManager.GetUserAsync(await AuthService.GetClaims());
         
         if (user is null) 
