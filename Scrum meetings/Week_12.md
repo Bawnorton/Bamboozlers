@@ -24,11 +24,11 @@
   </tr>
   <tr>
     <th>Issues Completed</th>
-    <td>9 Issues</td> <!-- INCOMPLETE -->
+    <td>10 Issues</td> 
   </tr>
   <tr>
     <th>Issues Left</th>
-    <td>6 Issues</td> <!-- INCOMPLETE -->
+    <td>5 Issues</td> 
   </tr>
   <tr>
     <th>Team Capacity</th>
@@ -42,7 +42,7 @@
   </tr>
   <tr>
     <th>Summary</th>
-    <td>Some issues could not be completed due to technical problems related to the tech stack. Some issues could not be completed due to necessary prioritization of other tasks for team members.</td> <!-- INCOMPLETE -->
+    <td>Some issues could not be completed due to technical problems related to the tech stack. Some issues could not be completed due to necessary prioritization of other tasks for team members.</td> 
   </tr>
 </table>
 
@@ -58,32 +58,32 @@
   </tr>
   <tr>
     <th>Sprint Theme</th>
-    <td>Development & Milestone 4</td> <!-- INCOMPLETE -->
+    <td>Development & Milestone 4</td> 
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td>At least 8 hours per teammate</td> <!-- INCOMPLETE -->
+    <td>At least 8 hours per teammate</td> 
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td>19 issues</td> <!-- INCOMPLETE -->
+    <td>19 issues</td> 
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      Bridgette Hunt - 3 issues<br> <!-- INCOMPLETE -->
-      MacKenzie Richards - 4 issues<br> <!-- INCOMPLETE -->
-      Zahra Kagda - 4 issues<br> <!-- INCOMPLETE -->
-      Ben Norton - 5 issues<br> <!-- INCOMPLETE -->
-      Ryan Osmond - 3 issues <!-- INCOMPLETE -->
+      Bridgette Hunt - 4 issues<br> 
+      MacKenzie Richards - 3 issues<br> 
+      Zahra Kagda - 4 issues<br> 
+      Ben Norton - 5 issues<br> 
+      Ryan Osmond - 3 issues 
     </td>
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td>Milestone 4 is high priority and needs to be completed for friday.</td> <!-- INCOMPLETE -->
+    <td>Milestone 4 is high priority and needs to be completed for friday.</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td>Some issues may need to be re-assigned to other team members during the week to ensure Milestone 4 completion is prioritized.</td> <!-- INCOMPLETE -->
+    <td>Some issues may need to be re-assigned to other team members during the week to ensure Milestone 4 completion is prioritized.</td> 
   </tr>
 </table>
