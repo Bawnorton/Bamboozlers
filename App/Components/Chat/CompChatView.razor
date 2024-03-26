@@ -60,6 +60,10 @@
     
     protected override async Task OnParametersSetAsync()
     {
+        await using var db = await Db.CreateDbContextAsync();
+        Chat = await db.Chats.Include(i => i.Users)
+            .Include(i => i.Messages)
+            .FirstOrDefaultAsync(c => c.ID == ChatID);
         if (Chat is GroupChat groupChat)
         {
             ChatName = groupChat.Name;
