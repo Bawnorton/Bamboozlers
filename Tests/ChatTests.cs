@@ -55,4 +55,57 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
             Assert.Equal(expected, actual);
         }
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async void TestAddMembers(int userId)
+    {
+        await SetUser(MockDatabaseProvider.GetMockUser(userId));
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        var chat = db.Chats.Include(chat => chat.Messages).Last();
+        
+        var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
+            .Add(p => p.ChatID, chat.ID));
+        
+        // Act
+        var addMembersButton = component.FindAll("#addMembers");
+        if (userId == 2)
+        {
+            Assert.Empty(addMembersButton);
+            return;
+        }
+        addMembersButton.Single().Click();
+        
+        // Assert
+        var checkboxes = component.FindAll("input[type='checkbox']");
+        if (userId == 0)
+        {
+            Assert.Empty(checkboxes);
+        }
+        else
+        {
+             Assert.Single(checkboxes);
+        }
+       
+        
+        Assert.Equal(3, db.Chats.Include(chat => chat.Users).Last().Users.Count);
+
+        // Act
+        if(userId == 1)
+        {
+            checkboxes.Single().Change(true);
+        }
+        component.Find("#saveChanges").Click();
+        if(userId == 1)
+        {        
+            Assert.Contains(db.Users.Last().UserName, component.Markup);
+        }
+        else
+        {
+            Assert.Contains("No member(s) added!", component.Markup);
+        }
+
+    }
 }

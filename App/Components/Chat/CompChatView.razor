@@ -67,7 +67,7 @@
                             <Text Class="me-4">Members - @Chat.Users.Count</Text>
                             @if (IsModerator())
                             {
-                                <Icon Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
+                                <Icon ElementId="addMembers" role="button" Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
                             }
                         </Div>
                     </BarItem>
@@ -220,11 +220,10 @@
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
     }
     
-    private async Task UpdateMembers(List<User> usersAdded)
+    private void UpdateMembers(List<User> usersAdded)
     {
         if (!usersAdded.IsNullOrEmpty())
         {   
-           await using var db = await Db.CreateDbContextAsync();
            Chat!.Users.AddRange(usersAdded); 
            AlertVisible = true;
            AlertMessage = "Member(s) added successfully!";

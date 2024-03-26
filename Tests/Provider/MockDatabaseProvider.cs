@@ -114,6 +114,17 @@ public class MockDatabaseProvider
                 UserName = "TestUser2",
                 Email = "test_user2@gmail.com",
                 EmailConfirmed = true
+            },
+            new()
+            {
+                Id = 3,
+                AccessFailedCount = 0,
+                Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
+                UserName = "TestUser3",
+                Email = "test_user3@gmail.com",
+                EmailConfirmed = true
             }
         });
         _mockDbContext.Setup(x => x.Users).Returns(dbSet.Object);
@@ -126,7 +137,7 @@ public class MockDatabaseProvider
         {
             var user1 = users.First();
             var user2 = users.Skip(1).First();
-            var user3 = users.Last();
+            var user3 = users.Skip(2).First();
 
             var dm = new Chat
             {
@@ -320,6 +331,7 @@ public class MockDatabaseProvider
         {
             var user1 = users.First();
             var user2 = users.Skip(1).First();
+            var user4 = users.Last();
 
             var dbSet = SetupMockDbSet(new List<Friendship>
             {
@@ -329,6 +341,13 @@ public class MockDatabaseProvider
                     User1ID = user1.Id,
                     User2 = user2,
                     User2ID = user2.Id
+                },
+                new()
+                {
+                    User1 = user2,
+                    User1ID = user2.Id,
+                    User2 = user4,
+                    User2ID = user4.Id
                 }
             });
             _mockDbContext.Setup(x => x.FriendShips).Returns(dbSet.Object);
