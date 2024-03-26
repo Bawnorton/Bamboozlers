@@ -35,7 +35,11 @@
             {
                 @foreach (var user in Users)
                 {
-                    <Check  TValue="bool" CheckedChanged="@(value => Change(value, user))">
+                    <Check TValue="bool" CheckedChanged="@(value => Change(value, user))">
+                        @if (user.Avatar != null)
+                        {
+                            <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") Class="message-avatar" alt=""/>
+                        }
                         @(user.DisplayName ?? user.UserName)
                     </Check>
                 }
@@ -56,7 +60,7 @@
     private List<Names> Users { get; set; }
     private Modal modalRef;
     private bool ErrorVisible { get; set; } = false;
-    private record Names(string UserName, string? DisplayName);
+    private record Names(string UserName, string? DisplayName, byte[]? Avatar);
     private User Self { get; set; }
     
     protected override async Task OnInitializedAsync()
@@ -83,12 +87,14 @@
         await using var db = await Db.CreateDbContextAsync();
         var friends = (await Self.GetFriends(db)).Select(s => new Names(
             s.UserName,
-            s.DisplayName
+            s.DisplayName,
+            s.Avatar
         )).ToList();
         
         var current = Chat.Users.Select(s => new Names(
             s.UserName,
-            s.DisplayName
+            s.DisplayName,
+            s.Avatar
         )).ToList();
         
         Users = friends.Except(current).ToList();

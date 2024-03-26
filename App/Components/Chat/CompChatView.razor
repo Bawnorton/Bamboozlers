@@ -65,7 +65,10 @@
                              Padding="Padding.Is3"
                              TextSize="TextSize.Heading5">
                             <Text>Members - @Chat.Users.Count</Text>
-                            <Icon Class="ml-2" Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
+                            @if (IsModerator())
+                            {
+                                <Icon Class="ml-2" Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
+                            }
                         </Div>
                     </BarItem>
                     @foreach (var friend in Chat.Users)
@@ -87,10 +90,9 @@
         </LayoutSiderContent>
     </LayoutSider>
 }
-@if (Chat is GroupChat)
-{
-    <CompAddMember @ref="CompAddMember" OnAdd="@((usersAdded) => UpdateMembers(usersAdded))" Chat="@(Chat as GroupChat)"></CompAddMember>
-}
+
+<CompAddMember @ref="CompAddMember" OnAdd="@((usersAdded) => UpdateMembers(usersAdded))" Chat="@(Chat as GroupChat)"></CompAddMember>
+
 
 
 @code {
@@ -118,6 +120,7 @@
             .FirstOrDefaultAsync(c => c.ID == ChatID);
         if (Chat is GroupChat groupChat)
         {
+            await db.Entry(Chat as GroupChat).Collection(c => c.Moderators).LoadAsync();
             ChatName = groupChat.Name;
         }
         else if (Chat is not null)
@@ -182,6 +185,16 @@
         });
         
         StateHasChanged();
+    }
+
+    private bool IsModerator()
+    {
+        if (Chat is not GroupChat)
+        {
+            return false;
+        }
+        var gc = (GroupChat) Chat;
+        return gc.OwnerID == Self.Id || (gc.Moderators is not null && gc.Moderators.Any(m => m.Id == Self.Id));
     }
 
     private async Task SendMessage()
