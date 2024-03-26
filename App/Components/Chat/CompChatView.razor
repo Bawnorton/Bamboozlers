@@ -65,7 +65,7 @@
                              Padding="Padding.Is3"
                              TextSize="TextSize.Heading5">
                             <Text Class="me-4">Members - @Chat.Users.Count</Text>
-                            @if (IsModerator())
+                            @if (IsMod)
                             {
                                 <Icon ElementId="addMembers" role="button" Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
                             }
