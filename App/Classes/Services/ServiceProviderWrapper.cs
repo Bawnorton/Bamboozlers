@@ -23,4 +23,9 @@ public class ServiceProviderWrapper(IServiceProvider services)
     {
         return services.GetService<T>();
     }
+    
+    public virtual AsyncServiceScope CreateAsyncScope()
+    {
+        return services.CreateAsyncScope();
+    }
 }

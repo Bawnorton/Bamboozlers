@@ -1,15 +1,14 @@
 using Bamboozlers;
-using Bamboozlers.Classes.AppDbContext;
-using Blazorise;
-using Blazorise.Icons.FontAwesome;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
 using Bamboozlers.Account;
+using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.Authentication;
+using Blazorise;
 using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.Identity.Client;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using IMessageService = Bamboozlers.Classes.Services.IMessageService;
 
 
@@ -43,7 +42,12 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING")));
+{
+    options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING"), sqlServerOptions =>
+    {
+        sqlServerOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+    });
+});
 
 builder.Services.AddIdentityCore<User>(options =>
                         {
@@ -57,6 +61,7 @@ builder.Services.AddIdentityCore<User>(options =>
 builder.Services.AddTransient<IEmailSender<User>, EmailSender>();
 builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
 
+builder.Services.AddScoped<ServiceProviderWrapper>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
