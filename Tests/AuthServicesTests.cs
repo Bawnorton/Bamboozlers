@@ -1,6 +1,7 @@
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services.Authentication;
 using Bamboozlers.Classes.Utility.Observer;
+using HttpContextMoq;
 using Microsoft.EntityFrameworkCore;
 using Xunit.Abstractions;
 
@@ -11,7 +12,7 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
     public AuthServicesTests()
     {
         AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
-        UserService = new UserService(AuthService, new MockUserManager(Ctx, MockDatabaseProvider).GetUserManager());
+        UserService = new UserService(AuthService, new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper());
     }
     
     [Fact]
@@ -46,9 +47,6 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
             .Users.First(u => u.Id == 0));
         
         var dbContext = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var claims = await AuthService.GetClaims();
-        var user = await UserService.GetUserAsync(claims);
-        Assert.NotNull(user);
 
         var userData = await UserService.GetUserDataAsync();
         Assert.NotNull(userData);
@@ -56,7 +54,7 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("TestUser0",userData.UserName);
         Assert.Equal("test_user0@gmail.com",userData.Email);
         
-        user = dbContext.Users.First(u => u.Id == 1);
+        var user = dbContext.Users.First(u => u.Id == 1);
         await SetUser(user);
         
         userData = await UserService.GetUserDataAsync();
