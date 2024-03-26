@@ -64,10 +64,10 @@
                              Background="Background.Dark"
                              Padding="Padding.Is3"
                              TextSize="TextSize.Heading5">
-                            <Text>Members - @Chat.Users.Count</Text>
+                            <Text Class="me-4">Members - @Chat.Users.Count</Text>
                             @if (IsModerator())
                             {
-                                <Icon Class="ml-2" Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
+                                <Icon Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
                             }
                         </Div>
                     </BarItem>

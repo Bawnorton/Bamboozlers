@@ -3,17 +3,7 @@
 @using Bamboozlers.Classes.Services
 @using Microsoft.IdentityModel.Tokens
 @inject IDbContextFactory<AppDbContext> Db
-@inject IJSRuntime JSRuntime
 @inherits UserViewComponentBase
-
-<script>
-    function resetCheckboxes() {
-        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(cb => {
-            cb.checked = false;
-        });
-    }
-</script>
 
 <Modal @ref="modalRef">
     <ModalContent Centered>
@@ -35,7 +25,7 @@
             {
                 @foreach (var user in Users)
                 {
-                    <Check TValue="bool" CheckedChanged="@(value => Change(value, user))">
+                    <Check TValue="bool" Checked="@IsChecked(user)" CheckedChanged="@(value => Change(value, user))">
                         @if (user.Avatar != null)
                         {
                             <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") Class="message-avatar" alt=""/>
@@ -79,10 +69,14 @@
             UsersToAdd.Remove(user);
         }
     }
+
+    private bool IsChecked(Names user)
+    {
+        return UsersToAdd.Any(a => a.UserName == user.UserName);
+    }
     
     public async Task ShowModal()
     {
-        await JSRuntime.InvokeVoidAsync("resetCheckboxes");
         UsersToAdd = new List<Names>();
         await using var db = await Db.CreateDbContextAsync();
         var friends = (await Self.GetFriends(db)).Select(s => new Names(
@@ -97,8 +91,10 @@
             s.Avatar
         )).ToList();
         
-        Users = friends.Except(current).ToList();
-        StateHasChanged();
+        Users = friends
+            .Where(f => current.All(c => c.UserName != f.UserName))
+            .ToList();
+
         await modalRef.Show();
     }
 
