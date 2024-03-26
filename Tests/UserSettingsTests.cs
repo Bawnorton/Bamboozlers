@@ -31,7 +31,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         
         // Set-up true Auth and User Services
         AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
-        UserService = new UserService(AuthService, new ServiceProviderMock());
+        UserService = new UserService(AuthService, new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper());
 
         Ctx.Services.AddSingleton<IUserService>(UserService);
         Ctx.Services.AddSingleton<IAuthService>(AuthService);

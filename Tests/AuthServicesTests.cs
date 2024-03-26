@@ -12,7 +12,7 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
     public AuthServicesTests()
     {
         AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
-        UserService = new UserService(AuthService, new ServiceProviderMock());
+        UserService = new UserService(AuthService, new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper());
     }
     
     [Fact]

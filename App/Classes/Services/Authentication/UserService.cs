@@ -10,12 +10,12 @@ namespace Bamboozlers.Classes.Services.Authentication;
 public class UserService : IUserService
 {
     private IAuthService AuthService { get; }
-    private IServiceProvider ServiceProvider { get; }
+    private ServiceProviderWrapper ServiceProvider { get; }
 
     /* User (Data) Retrieval */
     private UserRecord? UserRecord { get; set; }
 
-    public UserService(IAuthService authService, IServiceProvider serviceProvider)
+    public UserService(IAuthService authService, ServiceProviderWrapper serviceProvider)
     {
         AuthService = authService;
         ServiceProvider = serviceProvider;
@@ -27,7 +27,7 @@ public class UserService : IUserService
     private async Task<UserRecord> BuildUserDataAsync()
     {
         using var scope = ServiceProvider.CreateScope();
-        var userManager = scope.ServiceProvider.GetService<UserManager<User>>()!;
+        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
         var user = await userManager.GetUserAsync(await AuthService.GetClaims());
         
         var record = user is not null
@@ -57,7 +57,7 @@ public class UserService : IUserService
     public virtual async Task<IdentityResult> UpdateUserAsync(UserRecord? newValues = null)
     {
         using var scope = ServiceProvider.CreateScope();
-        var userManager = scope.ServiceProvider.GetService<UserManager<User>>()!;
+        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
         var user = await userManager.GetUserAsync(await AuthService.GetClaims());
         
         if (user is null) 
@@ -88,7 +88,7 @@ public class UserService : IUserService
     public virtual async Task<IdentityResult> ChangeUsernameAsync(string username, string password)
     {
         using var scope = ServiceProvider.CreateScope();
-        var userManager = scope.ServiceProvider.GetService<UserManager<User>>()!;
+        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
         var user = await userManager.GetUserAsync(await AuthService.GetClaims());
         
         if (user is null) 
@@ -110,7 +110,7 @@ public class UserService : IUserService
     public virtual async Task<IdentityResult> ChangePasswordAsync(string currentPassword, string newPassword)
     {
         using var scope = ServiceProvider.CreateScope();
-        var userManager = scope.ServiceProvider.GetService<UserManager<User>>()!;
+        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
         var user = await userManager.GetUserAsync(await AuthService.GetClaims());
         
         if (user is null) 
@@ -129,7 +129,7 @@ public class UserService : IUserService
     public virtual async Task<IdentityResult> DeleteAccountAsync(string password)
     {
         using var scope = ServiceProvider.CreateScope();
-        var userManager = scope.ServiceProvider.GetService<UserManager<User>>()!;
+        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
         var user = await userManager.GetUserAsync(await AuthService.GetClaims());
         
         if (user is null) 

@@ -58,6 +58,7 @@ builder.Services.AddIdentityCore<User>(options =>
 builder.Services.AddTransient<IEmailSender<User>, EmailSender>();
 builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
 
+builder.Services.AddScoped<ServiceProviderWrapper>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
