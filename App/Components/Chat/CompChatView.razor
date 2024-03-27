@@ -38,8 +38,25 @@
                   Padding="Padding.Is3"
                   TextSize="TextSize.Heading5"
                   TextColor="TextColor.Primary"
-                  Background="Background.Dark">
-        <Text ElementId="header-text">@ChatName</Text>
+                  Background="Background.Dark"
+                  Display="Display.InlineFlex"
+                  Class="justify-content-between align-items-center">
+        <Div>
+            @if (Chat is GroupChat groupChat && groupChat.Avatar != null)
+            {
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}") Class="message-avatar" alt=""/>
+            }else if (Chat is not null && Chat is not GroupChat && Chat.Users.FirstOrDefault(f => f.Id != Self.Id).Avatar != null)
+            {
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.FirstOrDefault(f => f.Id != Self.Id).Avatar)}") Class="message-avatar" alt=""/>
+            }
+            <Text ElementId="header-text">@ChatName</Text>
+        </Div>
+        
+        @if (IsMod)
+        {
+            <Icon Name="IconName.Settings" role="button" @onclick="() => CompChatSettings.ShowModal()"/>
+        }
+
     </LayoutHeader>
     <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
         <Alert Color="@AlertColor" @bind-Visible="@AlertVisible">
@@ -47,7 +64,6 @@
                 @AlertMessage
                 <CloseButton Style="--bs-btn-close-white-filter: black;" VerticalAlignment="VerticalAlignment.Middle" Float="Float.End" TextColor="TextColor.Warning"/>
             </AlertMessage>
-            
         </Alert>
         <Layout>
             <LayoutContent>
@@ -104,11 +120,14 @@
                                     @(friend.DisplayName ?? friend.UserName)
                                 </Div>
                                 
-                                @if (IsMod && friend.Id != Self.Id)
+                                @if (IsMod && friend.Id != Self.Id && friend.Id != ((Chat as GroupChat)!).OwnerID)
                                 {
-                                    <Button Size="Size.Small" Display="Display.Inline" ElementId="removeMember" Color="Color.Danger" @onclick="() => RemoveMember(friend.Id)">
+                                    <Paragraph TextSize="TextSize.Small" Display="Display.Inline" 
+                                          role="button" Class="text-decoration-underline mb-0 text-danger-emphasis" 
+                                          ElementId="removeMember"
+                                          @onclick="() => RemoveMember(friend.Id)">
                                         Remove
-                                    </Button>
+                                    </Paragraph>
                                 }
                             </BarLink>
                         </BarItem>
@@ -120,7 +139,11 @@
     </LayoutSider>
 }
 
-<CompAddMember @ref="CompAddMember" OnAdd="@((usersAdded) => UpdateMembers(usersAdded))" Chat="@(Chat as GroupChat)"></CompAddMember>
+@if (IsMod)
+{
+    <CompAddMember @ref="CompAddMember" OnAdd="@((usersAdded) => UpdateMembers(usersAdded))" Chat="@(Chat as GroupChat)"/>
+    <CompChatSettings @ref="CompChatSettings" Chat="@(Chat as GroupChat)" OnChange="SettingsChanged"/>
+}
 
 
 
@@ -128,6 +151,7 @@
     [Parameter] public int ChatID { get; set; }
     private Chat? Chat { get; set; }
     private CompAddMember CompAddMember { get; set; }
+    private CompChatSettings CompChatSettings { get; set; }
     private User Self { get; set; }
     private string ChatName { get; set; }
     private string TypedMessage { get; set; }
@@ -143,6 +167,13 @@
     }
     
     protected override async Task OnParametersSetAsync()
+    {
+        await GetData();   
+        IsMod = IsModerator();
+        await WebSocketService.ConnectAsync(Self.Id);
+    }
+
+    private async Task GetData()
     {
         await using var db = await Db.CreateDbContextAsync();
         Chat = await db.Chats.Include(i => i.Users)
@@ -166,8 +197,6 @@
         messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
         Messages = linkedMessages;
-        IsMod = IsModerator();
-        await WebSocketService.ConnectAsync(Self.Id);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -302,6 +331,14 @@
             AlertColor = Color.Danger;
         }
         
+    }
+
+    private async Task SettingsChanged()
+    {
+        AlertVisible = true;
+        AlertMessage = "Settings updated successfully!";
+        AlertColor = Color.Success;
+        await GetData();
     }
     
     public class LinkedMessage(Message message, Message? previous)
