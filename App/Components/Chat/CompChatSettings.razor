@@ -56,13 +56,13 @@
                     </Row>
                 </Div>
                 
-                <TextEdit Class="w-50" @bind-Text="@Chat.Name" Placeholder="Chat Name"></TextEdit>
+                <TextEdit Class="w-50" @bind-Text="@Chat.Name" ElementId="chat-name" Placeholder="Chat Name"></TextEdit>
             </Div>
             @if (Self.Id == Chat.OwnerID)
             {
                 <CompSimpleDivider/>
                 <Div>
-                    <Heading Size="HeadingSize.Is4">Moderators</Heading>
+                    <Heading ElementId="mod-heading" Size="HeadingSize.Is4">Moderators</Heading>
                     <Paragraph TextSize="TextSize.Small" TextColor="TextColor.Warning">These users can add and remove members and change the chat settings.</Paragraph>
                     @foreach (var user in Users)
                     {
@@ -80,7 +80,7 @@
         </ModalBody>
         <ModalFooter>
             <Button Color="Color.Danger" Clicked="@(() => HideModal())">Cancel</Button>
-            <Button ElementId="saveChanges" Color="Color.Success" Clicked="@SaveChanges">Save Changes</Button>
+            <Button ElementId="settings-save" Color="Color.Success" Clicked="@SaveChanges">Save Changes</Button>
         </ModalFooter>
     </ModalContent>
 </Modal>

@@ -54,7 +54,7 @@
         
         @if (IsMod)
         {
-            <Icon Name="IconName.Settings" role="button" @onclick="() => CompChatSettings.ShowModal()"/>
+            <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="() => CompChatSettings.ShowModal()"/>
         }
 
     </LayoutHeader>
@@ -158,7 +158,7 @@
     private List<LinkedMessage> Messages { get; set; } = [];
     private Color AlertColor { get; set; }
     private bool AlertVisible { get; set; }
-    private string AlertMessage { get; set; }
+    public string AlertMessage { get; set; }
     private bool IsMod { get; set; }
     
     protected override async Task OnInitializedAsync()

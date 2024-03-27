@@ -128,7 +128,14 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
             Assert.Empty(removeMembersButton);
             return;
         }
-        Assert.Equal(2, removeMembersButton.Count);
+        if(userId == 1)
+        {
+            Assert.Single(removeMembersButton);
+        }
+        else
+        {
+            Assert.Equal(2, removeMembersButton.Count);
+        }
         removeMembersButton.First().Click();
         
         
@@ -187,5 +194,57 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         Assert.False(component.Instance.AlertVisible);
     }
 
-    
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async void TestChatSettingsSave(int userId)
+    {
+        await SetUser(MockDatabaseProvider.GetMockUser(userId));
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        var chat = db.Chats.Include(chat => chat.Messages).Last();
+        
+        var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
+            .Add(p => p.ChatID, chat.ID));
+        
+        var settingbtn = component.FindAll("#settingsbtn");
+        if(userId == 2)
+        {
+            Assert.Empty(settingbtn);
+            return;
+        }
+        settingbtn.Single().Click();
+        
+        if (userId == 1)
+        {
+            Assert.Empty(component.FindAll("#mod-head"));
+        }
+        else
+        {
+            var moderators = component.FindAll("input[type='checkbox']");
+           
+            Assert.Equal(2, moderators.Count);
+            moderators.First(f => f.NextSibling.TextContent.Contains("TestUser1")).Change(false);
+            moderators.First(f => f.NextSibling.TextContent.Contains("TestUser2")).Change(true);
+
+        }
+        
+        component.Find("#settings-save").Click();
+        
+        var updatedChat = db.GroupChats.Include(i => i.Moderators).First();
+        
+        if (userId == 0)
+        {
+            Assert.Equal("TestUser2", updatedChat.Moderators.First().UserName);
+        }
+        else
+        {
+            Assert.Equal("TestUser1", updatedChat.Moderators.First().UserName);
+
+        }
+        
+        Assert.Equal("Settings updated successfully!", component.Instance.AlertMessage);
+        
+        
+    }
 }
