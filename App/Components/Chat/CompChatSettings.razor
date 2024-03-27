@@ -18,7 +18,7 @@
             <CloseButton />
         </ModalHeader>
         <ModalBody>
-            <Alert Color="@AlertColor" @bind-Visible="@AlertVisible">
+            <Alert ElementId="settings-alert" Color="@AlertColor" @bind-Visible="@AlertVisible">
                 <AlertMessage>
                     @AlertMessage
                     <CloseButton Style="--bs-btn-close-white-filter: black;" VerticalAlignment="VerticalAlignment.Middle" Float="Float.End" TextColor="TextColor.Warning"/>
@@ -90,12 +90,12 @@
     private List<Names> Moderators { get; set; }
     private List<Names> Users { get; set; }
     private Modal modalRef;
-    private bool AlertVisible { get; set; }
-    private string AlertMessage { get; set; }
-    private Color AlertColor { get; set; }
+    public bool AlertVisible { get; set; }
+    public string AlertMessage { get; set; }
+    public Color AlertColor { get; set; }
     private record Names(string UserName, string? DisplayName, byte[]? Avatar);
     private User Self { get; set; }
-    private static readonly string[] Allowed_Formats = ["png", "jpg", "jpeg"];
+    private static readonly string[] Allowed_Formats = ["png", "jpg"];
     
     protected override async Task OnInitializedAsync()
     {
@@ -106,11 +106,13 @@
     
     public async Task DeleteAvatar()
     {
+        AlertVisible = false;
         Chat.Avatar = null;
     }
     
     public async Task OnFileUpload(InputFileChangeEventArgs args)
     {
+        AlertVisible = false;
         IBrowserFile? upload;
         try
         {
@@ -119,7 +121,7 @@
         catch (InvalidOperationException)
         {
             AlertColor = Color.Danger;
-            AlertMessage = "An error occurred while uploading avatar.";
+            AlertMessage = "Unable to change avatar. No file was uploaded.";
             AlertVisible = true;
             return;
         }
@@ -127,7 +129,7 @@
         if (!upload.ContentType.Contains("image/"))
         {
             AlertColor = Color.Danger;
-            AlertMessage = "Avatar must be an image file.";
+            AlertMessage = "Unable to change avatar. Uploaded file was not an image.";
             AlertVisible = true;
             return;
         }
@@ -136,7 +138,7 @@
         if (!Allowed_Formats.Contains(imageType))
         {
             AlertColor = Color.Danger;
-            AlertMessage = "Avatar must be a png, jpg, or jpeg file.";
+            AlertMessage = "Unable to change avatar. Avatar must be a PNG, or JPG file.";
             AlertVisible = true;
             return;
         }
@@ -153,7 +155,7 @@
             catch (Exception)
             {
                 AlertColor = Color.Danger;
-                AlertMessage = "An error occurred while processing uploaded avatar.";
+                AlertMessage = "Unable to change avatar. An error occurred while processing uploaded avatar.";
                 AlertVisible = true;
                 return;
             }
@@ -166,7 +168,7 @@
         else
         {
             AlertColor = Color.Danger;
-            AlertMessage = "An error occurred while processing uploaded avatar.";
+            AlertMessage = "Unable to change avatar. An error occurred while processing uploaded avatar.";
             AlertVisible = true;
         }
     }
@@ -178,7 +180,7 @@
             if (image.IsNullOrEmpty())
             {
                AlertColor = Color.Danger;
-               AlertMessage = "An error occurred while processing uploaded avatar.";
+               AlertMessage = "Unable to change avatar. An error occurred while processing uploaded avatar.";
                AlertVisible = true;
                 return;
             }
@@ -195,6 +197,7 @@
 
     private void Change(bool isChecked, Names user)
     {
+        AlertVisible = false;
         if (isChecked)
         {
             Moderators.Add(user);
@@ -212,6 +215,7 @@
     
     public async Task ShowModal()
     {
+        AlertVisible = false;
         await using var db = await Db.CreateDbContextAsync();
         Users = Chat.Users.Where(w => w.Id != Self.Id && w.Id != Chat.OwnerID).Select(s => new Names(
             s.UserName,
@@ -233,6 +237,14 @@
     
     private async Task SaveChanges()
     {
+        AlertVisible = false;
+        if(Chat.Name.IsNullOrEmpty())
+        {
+            AlertVisible = true;
+            AlertColor = Color.Danger;
+            AlertMessage = "Chat name cannot be empty.";
+            return;
+        }
         try
         {
             using var db = await Db.CreateDbContextAsync();

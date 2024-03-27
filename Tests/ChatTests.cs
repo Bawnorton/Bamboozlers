@@ -2,6 +2,7 @@ using Bamboozlers.Components.Chat;
 using Blazorise;
 using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -114,7 +115,6 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     [InlineData(2)]
     public async void TestRemoveMembers(int userId)
     {
-        //MockJsRuntimeProvider.Setup("showConfirmDialog", true);
         await SetUser(MockDatabaseProvider.GetMockUser(userId));
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var chat = db.Chats.Include(chat => chat.Messages).Last();
@@ -135,4 +135,57 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         Assert.Equal(2, db.Chats.Include(chat => chat.Users).Last().Users.Count);
         
     }
+    
+    [Fact]
+    public async void TestChatSettingsPic()
+    {
+        
+        await SetUser(MockDatabaseProvider.GetMockUser(0));
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        var chat = db.Chats.Include(chat => chat.Messages).Last();
+        
+        var component = Ctx.RenderComponent<CompChatSettings>(parameters => parameters
+            .Add(p => p.Chat, chat));
+        
+        // Arrange: No file passed
+        var spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile>());
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.Equal("Unable to change avatar. No file was uploaded.", component.Instance.AlertMessage);
+        
+        // Arrange: Invalid file passed (not an image)
+        var fakeFile = new MockBrowserFile { ContentType = "file/csv" };
+        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.Equal("Unable to change avatar. Uploaded file was not an image.", component.Instance.AlertMessage);
+        
+        // Arrange: Invalid file passed (image, but not png)
+        fakeFile = new MockBrowserFile { ContentType = "image/gif" };
+        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.Equal("Unable to change avatar. Avatar must be a PNG, or JPG file.", component.Instance.AlertMessage);
+        
+        // Arrange: Valid file passed, but image was empty
+        fakeFile = new MockBrowserFile { ContentType = "image/png", Bytes = Array.Empty<byte>()};
+        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.Equal("Unable to change avatar. An error occurred while processing uploaded avatar.", component.Instance.AlertMessage);
+        
+        // Arrange: Valid file passed
+        fakeFile = new MockBrowserFile { ContentType = "image/png"};
+        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.False(component.Instance.AlertVisible);
+    }
+
+    
 }
