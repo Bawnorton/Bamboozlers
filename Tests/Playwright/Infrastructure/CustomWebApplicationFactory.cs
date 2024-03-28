@@ -21,7 +21,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return ClientOptions.BaseAddress.ToString();
         }
     }
-
+    
     protected override IHost CreateHost(IHostBuilder builder)
     {
         var testHost = builder.Build();

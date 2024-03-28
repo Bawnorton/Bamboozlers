@@ -11,7 +11,6 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
     protected MockDatabaseProvider MockDatabaseProvider;
     protected MockAuthenticationProvider MockAuthenticationProvider;
     protected MockJsRuntimeProvider MockJsRuntimeProvider;
-    protected MockWebSocketServiceProvider MockWebSocketServiceProvider;
     protected MockUserManager MockUserManager;
     
     protected AuthService AuthService;
@@ -25,7 +24,6 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
         Self = MockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.First();
         MockAuthenticationProvider = new MockAuthenticationProvider(Ctx);
         MockJsRuntimeProvider = new MockJsRuntimeProvider(Ctx);
-        MockWebSocketServiceProvider = new MockWebSocketServiceProvider(Ctx);
         MockUserManager = new MockUserManager(Ctx, MockDatabaseProvider);
         
         WebSocketHandler.Init();

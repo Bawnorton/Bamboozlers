@@ -23,18 +23,14 @@ public class ChatJsTests : PlaywrightTestBase
         {
             Headless = true
         });
-        var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            StorageStatePath = "../../../../auth.json"
-        });
+        var context = await browser.NewContextAsync();
         var page = await context.NewPageAsync();
         await page.GotoAsync(ServerAddress);
         
-        var random = new Random();
-        
+        await Login(page);
         await OpenFirstDm(page);
 
-        var message = RandomText(random);
+        var message = RandomText(new Random());
         while (message.StartsWith('\n')) message = message[1..];
         while (message.EndsWith('\n')) message = message[..^1];
         
@@ -66,20 +62,18 @@ public class ChatJsTests : PlaywrightTestBase
         {
             Headless = true
         });
-        var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            StorageStatePath = "../../../../auth.json"
-        });
+        var context = await browser.NewContextAsync();
         var page = await context.NewPageAsync();
         await page.GotoAsync(ServerAddress);
 
+        await Login(page);
         await OpenFirstDm(page);
 
         await Task.Delay(1000);
         var beforeMessageCount = await page
             .Locator(".message-content")
             .CountAsync();
-        
+
         await page
             .Locator("#message-input")
             .ClickAsync();
@@ -91,30 +85,37 @@ public class ChatJsTests : PlaywrightTestBase
         await page.Keyboard.PressAsync("Enter");
         await page.Keyboard.UpAsync("Shift");
         await page.Keyboard.TypeAsync("World");
-        
+
         var afterMessageCount = await page
             .Locator(".message-content")
             .CountAsync();
-        
+
         Assert.Equal(beforeMessageCount, afterMessageCount);
 
         var content = await page
             .Locator("#message-input")
             .InnerTextAsync();
-        
+
         Assert.Equal("Hello\nWorld", content, ignoreAllWhiteSpace: true);
     }
-    
-    private static async Task OpenFirstDm(IPage page)
+
+    private async Task OpenFirstDm(IPage page)
     {
         await page
             .GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = " Direct Messages" })
             .ClickAsync();
-        await page
+        var dmEntries = page
             .Locator("#dms_dropdown")
-            .Locator(".b-bar-item")
-            .First
-            .ClickAsync();
+            .Locator(".b-bar-item");
+
+        if (dmEntries.CountAsync().Result == 0)
+        {
+            await CreateDm(Self!, await GetOrCreateUser("testuser2", "testuser2@gmail.com", TestUserPassword));
+            await page.ReloadAsync();
+            await OpenFirstDm(page);
+        }
+        
+        await dmEntries.First.ClickAsync();
     }
 
     private static string RandomText(Random random)

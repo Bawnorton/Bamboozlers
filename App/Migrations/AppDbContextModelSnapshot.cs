@@ -34,7 +34,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasIndex("BlockerID");
 
-                    b.ToTable("BlockList");
+                    b.ToTable("BlockList", (string)null);
                 });
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Chat", b =>
@@ -52,7 +52,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasKey("ID");
 
-                    b.ToTable("Chats");
+                    b.ToTable("Chats", (string)null);
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("Chat");
 
@@ -74,7 +74,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasIndex("ReceiverID");
 
-                    b.ToTable("FriendRequests");
+                    b.ToTable("FriendRequests", (string)null);
                 });
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Friendship", b =>
@@ -89,7 +89,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasIndex("User2ID");
 
-                    b.ToTable("FriendShips");
+                    b.ToTable("FriendShips", (string)null);
                 });
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.GroupInvite", b =>
@@ -112,7 +112,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasIndex("RecipientID");
 
-                    b.ToTable("GroupInvites");
+                    b.ToTable("GroupInvites", (string)null);
                 });
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Message", b =>
@@ -148,7 +148,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasIndex("SenderID");
 
-                    b.ToTable("Messages");
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.User", b =>
@@ -240,7 +240,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasIndex("UsersId");
 
-                    b.ToTable("ChatUser");
+                    b.ToTable("ChatUser", (string)null);
                 });
 
             modelBuilder.Entity("GroupChatUser", b =>
@@ -255,7 +255,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasIndex("ModeratorsId");
 
-                    b.ToTable("GroupChatUser");
+                    b.ToTable("GroupChatUser", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
