@@ -7,6 +7,7 @@ using Bamboozlers.Components.Settings.EditComponents.Bases;
 using Bamboozlers.Components.Settings.EditComponents.Fields;
 using Blazorise;
 using Blazorise.Modules;
+using HttpContextMoq;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
@@ -30,7 +31,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         
         // Set-up true Auth and User Services
         AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
-        UserService = new UserService(AuthService, MockUserManager.GetUserManager());
+        UserService = new UserService(AuthService, new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper());
 
         Ctx.Services.AddSingleton<IUserService>(UserService);
         Ctx.Services.AddSingleton<IAuthService>(AuthService);
