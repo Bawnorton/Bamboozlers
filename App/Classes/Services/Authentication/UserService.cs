@@ -245,7 +245,7 @@ public interface IUserService : IAsyncPublisher
     /// <returns>
     /// An IdentityResult, indicating either success, or an error with a description of the issue.
     /// </returns>
-    public Task<IdentityResult> DeleteAccountAsync(string password);
+    Task<IdentityResult> DeleteAccountAsync(string password);
     
     /// <summary>
     /// Calls to initialize the User Record for retrieval by subscribers

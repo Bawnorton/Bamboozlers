@@ -83,7 +83,7 @@ public interface IAuthService
     /// If <see cref="IsAuthenticated"/> returns false.
     /// </exception>
     Task<User?> GetUser(Unary<IQueryable<User>>? inclusionCallback = null);
-
+    
     /// <returns>
     /// The identity of the current user, or null if the user is not authenticated.
     /// </returns>

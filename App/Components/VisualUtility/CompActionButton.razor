@@ -1,22 +1,27 @@
 
-<Column ColumnSize="@ColumnWidth" Class="centre-content" Margin="Margin.Is2">
-    <Button id="@ButtonId"
-            Color="@Color"
-            Width="@ButtonWidth"
-            Type="@ButtonType"
-            Clicked="ExecuteCallback">
-        <Icon Name="@IconName"/>
-        @ButtonCaption
-    </Button>
-</Column>
+@if (ColumnWrapped)
+{
+    <Column ColumnSize="@ColumnSize"
+            Class="centre-content"
+            Margin="Margin.Is2">
+        @Button
+    </Column>
+}
+else
+{
+    @Button
+}
 
 @code {
-
+    private RenderFragment? Button { get; set; }
+    
     [Parameter] public EventCallback ActionCallback { get; set; }
     
     [Parameter] public Color Color { get; set; } = Color.Success;
+
+    [Parameter] public bool ColumnWrapped { get; set; } = true;
     
-    [Parameter] public IFluentColumn ColumnWidth { get; set; } = ColumnSize.Is1;
+    [Parameter] public IFluentColumn ColumnSize { get; set; } = Blazorise.ColumnSize.Is1;
     
     [Parameter] public IFluentSizing ButtonWidth { get; set; } = Width.Auto;
 
@@ -27,6 +32,19 @@
     [Parameter] public ButtonType ButtonType { get; set; } = ButtonType.Button;
 
     [Parameter] public IconName? IconName { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        Button = @<Button id="@ButtonId"
+                          Color="@Color"
+                          Width="@ButtonWidth"
+                          Type="@ButtonType"
+                          Clicked="ExecuteCallback">
+                     <Icon Name="@IconName"/>
+                     @ButtonCaption
+                 </Button>;
+    }
 
     private async void ExecuteCallback()
     {

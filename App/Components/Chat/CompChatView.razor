@@ -82,8 +82,10 @@
         messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
         Messages = linkedMessages;
-
+        
         await WebSocketService.ConnectAsync(Self!.Id);
+        
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

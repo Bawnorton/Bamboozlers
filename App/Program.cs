@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using IMessageService = Bamboozlers.Classes.Services.IMessageService;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Access Configuration from the builder
@@ -63,6 +62,7 @@ builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
 
 builder.Services.AddScoped<ServiceProviderWrapper>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserInteractionService, UserInteractionService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddStackExchangeRedisCache(options =>

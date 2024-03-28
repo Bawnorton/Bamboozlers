@@ -20,6 +20,18 @@ public record UserRecord(int? Id, string? UserName, string? Email, string? Displ
     {
         return image is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(image)}";
     }
+
+    public static UserRecord From(User user)
+    {
+        return new UserRecord(
+            user.Id,
+            user.UserName,
+            user.Email,
+            user.DisplayName,
+            user.Bio,
+            user.Avatar
+        );
+    }
     
     public UserRecord() : this(null, null, null, null, null, null) {}
 }
