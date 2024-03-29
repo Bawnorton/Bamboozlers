@@ -116,8 +116,8 @@
             Debug.WriteLine($"Popup exists: {OpenPopupCallback.ToString()}");
             await OpenPopupCallback.InvokeAsync(
                     new PopupCallbackArgs(
-                        @<CompProfileView FocusUser="@UserRecord.From(Message.Sender)"/>,
-                        Size: ModalSize.Large
+                        RecognizedPopupType.Profile,
+                        @<CompProfileView FocusUser="@UserRecord.From(Message.Sender)"/>
                     )
                 );
         }

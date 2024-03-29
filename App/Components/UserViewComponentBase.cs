@@ -1,5 +1,3 @@
-
-using System.Diagnostics;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services.Authentication;
 using Bamboozlers.Classes.Utility.Observer;
@@ -19,7 +17,7 @@ public class UserViewComponentBase : ComponentBase, IAsyncSubscriber
         UserService.AddSubscriber(this);
     }
     
-    public virtual async Task OnUpdate()
+    public virtual async Task OnUpdate<T>()
     {
         UserData = await UserService.GetUserDataAsync();
         StateHasChanged();

@@ -4,8 +4,13 @@
 @using Bamboozlers.Components.VisualUtility
 @using Blazorise.Extensions
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes.Services.Authentication
 @using Microsoft.Playwright
+@using Bamboozlers.Classes.Utility.Observer
+@using System.Diagnostics
+
+@implements IAsyncSubscriber
 
 @inject IDbContextFactory<AppDbContext> DbContextFactory;
 @inject IUserInteractionService UserInteractionService
@@ -19,35 +24,48 @@
     .dropdown-content {
         display: none;
         position: absolute;
-        width: fit-content;
+        width: max-content;
         z-index: 1;
     }
-        
-    .dropdown:hover .dropdown-content {
+    
+    .dropdown-option {
         display: block;
+        width: fit-content;
+    }
+    
+    .dropdown:hover .dropdown-content {
+        display: inline-block;
     }
 </style>
 
-<div style="width: 100%; display: block">
-    <div style="float: left">
-        <Image ElementId="avatar-display"
-               Class="border-mask fit _128x128"
-               Source="@(IsBlocked || IsBlockedBy ? "image/default_profile.png" : FocusUser.Avatar)"/>
+<div style="display: inline-block">
+    <div style="display: inline; width: max-content;">
+        <div style="display: inline-block; float: left; margin-right: 15px">
+            <Image ElementId="avatar-display"
+                   Class="border-mask fit _128x128"
+                   Source="@(IsBlocked || IsBlockedBy ? "images/default_profile.png" : FocusUser.Avatar)"/>
+        </div>
+        <div style="display: inline-block; float: left; vertical-align: middle;">
+            @StatusBadge
+            @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
+            {
+                <h4>@(FocusUser.DisplayName)</h4>
+                <p>@FocusUser.UserName</p>
+            }
+            else
+            {
+                <h4>@FocusUser.UserName</h4>
+            }
+        </div>
     </div>
-    <div style="float: left; margin-left: 5%;">
-        @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
-        {
-            <h4>@(FocusUser.DisplayName)</h4>
-            <p>@FocusUser.UserName</p>
-        }
-        else
-        {
-            <h4>@FocusUser.UserName</h4>
-        }
-    </div>
-    <div style="float: right; width: 50%;">
-        @ActionButton
-        @ActionOptions
+    <div style="display: inline; width: max-content;">
+        <div style="display: inline-block; width: fit-content">
+            @ActionButton
+        </div>
+        <div style="display: inline-block; width: fit-content; margin-left: 3%">
+            @ActionOptions
+        </div>
+        <CloseButton Style="margin-left: 3%"/>
     </div>
 </div>
 
@@ -71,26 +89,36 @@
     [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
     private RenderFragment? ActionButton { get; set; }
     private RenderFragment? ActionOptions { get; set; }
+    private RenderFragment? StatusBadge { get; set; }
 
     private bool IsSelf { get; set; }
     private bool IsFriend { get; set; }
     private bool IsBlocked { get; set; }
     private bool IsBlockedBy { get; set; }
+    private bool HasIncomingRequest { get; set; }
+    private bool HasOutgoingRequest { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
         await UpdateContext();
+        UserInteractionService.AddSubscriber(this);
     }
 
     public async Task UpdateContext()
     {
+        ActionButton = null;
+        ActionOptions = null;
+        StatusBadge = null;
+        
         UserData ??= await UserService.GetUserDataAsync();
         
         IsSelf = FocusUser.Id == UserData.Id;
         IsFriend = await UserInteractionService.FindFriendship(FocusUser.Id) is not null;
         IsBlocked = await UserInteractionService.FindIfBlocked(FocusUser.Id) is not null;
         IsBlockedBy = await UserInteractionService.FindIfBlockedBy(FocusUser.Id) is not null;
+        HasIncomingRequest = await UserInteractionService.FindIncomingRequest(FocusUser.Id) is not null;
+        HasOutgoingRequest = await UserInteractionService.FindOutgoingRequest(FocusUser.Id) is not null;
         
         if (IsSelf)
         {
@@ -100,10 +128,14 @@
                     async () =>
                     {
                         // TODO: Open Settings Menu
+                        
                     }),
                 "Edit Profile",
                 IconName.Pen
             );
+            StatusBadge = @<Badge Color="Color.Light">
+                              YOU
+                          </Badge>;
             return;
         }
         
@@ -119,25 +151,14 @@
                 "Send Message",
                 IconName.Mail
             );
+            StatusBadge = @<Badge Color="Color.Success">
+                              <Icon Name="IconName.UserFriends"/>
+                              FRIEND
+                          </Badge>;
         } 
-        else if (IsBlocked)
+        else if (!IsBlockedBy && !IsBlocked)
         {
-            ActionButton = GetActionButton(
-                EventCallback.Factory.Create(
-                    this, 
-                    async () => await UserInteractionService.UnblockUser(FocusUser.Id)
-                ),
-                "Unblock User",
-                IconName.ShieldAlt,
-                Color.Danger
-            );
-        } 
-        else if (!IsBlockedBy)
-        {
-            var hasIncomingRequest = await UserInteractionService.FindIncomingRequest(FocusUser.Id) is not null;
-            var hasOutgoingRequest = await UserInteractionService.FindOutgoingRequest(FocusUser.Id) is not null;
-
-            if (hasIncomingRequest)
+            if (HasIncomingRequest)
             {
                 ActionButton = GetActionButton(
                     EventCallback.Factory.Create(
@@ -148,16 +169,14 @@
                     IconName.UserPlus
                 );
             }
-            else if (hasOutgoingRequest)
+            else if (HasOutgoingRequest)
             {
                 ActionButton = GetActionButton(
-                    EventCallback.Factory.Create(
-                        this, 
-                        async () => await UserInteractionService.RevokeFriendRequest(FocusUser.Id)
-                    ),
-                    "Revoke Friend Request",
-                    IconName.Times,
-                    Color.Danger
+                    EventCallback.Empty,
+                    "Pending",
+                    IconName.Send,
+                    Color.Light,
+                    true
                 );
             }
             else
@@ -172,9 +191,20 @@
                 );
             }
         }
+        else
+        {
+            StatusBadge = @<Badge Color="Color.Danger">
+                              <Icon Name="IconName.ShieldAlt"/>
+                              BLOCKED
+                          </Badge>;
+        }
+
+        ActionOptions = GetProfileActions();
+        
+        StateHasChanged();
     }
 
-    private RenderFragment GetActionButton(EventCallback callback, string buttonCaption, IconName iconName, Color? buttonColor = null)
+    private RenderFragment GetActionButton(EventCallback callback, string buttonCaption, IconName iconName, Color? buttonColor = null, bool disabled = false)
     {
         return @<CompActionButton
                     ActionCallback="callback"
@@ -182,48 +212,76 @@
                     ButtonId="profile-action-button"
                     Color="@(buttonColor ?? Color.Success)"
                     ColumnWrapped="@false"
-                    ColumnSize="ColumnSize.Is4"
                     IconName = "iconName"
+                    Disabled="disabled"
                 />;
     }
 
-    private RenderFragment GetProfileActions(bool isFriend, bool isBlocked, bool isBlockedBy, bool hasIncomingRequest)
+    private RenderFragment GetProfileActions()
     {
-        return @<Div id="profile-actions" 
-                     Class="dropdown">
-                    <!-- We're really limited by what icons we get with this version of Blazorise... thus AlignJustify. -->
-                    <Icon id="profile-actions-button" 
-                          Name="IconName.AlignJustify"/>
-                    <Div Background="Background.Dark"
-                         id="profile-actions-content"
-                         Class="dropdown-content">
-                        @if (hasIncomingRequest && !isBlocked)
-                        {
-                            <Button TextColor="TextColor.Danger"
-                                    Clicked="@(async () => await UserInteractionService.DeclineFriendRequest(FocusUser.Id))">
-                                Decline Friend Request
-                            </Button>
-                        }
-                        @if (isFriend)
-                        {
-                            <Button TextColor="TextColor.Danger"
-                                    Clicked="@(async () => { //TODO: Invite to Group 
-                                             })">
-                                Invite to group
-                            </Button>
-                            <Button TextColor="TextColor.Danger"
-                                    Clicked="@(async () => await UserInteractionService.RemoveFriend(FocusUser.Id))">
-                                Remove friend
-                            </Button>
-                        }
-                        @if (!isBlocked)
-                        {
-                            <Button TextColor="TextColor.Danger"
-                                    Clicked="@(async () => await UserInteractionService.BlockUser(FocusUser.Id))">
-                                Block user
-                            </Button>
-                        }
+        return @<text>
+                    <Div id="profile-actions" 
+                         Class="dropdown">
+                        <Icon Name="@("fa-ellipsis-v")"/>
+                        <Div Background="Background.Dark"
+                             Class="dropdown-content">
+                            @if (HasIncomingRequest && !IsBlocked)
+                            {
+                                <Button Class="dropdown-option" TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await UserInteractionService.DeclineFriendRequest(FocusUser.Id))">
+                                    Decline Friend Request
+                                </Button>
+                            }
+                            @if (HasOutgoingRequest)
+                            {
+                                <Button Class="dropdown-option" TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await UserInteractionService.RevokeFriendRequest(FocusUser.Id))">
+                                    Revoke Friend Request
+                                </Button>
+                            }
+                            @if (IsFriend)
+                            {
+                                <Button Class="dropdown-option" Clicked="@(async () => 
+                                                                         { 
+                                                                             // TODO: Invite to Group
+                                                                         })">
+                                    Invite to group
+                                </Button>
+                                <Button Class="dropdown-option" TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await UserInteractionService.RemoveFriend(FocusUser.Id))">
+                                    Remove friend
+                                </Button>
+                            }
+                            @if (!IsBlocked)
+                            {
+                                <Button Class="dropdown-option" TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await UserInteractionService.BlockUser(FocusUser.Id))">
+                                    Block user
+                                </Button>
+                            }
+                            else
+                            {
+                                <Button Class="dropdown-option" TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await UserInteractionService.UnblockUser(FocusUser.Id))">
+                                    Unblock user
+                                </Button>
+                            }
+                        </Div>
                     </Div>
-                </Div>;
+                </text>;
+    }
+    
+    public new async Task OnUpdate<T>()
+    {
+        switch (typeof(T).Name)
+        {
+            // This might be a bit of an anti-pattern, but it's better than creating a whole new interface to use OnUpdate...
+            case "UserInteractionService":
+                await UpdateContext();
+                break;
+            case "UserService":
+                await base.OnUpdate<UserService>();
+                break;
+        }
     }
 }

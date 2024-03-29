@@ -5,7 +5,7 @@ public interface ISubscriber
     /// <summary>
     /// Synchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
-    void OnUpdate();
+    void OnUpdate<TPublisher>();
 }
 
 public interface IAsyncSubscriber
@@ -13,5 +13,5 @@ public interface IAsyncSubscriber
     /// <summary>
     /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
-    new Task OnUpdate();
+    Task OnUpdate<TPublisher>();
 }

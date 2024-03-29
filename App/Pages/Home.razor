@@ -24,9 +24,14 @@
 <ErrorBoundary>
     <ChildContent>
         <AuthorizeView>
+            <!-- IMPORTANT: This allows child components to create Popups! 
+                 Declare a [CascadingParameter] of type EventCallback<PopupCallbackArgs> in a component to use this!
+                 
+                 Allows for dynamic creation of popups without using Blazorise ModalProvider/Service, which isn't
+                 very cooperative!
+            -->
             <CascadingValue Value="_popupCallback">
-                <NavLayout @ref="_navLayout" ProfileButtonCallback="@(() => _settingsComponent!.Visible = true)"/>
-                <CompSettings @ref="_settingsComponent" StateChangedCallback="@(async () => await _navLayout!.Refresh())"/>
+                <NavLayout @ref="_navLayout"/>
                 <Modal @ref="_popupComponent" Closed="OnPopupClosed">
                     @_popupContent
                 </Modal>
@@ -58,7 +63,6 @@
 
 @code {
     private NavLayout? _navLayout;
-    private CompSettings? _settingsComponent;
 
     private EventCallback<PopupCallbackArgs> _popupCallback;
     private Modal? _popupComponent;
@@ -70,34 +74,49 @@
         MessageService.Init(Db);
         JsInteropHelper.Init(JsRuntime);
     }
-
+    
     private async Task OpenPopup(PopupCallbackArgs args)
     {
         if (_popupComponent is null)
             return;
-        
-        _popupContent = @<ModalContent Size="args.Size" Centered>
-                            <ModalHeader>
-                                @if (args.HeaderContent is not null)
-                                {
-                                    @args.HeaderContent
-                                }
-                                <CloseButton/>
-                            </ModalHeader>
-                            <ModalBody>
-                                @if (args.BodyContent is not null)
-                                {
-                                    @args.BodyContent
-                                }
-                            </ModalBody>
-                            <ModalFooter>
-                                @if (args.FooterContent is not null)
-                                {
-                                    @args.FooterContent
-                                }
-                            </ModalFooter>
-                        </ModalContent>;
-        
+
+        _popupContent = args.PopupType switch
+        {
+            RecognizedPopupType.Settings => @<text>
+                                                 <CompSettings StateChangedCallback="@(async () => await _navLayout!.Refresh())"/>
+                                             </text>,
+            RecognizedPopupType.Profile => @<text>
+                                                <ModalContent Centered>
+                                                    <ModalBody>
+                                                        @args.BodyContent
+                                                    </ModalBody>
+                                                </ModalContent>
+                                            </text>,
+            _ => @<text>
+                      <ModalContent Size="args.Size" Centered>
+                          <ModalHeader>
+                              @if (args.HeaderContent is not null)
+                              {
+                                  @args.HeaderContent
+                              }
+                              <CloseButton/>
+                          </ModalHeader>
+                          <ModalBody>
+                              @if (args.BodyContent is not null)
+                              {
+                                  @args.BodyContent
+                              }
+                          </ModalBody>
+                          <ModalFooter>
+                              @if (args.FooterContent is not null)
+                              {
+                                  @args.FooterContent
+                              }
+                          </ModalFooter>
+                      </ModalContent>
+                  </text>,
+        };
+
         await _popupComponent.Show();
     }
 

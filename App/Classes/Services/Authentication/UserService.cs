@@ -151,7 +151,7 @@ public class UserService : IUserService
         if (invalidate)
             Invalidate();
         await BuildUserDataAsync();
-        await NotifyAllAsync();
+        await ((IAsyncPublisher) this).NotifyAllAsync();
     }
     
     public virtual void Invalidate()
@@ -161,26 +161,22 @@ public class UserService : IUserService
     }
     
     public List<IAsyncSubscriber> Subscribers { get; } = [];
-    public bool AddSubscriber(IAsyncSubscriber subscriber)
+    
+    public bool AddSubscriber(IAsyncSubscriber subscriber) 
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
         
-        subscriber.OnUpdate();
+        subscriber.OnUpdate<UserInteractionService>();
         
         return true;
     }
-
-    public bool RemoveSubscriber(IAsyncSubscriber subscriber)
-    {
-        return Subscribers.Remove(subscriber);
-    }
-
+    
     public async Task NotifyAllAsync()
     {
         foreach (var sub in Subscribers)
         {
-            await sub.OnUpdate();
+            await sub.OnUpdate<UserInteractionService>();
         }
     }
 }

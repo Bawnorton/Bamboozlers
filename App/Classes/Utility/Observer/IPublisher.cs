@@ -16,7 +16,10 @@ public interface IPublisher
     /// </summary>
     /// <param name="subscriber">The subscriber to be removed.</param>
     /// <returns>A boolean indicating whether the subscriber was present in the list and removed.</returns>
-    bool RemoveSubscriber(ISubscriber subscriber);
+    bool RemoveSubscriber(ISubscriber subscriber)
+    {
+        return Subscribers.Remove(subscriber);
+    }
 
     /// <summary>
     /// Goes through each subscriber to this publisher and calls their update method.
@@ -40,8 +43,11 @@ public interface IAsyncPublisher
     /// </summary>
     /// <param name="subscriber">The subscriber to be removed.</param>
     /// <returns>A boolean indicating whether the subscriber was present in the list and removed.</returns>
-    bool RemoveSubscriber(IAsyncSubscriber subscriber);
-    
+    bool RemoveSubscriber(IAsyncSubscriber subscriber)
+    {
+        return Subscribers.Remove(subscriber);
+    }
+
     /// <summary>
     /// Goes through each subscriber to this publisher and calls their update method.
     /// </summary>

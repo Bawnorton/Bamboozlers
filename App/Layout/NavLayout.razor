@@ -83,7 +83,7 @@
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer"
                  id="profile-button"
-                 @onclick="ProfileButtonCallback">
+                 @onclick="async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs(RecognizedPopupType.Settings))">
                 <Text>
                     @(User is null ? UserRecord.Default.UserName : User.DisplayName.IsNullOrEmpty() ? User.UserName : User.DisplayName)
                 </Text>
@@ -102,7 +102,7 @@
 </Layout>
 
 @code {
-    [Parameter] public EventCallback ProfileButtonCallback { get; set; }
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     private User? User { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
 
