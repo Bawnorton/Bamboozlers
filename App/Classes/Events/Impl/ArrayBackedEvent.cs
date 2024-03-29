@@ -67,9 +67,12 @@ public class ArrayBackedEvent<T> : Event<T>, IArrayBackedEvent
             var newHandlers = new Dictionary<string, T>();
             foreach (var phase in _sortedPhases)
             {
-                foreach (var (key, value) in phase.Listeners)
+                lock (phase.Listeners)
                 {
-                    newHandlers[key] = value;
+                    foreach (var (key, value) in phase.Listeners)
+                    {
+                        newHandlers[key] = value;
+                    }
                 }
             }
             _handlers = newHandlers;

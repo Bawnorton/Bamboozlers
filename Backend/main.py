@@ -57,6 +57,7 @@ class ConnectedClient:
         self.websocket = websocket
 
     async def send_message(self, json_obj: dict):
+        logging.warning(f"Sending message to client {self.client_id}: {json_obj}")
         await self.websocket.send_text(json.dumps(json_obj))
 
 

@@ -1,38 +1,19 @@
-using System.Text;
-using Microsoft.Playwright;
+using Tests.Helpers;
 using Tests.Playwright.Infrastructure;
 using Xunit.Abstractions;
 using Assert = Xunit.Assert;
 
 namespace Tests.Playwright;
 
-public class ChatJsTests : PlaywrightTestBase
+[Collection("Sequential")]
+public class ChatJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper outputHelper) : PlaywrightTestBase(fixture, outputHelper) 
 {
-    private ITestOutputHelper ITestOutputHelper { get; }
-    
-    public ChatJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper testOutputHelper) : base(fixture)
-    {
-        ITestOutputHelper = testOutputHelper;
-    }
-    
     [Fact]
     public async Task SendMessageContent()
     {
-        using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        var context = await browser.NewContextAsync();
-        var page = await context.NewPageAsync();
-        await page.GotoAsync(ServerAddress);
-        
-        await Login(page);
-        await OpenFirstDm(page);
+        var page = await SetupAndLoginAtFirstDm();
 
-        var message = RandomText(new Random());
-        while (message.StartsWith('\n')) message = message[1..];
-        while (message.EndsWith('\n')) message = message[..^1];
+        var message = TextHelper.RandomText();
         
         await page
             .Locator("#message-input")
@@ -57,18 +38,8 @@ public class ChatJsTests : PlaywrightTestBase
     [Fact]
     public async Task ShiftEnterDoesNotSendMessage()
     {
-        using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        var context = await browser.NewContextAsync();
-        var page = await context.NewPageAsync();
-        await page.GotoAsync(ServerAddress);
-
-        await Login(page);
-        await OpenFirstDm(page);
-
+        var page = await SetupAndLoginAtFirstDm();
+        
         await Task.Delay(1000);
         var beforeMessageCount = await page
             .Locator(".message-content")
@@ -97,39 +68,5 @@ public class ChatJsTests : PlaywrightTestBase
             .InnerTextAsync();
 
         Assert.Equal("Hello\nWorld", content, ignoreAllWhiteSpace: true);
-    }
-
-    private async Task OpenFirstDm(IPage page)
-    {
-        await page
-            .GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = " Direct Messages" })
-            .ClickAsync();
-        var dmEntries = page
-            .Locator("#dms_dropdown")
-            .Locator(".b-bar-item");
-
-        if (dmEntries.CountAsync().Result == 0)
-        {
-            await CreateDm(Self!, await GetOrCreateUser("testuser2", "testuser2@gmail.com", TestUserPassword));
-            await page.ReloadAsync();
-            await OpenFirstDm(page);
-        }
-        
-        await dmEntries.First.ClickAsync();
-    }
-
-    private static string RandomText(Random random)
-    {
-        var text = new StringBuilder();
-        for (var i = 0; i < 500; i++)
-        {
-            text.Append((char) random.Next(32, 127));
-            if (random.Next(0, 100) < 3)
-            {
-                text.Append('\n');
-            }
-        }
-
-        return text.ToString();
     }
 }
