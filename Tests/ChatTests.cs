@@ -2,6 +2,7 @@ using Bamboozlers.Components.Chat;
 using Blazorise;
 using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -107,5 +108,143 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
             Assert.Contains("No member(s) added!", component.Markup);
         }
 
+    }
+    
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async void TestRemoveMembers(int userId)
+    {
+        await SetUser(MockDatabaseProvider.GetMockUser(userId));
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        var chat = db.Chats.Include(chat => chat.Messages).Last();
+        
+        var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
+            .Add(p => p.ChatID, chat.ID));
+        
+        var removeMembersButton = component.FindAll("#removeMember");
+        if (userId == 2)
+        {
+            Assert.Empty(removeMembersButton);
+            return;
+        }
+        if(userId == 1)
+        {
+            Assert.Single(removeMembersButton);
+        }
+        else
+        {
+            Assert.Equal(2, removeMembersButton.Count);
+        }
+        removeMembersButton.First().Click();
+        
+        
+        Assert.Equal(2, db.Chats.Include(chat => chat.Users).Last().Users.Count);
+        
+    }
+    
+    [Fact]
+    public async void TestChatSettingsPic()
+    {
+        
+        await SetUser(MockDatabaseProvider.GetMockUser(0));
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        var chat = db.Chats.Include(chat => chat.Messages).Last();
+        
+        var component = Ctx.RenderComponent<CompChatSettings>(parameters => parameters
+            .Add(p => p.Chat, chat));
+        
+        // Arrange: No file passed
+        var spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile>());
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.Equal("Unable to change avatar. No file was uploaded.", component.Instance.AlertMessage);
+        
+        // Arrange: Invalid file passed (not an image)
+        var fakeFile = new MockBrowserFile { ContentType = "file/csv" };
+        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.Equal("Unable to change avatar. Uploaded file was not an image.", component.Instance.AlertMessage);
+        
+        // Arrange: Invalid file passed (image, but not png)
+        fakeFile = new MockBrowserFile { ContentType = "image/gif" };
+        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.Equal("Unable to change avatar. Avatar must be a PNG, or JPG file.", component.Instance.AlertMessage);
+        
+        // Arrange: Valid file passed, but image was empty
+        fakeFile = new MockBrowserFile { ContentType = "image/png", Bytes = Array.Empty<byte>()};
+        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.Equal("Unable to change avatar. An error occurred while processing uploaded avatar.", component.Instance.AlertMessage);
+        
+        // Arrange: Valid file passed
+        fakeFile = new MockBrowserFile { ContentType = "image/png"};
+        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
+        // Act
+        await component.Instance.OnFileUpload(spoofArgs);
+        // Assert
+        Assert.False(component.Instance.AlertVisible);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async void TestChatSettingsSave(int userId)
+    {
+        await SetUser(MockDatabaseProvider.GetMockUser(userId));
+        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
+        var chat = db.Chats.Include(chat => chat.Messages).Last();
+        
+        var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
+            .Add(p => p.ChatID, chat.ID));
+        
+        var settingbtn = component.FindAll("#settingsbtn");
+        if(userId == 2)
+        {
+            Assert.Empty(settingbtn);
+            return;
+        }
+        settingbtn.Single().Click();
+        
+        if (userId == 1)
+        {
+            Assert.Empty(component.FindAll("#mod-head"));
+        }
+        else
+        {
+            var moderators = component.FindAll("input[type='checkbox']");
+           
+            Assert.Equal(2, moderators.Count);
+            moderators.First(f => f.NextSibling.TextContent.Contains("TestUser1")).Change(false);
+            moderators.First(f => f.NextSibling.TextContent.Contains("TestUser2")).Change(true);
+
+        }
+        
+        component.Find("#settings-save").Click();
+        
+        var updatedChat = db.GroupChats.Include(i => i.Moderators).First();
+        
+        if (userId == 0)
+        {
+            Assert.Equal("TestUser2", updatedChat.Moderators.First().UserName);
+        }
+        else
+        {
+            Assert.Equal("TestUser1", updatedChat.Moderators.First().UserName);
+
+        }
+        
+        Assert.Equal("Settings updated successfully!", component.Instance.AlertMessage);
+        
+        
     }
 }
