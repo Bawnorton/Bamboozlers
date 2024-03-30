@@ -1,4 +1,5 @@
 @inherits UserViewComponentBase
+@implements IAsyncInteractionSubscriber
 
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Components.VisualUtility
@@ -9,8 +10,6 @@
 @using Microsoft.Playwright
 @using Bamboozlers.Classes.Utility.Observer
 @using System.Diagnostics
-
-@implements IAsyncSubscriber
 
 @inject IDbContextFactory<AppDbContext> DbContextFactory;
 @inject IUserInteractionService UserInteractionService
@@ -310,17 +309,8 @@
                 </text>;
     }
     
-    public new async Task OnUpdate<T>()
+    public async Task OnInteractionUpdate()
     {
-        switch (typeof(T).Name)
-        {
-            // This might be a bit of an anti-pattern, but it's better than creating a whole new interface to use OnUpdate...
-            case "UserInteractionService":
-                await UpdateContext();
-                break;
-            case "UserService":
-                await base.OnUpdate<UserService>();
-                break;
-        }
+        await UpdateContext();
     }
 }

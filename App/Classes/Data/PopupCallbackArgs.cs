@@ -11,12 +11,15 @@ public record PopupCallbackArgs(
     RenderFragment? FooterContent = null, 
     ModalSize Size = ModalSize.Default,
     User? FocusUser = null, // For pop-ups that focus on a User in specific
-    Chat? Chat = null // For pop-ups that focus on a Chat in specific
+    int? ChatId = null // For pop-ups that focus on a Chat in specific
 );
 
 public enum RecognizedPopupType
 {
     None,
     Settings,
-    Profile
+    Profile,
+    ChatSettings,
+    ChatAddMember,
+    
 }

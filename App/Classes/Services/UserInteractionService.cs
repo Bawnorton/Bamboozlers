@@ -254,15 +254,29 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
             await NotifyAllAsync();
         }
     }
+
+    public async Task<List<FriendRequest>?> GetAllIncomingRequests()
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var self = await AuthService.GetUser();
+        return self is not null ? dbContext.FriendRequests.AsNoTracking().Where(r => r.ReceiverID == self.Id).ToList() : null;
+    }
+
+    public async Task<List<FriendRequest>?> GetAllOutgoingRequests()
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var self = await AuthService.GetUser();
+        return self is not null ? dbContext.FriendRequests.AsNoTracking().Where(r => r.SenderID == self.Id).ToList() : null;
+    }
+
+    public List<IAsyncInteractionSubscriber> Subscribers { get; } = [];
     
-    public List<IAsyncSubscriber> Subscribers { get; } = [];
-    
-    public bool AddSubscriber(IAsyncSubscriber subscriber) 
+    public bool AddSubscriber(IAsyncInteractionSubscriber subscriber) 
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
         
-        subscriber.OnUpdate<UserInteractionService>();
+        subscriber.OnInteractionUpdate();
         
         return true;
     }
@@ -271,12 +285,12 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     {
         foreach (var sub in Subscribers)
         {
-            await sub.OnUpdate<UserInteractionService>();
+            await sub.OnInteractionUpdate();
         }
     }
 }
 
-public interface IUserInteractionService : IAsyncPublisher
+public interface IUserInteractionService : IAsyncPublisher<IAsyncInteractionSubscriber>
 {
     Task<Chat?> FindDmIfExists(int? otherId);
     Task<Friendship?> FindFriendship(int? otherId);
@@ -291,4 +305,6 @@ public interface IUserInteractionService : IAsyncPublisher
     Task AcceptFriendRequest(int? otherId);
     Task DeclineFriendRequest(int? otherId);
     Task RemoveFriend(int? otherId);
+    Task<List<FriendRequest>?> GetAllIncomingRequests();
+    Task<List<FriendRequest>?> GetAllOutgoingRequests();
 }

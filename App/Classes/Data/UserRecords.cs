@@ -66,3 +66,10 @@ public record UserDataRecord(int? Id, string? UserName, string? Email, string? D
 /// <param name="Reason">The error message, if any.</param>
 public record UserUpdateResult(UserDataType DataType, bool Success, string Reason);
 
+/// <summary>
+/// Record used to store ONLY User visual data.
+/// </summary>
+/// <param name="UserName">The user's username.</param>
+/// <param name="DisplayName">The user's username, if any.</param>
+/// <param name="Avatar">The user's avatar, if any.</param>
+public record UserVisualRecord(string UserName, string? DisplayName, byte[]? Avatar);

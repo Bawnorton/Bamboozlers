@@ -1,5 +1,6 @@
 @inherits UserViewComponentBase
 @implements ICompImageUploader
+@implements IAsyncGroupSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
 @using AngleSharp.Diffing.Extensions
@@ -8,6 +9,8 @@
 @using Bamboozlers.Components.VisualUtility
 @using System.Xml.Schema
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Utility.Observer
+
 @inject IDbContextFactory<AppDbContext> Db
 
 <ModalContent Centered>
@@ -88,35 +91,42 @@
 </ModalContent>
 
 @code{
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    [CascadingParameter] public int? ChatID { get; set; }
 
-    [Parameter] public int? ChatId {get; set;}
-    [Parameter] public EventCallback OnChange { get; set; }
-
-    private GroupChat Chat { get; set; }
+    private GroupChat? Chat { get; set; }
 
     private AlertArguments AlertArguments { get; set; } = new();
 
-    private List<MemberName> Moderators { get; set; } = [];
-    private List<MemberName> Members { get; set; } = [];
-
-    private record MemberName(string UserName, string? DisplayName, byte[]? Avatar);
-    private User? Self { get; set; }
+    private List<UserVisualRecord> Moderators { get; set; } = [];
+    private List<UserVisualRecord> Members { get; set; } = [];
     
+    private User? Self { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadGroupData();
     }
     
     private void DeleteAvatar()
     {
+        if (Chat is null)
+            return;
+        
         AlertArguments = new AlertArguments();
         Chat.Avatar = null;
     }
     
     public async Task OnFileUpload(InputFileChangeEventArgs args)
     {
+        if (Chat is null)
+            return;
+        
         AlertArguments = await ((ICompImageUploader)this).OnFileUpload(args, async bytes =>
         {
             return await Task.Run(() =>
@@ -128,7 +138,7 @@
         });
     }
 
-    private void Change(bool isChecked, MemberName user)
+    private void Change(bool isChecked, UserVisualRecord user)
     {
         if (isChecked)
         {
@@ -140,12 +150,12 @@
         }
     }
 
-    private bool IsChecked(MemberName user)
+    private bool IsChecked(UserVisualRecord user)
     {
         return Moderators.Any(a => a.UserName == user.UserName);
     }
     
-    private async Task LoadData()
+    private async Task LoadGroupData()
     {
         Self = await AuthService.GetUser();
         if (Self is null) 
@@ -153,12 +163,12 @@
         
         await using var db = await Db.CreateDbContextAsync();
 
-        Chat = db.GroupChats.Where(c => c.ID == ChatId)
+        Chat = db.GroupChats.Where(c => c.ID == ChatID)
             .Include(c => c.Users).ThenInclude(u => u.ModeratedChats)
             .Include(c => c.Moderators)
             .First();
         
-        Members = Chat.Users.Where(w => w.Id != Self.Id && w.Id != Chat.OwnerID).Select(s => new MemberName(
+        Members = Chat.Users.Where(w => w.Id != Self.Id && w.Id != Chat.OwnerID).Select(s => new UserVisualRecord(
                 s.UserName!,
                 s.DisplayName,
                 s.Avatar
@@ -166,7 +176,7 @@
         ).ToList();
         
         var mods =
-        Moderators = Chat.Moderators.Select(s => new MemberName(
+        Moderators = Chat.Moderators.Select(s => new UserVisualRecord(
                 s.UserName!,
                 s.DisplayName,
                 s.Avatar
@@ -176,6 +186,9 @@
     
     private async Task SaveChanges()
     {
+        if (Chat is null)
+            return;
+        
         if (Chat.Name.IsNullOrEmpty())
         {
             AlertArguments = new AlertArguments(
@@ -207,8 +220,6 @@
             
             dbContext.Update(Chat);
             await dbContext.SaveChangesAsync();
-            
-            await OnChange.InvokeAsync();
             await ClosePopupCallback.InvokeAsync();
         }
         catch (Exception ex)
@@ -220,5 +231,11 @@
                 $"{ex.Message} {ex.StackTrace}"
             );
         }
+    }
+
+    public async Task OnGroupUpdate()
+    {
+        await LoadGroupData();
+        StateHasChanged();
     }
 }

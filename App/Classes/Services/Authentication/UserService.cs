@@ -151,7 +151,7 @@ public class UserService : IUserService
         if (invalidate)
             Invalidate();
         await BuildUserDataAsync();
-        await ((IAsyncPublisher) this).NotifyAllAsync();
+        await ((IAsyncPublisher<IAsyncUserSubscriber>) this).NotifyAllAsync();
     }
     
     public virtual void Invalidate()
@@ -160,14 +160,14 @@ public class UserService : IUserService
         UserRecord = null;
     }
     
-    public List<IAsyncSubscriber> Subscribers { get; } = [];
+    public List<IAsyncUserSubscriber> Subscribers { get; } = [];
     
-    public bool AddSubscriber(IAsyncSubscriber subscriber) 
+    public bool AddSubscriber(IAsyncUserSubscriber subscriber) 
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
         
-        subscriber.OnUpdate<UserInteractionService>();
+        subscriber.OnUserUpdate();
         
         return true;
     }
@@ -176,12 +176,12 @@ public class UserService : IUserService
     {
         foreach (var sub in Subscribers)
         {
-            await sub.OnUpdate<UserInteractionService>();
+            await sub.OnUserUpdate();
         }
     }
 }
 
-public interface IUserService : IAsyncPublisher
+public interface IUserService : IAsyncPublisher<IAsyncUserSubscriber>
 {
     /// <summary>
     /// Retrieval method for the User's display variables for classes utilizing this service.

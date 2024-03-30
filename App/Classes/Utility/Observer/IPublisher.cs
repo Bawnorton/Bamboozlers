@@ -1,22 +1,22 @@
 namespace Bamboozlers.Classes.Utility.Observer;
 
-public interface IPublisher
+public interface IPublisher<T>
 {
-    List<ISubscriber> Subscribers { get; }
+    List<T> Subscribers { get; }
 
     /// <summary>
     /// Adds the given subscriber to this publisher's list of subscribers.
     /// </summary>
     /// <param name="subscriber">The subscriber to be added.</param>
     /// <returns>A boolean indicating whether the subscriber was added to the list.</returns>
-    bool AddSubscriber(ISubscriber subscriber);
+    bool AddSubscriber(T subscriber);
     
     /// <summary>
     /// Removes, if present, the given subscriber from this publisher's list of subscribers.
     /// </summary>
     /// <param name="subscriber">The subscriber to be removed.</param>
     /// <returns>A boolean indicating whether the subscriber was present in the list and removed.</returns>
-    bool RemoveSubscriber(ISubscriber subscriber)
+    bool RemoveSubscriber(T subscriber)
     {
         return Subscribers.Remove(subscriber);
     }
@@ -27,23 +27,23 @@ public interface IPublisher
     void NotifyAll();
 }
 
-public interface IAsyncPublisher
+public interface IAsyncPublisher<T>
 {
-    List<IAsyncSubscriber> Subscribers { get; }
+    List<T> Subscribers { get; }
 
     /// <summary>
     /// Adds the given subscriber to this publisher's list of subscribers.
     /// </summary>
     /// <param name="subscriber">The subscriber to be added.</param>
     /// <returns>A boolean indicating whether the subscriber was added to the list.</returns>
-    bool AddSubscriber(IAsyncSubscriber subscriber);
+    bool AddSubscriber(T subscriber);
     
     /// <summary>
     /// Removes, if present, the given subscriber from this publisher's list of subscribers.
     /// </summary>
     /// <param name="subscriber">The subscriber to be removed.</param>
     /// <returns>A boolean indicating whether the subscriber was present in the list and removed.</returns>
-    bool RemoveSubscriber(IAsyncSubscriber subscriber)
+    bool RemoveSubscriber(T subscriber)
     {
         return Subscribers.Remove(subscriber);
     }

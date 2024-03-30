@@ -9,6 +9,7 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes.Services.Authentication
+@using Bamboozlers.Components.Chat
 @using Bamboozlers.Components.Settings
 @using IMessageService = Bamboozlers.Classes.Services.IMessageService
 @using System.Runtime.CompilerServices
@@ -98,6 +99,12 @@
             RecognizedPopupType.Profile => @<text>
                                                 <CompProfileView FocusUser="UserRecord.From(args.FocusUser!)"/>
                                             </text>,
+            RecognizedPopupType.ChatSettings => @<text>
+                                                     <CompChatSettings ChatId="args.ChatId"/>
+                                                 </text>,
+            RecognizedPopupType.ChatAddMember => @<text>
+                                                      <CompAddMember ChatId="args.ChatId"/>
+                                                  </text>,
             _ => @<text>
                       <ModalContent Size="args.Size" Centered>
                           <ModalHeader>
