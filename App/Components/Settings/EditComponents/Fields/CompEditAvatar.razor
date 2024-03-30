@@ -27,7 +27,7 @@
 
 @code
 {
-    private static readonly string[] Allowed_Formats = ["png"];
+    private static readonly string[] Allowed_Formats = ["png", "jpeg", "jpeg"];
 
     public async Task DeleteAvatar()
     {
@@ -98,7 +98,7 @@
                 Color.Danger,
                 true,
                 "Unable to change avatar.",
-                "Avatar must be a Portable Network Graphics (PNG) file."
+                "Avatar must be a PNG, or JPG file."
             ));
             return;
         }

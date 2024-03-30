@@ -1,23 +1,70 @@
-@inherits UserViewComponentBase;
-
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Services
+@using System.Runtime.CompilerServices
+@using System.Diagnostics
+@using AngleSharp.Diffing.Extensions
+@using Microsoft.IdentityModel.Tokens
+@using IMessageService = Bamboozlers.Classes.Services.IMessageService
 
 @inject IWebSocketService WebSocketService
 @inject IDbContextFactory<AppDbContext> Db
+@inject IJSRuntime JsRuntime
+@inherits UserViewComponentBase
+
+<script>
+    function showConfirmDialog(message) {
+        return Swal.fire({
+            title: 'Are you sure?',
+            text: message,
+            color: '#d33',
+            icon: 'warning',
+            iconColor:'#d33',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#247352',
+            confirmButtonText: 'Yes',
+            background: '#343a40',
+        }).then((result) => {
+            return result.isConfirmed;
+        });
+    }
+</script>
 
 <Layout>
     <LayoutHeader Fixed
                   Padding="Padding.Is3"
                   TextSize="TextSize.Heading5"
                   TextColor="TextColor.Primary"
-                  Background="Background.Dark">
-        <Text ElementId="header-text">@ChatName</Text>
+                  Background="Background.Dark"
+                  Display="Display.InlineFlex"
+                  Class="justify-content-between align-items-center">
+        <Div>
+            @if (Chat is GroupChat groupChat && groupChat.Avatar != null)
+            {
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}") Class="message-avatar" alt=""/>
+            }else if (Chat is not null && Chat is not GroupChat && Chat.Users.FirstOrDefault(f => f.Id != Self.Id).Avatar != null)
+            {
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.FirstOrDefault(f => f.Id != Self.Id).Avatar)}") Class="message-avatar" alt=""/>
+            }
+            <Text ElementId="header-text">@ChatName</Text>
+        </Div>
+        
+        @if (IsMod)
+        {
+            <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="() => CompChatSettings.ShowModal()"/>
+        }
+
     </LayoutHeader>
     <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
+        <Alert Color="@AlertColor" @bind-Visible="@AlertVisible">
+            <AlertMessage>
+                @AlertMessage
+                <CloseButton Style="--bs-btn-close-white-filter: black;" VerticalAlignment="VerticalAlignment.Middle" Float="Float.End" TextColor="TextColor.Warning"/>
+            </AlertMessage>
+        </Alert>
         <Layout>
             <LayoutContent>
                 <Div>
@@ -39,26 +86,94 @@
         </Div>
     </LayoutFooter>
 </Layout>
+@if (Chat is GroupChat)
+{
+    <LayoutSider>
+        <LayoutSiderContent>
+            <Bar Mode="BarMode.VerticalInline"
+                 CollapseMode="BarCollapseMode.Hide"
+                 ThemeContrast="ThemeContrast.Dark"
+                 Class="h-100">
+                <BarMenu>
+                    <BarItem Class="mb-2">
+                        <Div TextColor="TextColor.Primary"
+                             Background="Background.Dark"
+                             Padding="Padding.Is3"
+                             TextSize="TextSize.Heading5">
+                            <Text Class="me-4">Members - @Chat.Users.Count</Text>
+                            @if (IsMod)
+                            {
+                                <Icon ElementId="addMembers" role="button" Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
+                            }
+                        </Div>
+                    </BarItem>
+                    @foreach (var friend in Chat.Users)
+                    {
+                        <BarItem>
+                            <BarLink Flex="Flex.JustifyContent.Between" class="align-items-center rounded" Display="Display.Flex">
+                                <Div>
+                                    @if (friend.Avatar != null)
+                                    {
+                                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(friend.Avatar)}") Class="message-avatar" alt=""/>
+                                    }
+    
+                                    @(friend.DisplayName ?? friend.UserName)
+                                </Div>
+                                
+                                @if (IsMod && friend.Id != Self.Id && friend.Id != ((Chat as GroupChat)!).OwnerID)
+                                {
+                                    <Paragraph TextSize="TextSize.Small" Display="Display.Inline" 
+                                          role="button" Class="text-decoration-underline mb-0 text-danger-emphasis" 
+                                          ElementId="removeMember"
+                                          @onclick="() => RemoveMember(friend.Id)">
+                                        Remove
+                                    </Paragraph>
+                                }
+                            </BarLink>
+                        </BarItem>
+                        
+                    }
+                </BarMenu>
+            </Bar>
+        </LayoutSiderContent>
+    </LayoutSider>
+}
+
+@if (IsMod)
+{
+    <CompAddMember @ref="CompAddMember" OnAdd="@((usersAdded) => UpdateMembers(usersAdded))" Chat="@(Chat as GroupChat)"/>
+    <CompChatSettings @ref="CompChatSettings" Chat="@(Chat as GroupChat)" OnChange="SettingsChanged"/>
+}
+
 
 
 @code {
     [Parameter] public int ChatID { get; set; }
     private Chat? Chat { get; set; }
-
-    private User? Self { get; set; }
-
+    private CompAddMember CompAddMember { get; set; }
+    private CompChatSettings CompChatSettings { get; set; }
+    private User Self { get; set; }
     private string ChatName { get; set; }
-
     private string TypedMessage { get; set; }
-
     private List<LinkedMessage> Messages { get; set; } = [];
-
+    private Color AlertColor { get; set; }
+    private bool AlertVisible { get; set; }
+    public string AlertMessage { get; set; }
+    private bool IsMod { get; set; }
+    
     protected override async Task OnInitializedAsync()
     {
         Self = await AuthService.GetUser();
     }
     
     protected override async Task OnParametersSetAsync()
+    {
+        await GetData();   
+        IsMod = IsModerator();
+        await WebSocketService.ConnectAsync(Self.Id);
+    }
+
+    private async Task GetData()
     {
         await using var db = await Db.CreateDbContextAsync();
         Chat = await db.Chats.Include(i => i.Users)
@@ -70,8 +185,8 @@
         }
         else if (Chat is not null)
         {
-            var other = Chat.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? Self;
-            ChatName = (other!.DisplayName ?? other.UserName)!;
+            var other = Chat.Users.FirstOrDefault(u => u.Id != Self.Id) ?? Self;
+            ChatName = (other.DisplayName ?? other.UserName)!;
         }
         else
         {
@@ -82,8 +197,6 @@
         messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
         Messages = linkedMessages;
-        
-        await WebSocketService.ConnectAsync(Self!.Id);
         
         StateHasChanged();
     }
@@ -134,13 +247,25 @@
         StateHasChanged();
     }
 
+    private bool IsModerator()
+    {
+        if (Chat is not GroupChat)
+        {
+            return false;
+        }
+        
+        using var db = Db.CreateDbContext();
+        var gc = db.GroupChats.Include(i => i.Moderators).FirstOrDefault(f => f.ID == ChatID);
+        return gc.OwnerID == Self.Id ||  gc.Moderators.Any(m => m.Id == Self.Id);
+    }
+
     private async Task SendMessage()
     {
         if (string.IsNullOrWhiteSpace(TypedMessage)) return;
 
         while (TypedMessage.EndsWith("\n")) TypedMessage = TypedMessage[..^1];
         while (TypedMessage.StartsWith("\n")) TypedMessage = TypedMessage[1..];
-
+        
         var message = new Message
         {
             ChatID = Chat!.ID,
@@ -154,7 +279,70 @@
 
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
     }
+    
+    private void UpdateMembers(List<User> usersAdded)
+    {
+        if (!usersAdded.IsNullOrEmpty())
+        {   
+           Chat!.Users.AddRange(usersAdded); 
+           AlertVisible = true;
+           AlertMessage = "Member(s) added successfully!";
+           AlertColor = Color.Success;
+        }
+        else
+        {
+            AlertVisible = true;
+            AlertMessage = "No member(s) added!";
+            AlertColor = Color.Warning;
+        }
+        
+    }
+    
+    private async Task RemoveMember(int userID)
+    {
+        try
+        {
+            using var db = Db.CreateDbContext();
+            var user = db.Users.Include(i => i.Chats).FirstOrDefault(f => f.Id == userID);
+            var confirmed = await JsRuntime.InvokeAsync<bool>("showConfirmDialog", $"Are you sure you want to remove {user.DisplayName ?? user.UserName}?");
+            
+            if (confirmed)
+            {
+                db.Chats.Include(i => i.Users).FirstOrDefault(f => f.ID == Chat.ID).Users.Remove(user);
+                db.Users.Include(i => i.Chats).FirstOrDefault(f => f.Id == userID).Chats.Remove(Chat);
+                db.Chats.OfType<GroupChat>().Include(i => i.Moderators).FirstOrDefault(f => f.ID == Chat.ID).Moderators.Remove(user);
+                db.Users.Include(i => i.ModeratedChats).FirstOrDefault(f => f.Id == userID).Chats.Remove(Chat);
+                db.SaveChanges();
+                Chat!.Users.Remove(Chat.Users.FirstOrDefault(r => r.Id == userID)!);
+                AlertVisible = true;
+                AlertMessage = "Member removed successfully!";
+                AlertColor = Color.Success;
+            }
+            else
+            {
+                AlertVisible = true;
+                AlertMessage = "Member not removed";
+                AlertColor = Color.Warning;
+            }
+            
+        }
+        catch (Exception ex)
+        {
+            AlertVisible = true;
+            AlertMessage = "Sorry we failed to remove that member :( Please try again";
+            AlertColor = Color.Danger;
+        }
+        
+    }
 
+    private async Task SettingsChanged()
+    {
+        AlertVisible = true;
+        AlertMessage = "Settings updated successfully!";
+        AlertColor = Color.Success;
+        await GetData();
+    }
+    
     public class LinkedMessage(Message message, Message? previous)
     {
         public MessageState GetMessageState()

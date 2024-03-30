@@ -1,0 +1,128 @@
+@using Bamboozlers.Classes.AppDbContext
+@using AngleSharp.Diffing.Extensions
+@using Bamboozlers.Classes.Services
+@using Microsoft.IdentityModel.Tokens
+@inject IDbContextFactory<AppDbContext> Db
+@inherits UserViewComponentBase
+
+<Modal @ref="modalRef">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>Add Member(s)</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            <Alert Color="Color.Danger" @bind-Visible="@ErrorVisible">
+                <AlertMessage>
+                    Sorry we failed to add your friends :( Please try again
+                </AlertMessage>
+            </Alert>
+            @if (Users.IsNullOrEmpty())
+            {
+                <p>Sorry all your friends are already here</p>
+            }
+            else
+            {
+                @foreach (var user in Users)
+                {
+                    <Check TValue="bool" Checked="@IsChecked(user)" CheckedChanged="@(value => Change(value, user))">
+                        @if (user.Avatar != null)
+                        {
+                            <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") Class="message-avatar" alt=""/>
+                        }
+                        @(user.DisplayName ?? user.UserName)
+                    </Check>
+                }
+            }
+
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Danger" Clicked="@(() => HideModal())">Cancel</Button>
+            <Button ElementId="saveChanges" Color="Color.Success" Clicked="@AddMembers">Save Changes</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+@code{
+    [Parameter] public GroupChat Chat {get; set;}
+    [Parameter] public EventCallback<List<User>> OnAdd { get; set; }
+    
+    private List<Names> UsersToAdd { get; set; }
+    private List<Names> Users { get; set; }
+    private Modal modalRef;
+    private bool ErrorVisible { get; set; } = false;
+    private record Names(string UserName, string? DisplayName, byte[]? Avatar);
+    private User Self { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        Self = await AuthService.GetUser();
+    }
+
+    private void Change(bool isChecked, Names user)
+    {
+        if (isChecked)
+        {
+            UsersToAdd.Add(user);
+        }
+        else
+        {
+            UsersToAdd.Remove(user);
+        }
+    }
+
+    private bool IsChecked(Names user)
+    {
+        return UsersToAdd.Any(a => a.UserName == user.UserName);
+    }
+    
+    public async Task ShowModal()
+    {
+        UsersToAdd = new List<Names>();
+        await using var db = await Db.CreateDbContextAsync();
+        var friends = (await Self.GetFriends(db)).Select(s => new Names(
+            s.UserName,
+            s.DisplayName,
+            s.Avatar
+        )).ToList();
+        
+        var current = Chat.Users.Select(s => new Names(
+            s.UserName,
+            s.DisplayName,
+            s.Avatar
+        )).ToList();
+        
+        Users = friends
+            .Where(f => current.All(c => c.UserName != f.UserName))
+            .ToList();
+
+        await modalRef.Show();
+    }
+
+    private async Task HideModal(List<User> usersAdded = null)
+    {
+        await OnAdd.InvokeAsync(usersAdded);
+        await modalRef.Hide();
+    }
+
+    private async Task AddMembers()
+    {
+        if(UsersToAdd.IsNullOrEmpty())
+        {
+            await HideModal();
+            return;
+        }
+        try
+        {
+            await using var db = await Db.CreateDbContextAsync();
+            var users = await db.Users.Where(u => UsersToAdd.Select(s => s.UserName).Contains(u.UserName)).ToListAsync();
+            db.Chats.Include(i => i.Users).FirstOrDefault(f => f.ID == Chat.ID)?.Users.AddRange(users);
+            await db.SaveChangesAsync();
+            await HideModal(users);
+        }catch (Exception e)
+        {
+            ErrorVisible = true;
+            Console.WriteLine(e);
+        }
+        
+    }
+}
