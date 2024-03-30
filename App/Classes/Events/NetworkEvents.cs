@@ -13,15 +13,15 @@ public abstract class NetworkEvents
         }
     });
     
-    public static readonly Event<TellOthersToReadDatabaseRequestEvent> TellOthersToReadDatabaseRequest = EventFactory.CreateArrayBacked<TellOthersToReadDatabaseRequestEvent>(listeners => async (senderId, chatId, dbEntry) =>
+    public static readonly Event<TellOthersToReadDatabaseRequestEvent> TellOthersToReadDatabaseRequest = EventFactory.CreateArrayBacked<TellOthersToReadDatabaseRequestEvent>(listeners => async (senderId, recipientIdentityNames, dbEntry) =>
     {
         foreach (var listener in listeners)
         {
-            await listener(senderId, chatId, dbEntry);
+            await listener(senderId, recipientIdentityNames, dbEntry);
         }
     });
 
     public delegate Task ReadDatabaseRequestEvent(DbEntry type);
     
-    public delegate Task TellOthersToReadDatabaseRequestEvent(int senderId, int chatId, DbEntry dbEntry);
+    public delegate Task TellOthersToReadDatabaseRequestEvent(int senderId, string[] recipientIdentityNames, DbEntry dbEntry);
 }

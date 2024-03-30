@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Text.Json;
+using Bamboozlers.Classes.Func;
 using Bamboozlers.Classes.Networking.Packets;
 
 namespace Bamboozlers.Classes.Networking;
@@ -6,8 +8,8 @@ namespace Bamboozlers.Classes.Networking;
 public abstract class AbstractNetworkHandler
 {
     protected readonly PacketRegistry PacketRegistry = new();
-
-    public async Task HandlePacket(string packetJson)
+    
+    public async Task Handle(string packetJson, AsyncConsumer<IPacket> whenRecieved)
     {
         var json = JsonDocument.Parse(packetJson).RootElement;
         var packetId = json.GetProperty("id").GetString();
@@ -21,6 +23,6 @@ public abstract class AbstractNetworkHandler
         {
             throw new Exception($"Packet: {packetJson} is not of type {expectedType}");
         }
-        await PacketRegistry.HandlePacket(packetId, (IPacket)packet);
+        await whenRecieved((IPacket)packet);
     }
 }

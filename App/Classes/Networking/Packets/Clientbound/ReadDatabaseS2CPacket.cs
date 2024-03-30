@@ -6,7 +6,7 @@ namespace Bamboozlers.Classes.Networking.Packets.Clientbound;
 
 public class ReadDatabaseS2CPacket : IPacket
 {
-    internal static readonly PacketType<ReadDatabaseS2CPacket> Type =
+    public static readonly PacketType<ReadDatabaseS2CPacket> Type =
         PacketType<ReadDatabaseS2CPacket>.Create("read_database_s2c", json => new ReadDatabaseS2CPacket(json));
 
     internal DbEntry DbEntry;

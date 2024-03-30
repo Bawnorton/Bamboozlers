@@ -8,8 +8,10 @@ using Bamboozlers.Classes.Services.Authentication;
 using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -63,8 +65,9 @@ builder.Services.AddScoped<IKeyPressService, KeyPressService>();
 
 builder.Services.AddSignalR(e =>
 {
-    e.MaximumReceiveMessageSize = 1024 * 1024; 
+    e.MaximumReceiveMessageSize = 1024 * 1024;
 });
+builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
 
 builder.WebHost.UseUrls("http://192.168.1.199:5152", "http://localhost:5152");
 
@@ -81,6 +84,11 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapHub<BamboozlersHub>(BamboozlersHub.HubUrl);

@@ -14,11 +14,14 @@
 @using System.Text.Json.Nodes
 @using Bamboozlers.Classes.Networking.Packets.Clientbound
 @using Bamboozlers.Classes.Networking.SignalR
+@using System.Security.Principal
+@using System.Security.Claims
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
 @inject IKeyPressService KeyPressService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <Layout>
     <LayoutHeader Fixed
@@ -95,9 +98,7 @@
     [Parameter] public int ChatID { get; set; }
 
     private Chat? Chat { get; set; }
-
-    private User? Self { get; set; }
-
+    
     private string ChatName { get; set; }
 
     private List<LinkedMessage> Messages { get; } = [];
@@ -114,8 +115,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthService.GetUser();
-        
         await KeyPressService.StartListeningAsync();
         KeyPressService.KeyPressed += OnKeyPressed;
         KeyPressService.KeyReleased += OnKeyReleased;
@@ -124,14 +123,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-
-        NetworkEvents.ReadDatabaseRequest.Register(nameof(CompChatView), async entry =>
-        {
-            if (entry != DbEntry.ChatMessage) return;
-
-            await UpdateMessages();
-        });
-
+        
         await Connect();
     }
 
@@ -139,17 +131,37 @@
     {
         var baseUrl = NavigationManager.BaseUri;
         _hubUrl = baseUrl.TrimEnd('/') + BamboozlersHub.HubUrl;
-
+        
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(_hubUrl, options => { options.HttpMessageHandlerFactory = innerHandler => new IncludeRequestCredentialsMessageHandler { InnerHandler = innerHandler }; })
+            .WithUrl(_hubUrl, options =>
+            {
+                options.UseDefaultCredentials = true;
+                options.HttpMessageHandlerFactory = innerHandler => new IncludeRequestCredentialsMessageHandler { InnerHandler = innerHandler };
+            })
             .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)])
             .Build();
+        
 
-        _hubConnection.On("RecievePacketOnClient", async (string packet) => { await ClientNetworkHandler.Instance.HandlePacket(packet); });
+        var self = await AuthService.GetUser();
+        _hubConnection.On("RecievePacketOnClient", async (string packet) =>
+        {
+            await ClientNetworkHandler.Instance.Handle(packet, async handled =>
+            {
+                switch (handled)
+                {
+                    case ReadDatabaseS2CPacket readDatabaseS2CPacket:
+                        if (readDatabaseS2CPacket.DbEntry == DbEntry.ChatMessage)
+                        {
+                            await UpdateMessages();
+                        }
+                        break;
+                }
+            });
+        });
 
         await _hubConnection.StartAsync();
-
-        await _hubConnection.SendAsync("JoinChat", Self!.Id, ChatID);
+        
+        await _hubConnection.SendAsync("JoinChat", self!.Id, ChatID);
     }
 
     private async Task SendToServer<T>(T packet) where T : IPacket
@@ -182,8 +194,9 @@
                 break;
             default:
             {
-                var other = Chat.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? Self;
-                ChatName = (other!.DisplayName ?? other.UserName)!;
+                var self = await AuthService.GetUser();
+                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
+                ChatName = (other.DisplayName ?? other.UserName)!;
                 break;
             }
         }
@@ -235,10 +248,11 @@
         while (messageText.EndsWith("\n")) messageText = messageText[..^1];
         while (messageText.StartsWith("\n")) messageText = messageText[1..];
 
+        var self = await AuthService.GetUser();
         var message = new Message
         {
             ChatID = Chat!.ID,
-            SenderID = Self!.Id,
+            SenderID = self!.Id,
             Content = messageText,
             SentAt = DateTime.Now,
             IsPinned = false
@@ -248,10 +262,11 @@
         db.Messages.Add(message);
         await db.SaveChangesAsync();
 
+        var recipientIdentiyNames = Chat.Users.Select(u => u.UserName!).ToArray();
         var readDatabaseRequest = new TellOthersToReadDatabaseC2SPacket
         {
-            SenderId = Self.Id,
-            ChatId = ChatID,
+            SenderId = self.Id,
+            RecipientIdentityNames = recipientIdentiyNames,
             DbEntry = DbEntry.ChatMessage
         };
         await SendToServer(readDatabaseRequest);
