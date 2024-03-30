@@ -1,3 +1,4 @@
+using Bamboozlers.Classes.AppDbContext;
 using Blazorise;
 using Microsoft.AspNetCore.Components;
 
@@ -8,7 +9,9 @@ public record PopupCallbackArgs(
     RenderFragment? BodyContent = null, 
     RenderFragment? HeaderContent = null, 
     RenderFragment? FooterContent = null, 
-    ModalSize Size = ModalSize.Default
+    ModalSize Size = ModalSize.Default,
+    User? FocusUser = null, // For pop-ups that focus on a User in specific
+    Chat? Chat = null // For pop-ups that focus on a Chat in specific
 );
 
 public enum RecognizedPopupType

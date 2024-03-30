@@ -25,7 +25,7 @@
             <Div Background="Background.Secondary"
                  Padding="Padding.Is3"
                  TextSize="TextSize.Heading5">
-                <Icon Name="Icons.UserTimes"></Icon>
+                <Icon Name="Icons.User"></Icon>
                 <Text>Bamboozlers</Text>
             </Div>
             <Bar Mode="BarMode.VerticalInline"
@@ -49,7 +49,7 @@
                                 @foreach (var chat in DmChats)
                                 {
                                     <BarItem>
-                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => { CurrentView = View.Dm; CurrentChatId = chat.ID; }">
+                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => OpenDm(chat.ID)">
                                             @if (chat.Avatar is not null)
                                             {
                                                 <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
@@ -124,6 +124,7 @@
 
 @code {
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    
     private User? User { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
 
@@ -174,6 +175,36 @@
             }
         }
     }
+
+    public void OpenChatIfExists(Chat? chat)
+    {
+        if (chat is null)
+            return;
+
+        CurrentView = DmChats.FirstOrDefault(d => d.ID == chat.ID) is not null 
+            ? CurrentView = View.Dm 
+            : View.Group;
+        
+        CurrentChatId = chat.ID;
+    }
+    
+    private void OpenDm(int chatId)
+    {
+        if (DmChats.FirstOrDefault(d => d.ID == chatId) is null)
+            return;
+        
+        CurrentView = View.Dm; 
+        CurrentChatId = chatId; 
+    }
+    
+    private void OpenGroup(int chatId)
+    {
+        if (GroupChats.FirstOrDefault(g => g.ID == chatId) is null)
+            return;
+        
+        CurrentView = View.Group; 
+        CurrentChatId = chatId; 
+    }
     
     private enum View
     {
@@ -183,5 +214,4 @@
     }
     
     private record DmChat(int ID, User User, byte[]? Avatar);
-
 }

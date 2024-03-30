@@ -36,56 +36,93 @@
     .dropdown:hover .dropdown-content {
         display: inline-block;
     }
+   
+   .opt-bar {
+        position: relative;
+        display: inline; 
+        width: max-content;
+   }
+   
+   .right {
+        float: right
+   }
+   
+   .left {
+        float: left
+   }
+   
+   .clip-to-bottom {
+        position: absolute;
+        bottom: 0;
+   }
+   
+   .opt-bar .item {
+        display: inline-block; 
+        width: fit-content; 
+        margin-left: 5px; 
+        margin-right: 5px;
+   }
 </style>
 
-<div style="display: inline-block">
-    <div style="display: inline; width: max-content;">
-        <div style="display: inline-block; float: left; margin-right: 15px">
-            <Image ElementId="avatar-display"
-                   Class="border-mask fit _128x128"
-                   Source="@(IsBlocked || IsBlockedBy ? "images/default_profile.png" : FocusUser.Avatar)"/>
-        </div>
-        <div style="display: inline-block; float: left; vertical-align: middle;">
-            @StatusBadge
-            @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
-            {
-                <h4>@(FocusUser.DisplayName)</h4>
-                <p>@FocusUser.UserName</p>
-            }
-            else
-            {
-                <h4>@FocusUser.UserName</h4>
-            }
-        </div>
-    </div>
-    <div style="display: inline; width: max-content;">
-        <div style="display: inline-block; width: fit-content">
-            @ActionButton
-        </div>
-        <div style="display: inline-block; width: fit-content; margin-left: 3%">
-            @ActionOptions
-        </div>
-        <CloseButton Style="margin-left: 3%"/>
-    </div>
-</div>
-
-@if (!IsBlockedBy && !IsBlocked)
-{
-    <div style="float: left; width: 100%; display: block">
-        <Divider/>
-        <h4>Description</h4>
-        <Divider/>
-        <textarea name="bio" 
-            type="text" 
-            style="resize: none; max-height: 400px; min-height: 100px;"
-            class="form-control"
-            disabled>
-              @FocusUser.Bio
-    </textarea>  
-    </div>
-}
+<ModalContent Centered>
+    <ModalBody>
+        <div>
+           <div class="opt-bar">
+               <div class="opt-bar left">
+                   <div class="item left" style="margin-right: 15px">
+                       <Image ElementId="avatar-display"
+                              Class="border-mask fit _128x128"
+                              Source="@(IsBlocked || IsBlockedBy ? "images/default_profile.png" : FocusUser.Avatar)"/>
+                   </div>
+                   <div class="item left" style="vertical-align: middle;">
+                       @StatusBadge
+                       <div class="clip-to-bottom">
+                           @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
+                           {
+                               <h4>@(FocusUser.DisplayName)</h4>
+                               <p>@FocusUser.UserName</p>
+                           }
+                           else
+                           {
+                               <h4>@FocusUser.UserName</h4>
+                           }
+                       </div>
+                   </div>
+               </div>
+               <div class="opt-bar right">
+                   <CloseButton Class="item right"/>
+                   <div class="item right">
+                       @ActionOptions
+                   </div>
+                   <div class="item right">
+                       @ActionButton
+                   </div>
+               </div>
+           </div> 
+           @if (!IsBlockedBy && !IsBlocked)
+           {
+               <div style="float: left; width: 100%; display: block">
+                   <Divider/>
+                   <h4>Description</h4>
+                   <Divider/>
+                   <textarea name="bio" 
+                       type="text" 
+                       style="resize: none; max-height: 400px; min-height: 100px;"
+                       class="form-control"
+                       disabled>
+                         @FocusUser.Bio
+               </textarea>  
+               </div>
+           }
+        </div>        
+    </ModalBody>
+</ModalContent>
 
 @code {
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    [CascadingParameter] public EventCallback<Classes.AppDbContext.Chat?> OpenChatCallback { get; set; }
+    
     [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
     private RenderFragment? ActionButton { get; set; }
     private RenderFragment? ActionOptions { get; set; }
@@ -127,11 +164,12 @@
                     this,
                     async () =>
                     {
-                        // TODO: Open Settings Menu
-                        
+                        await ClosePopupCallback.InvokeAsync();
+                        await Task.Delay(100);
+                        await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.Settings }); 
                     }),
-                "Edit Profile",
-                IconName.Pen
+                "Settings",
+                IconName.Settings
             );
             StatusBadge = @<Badge Color="Color.Light">
                               YOU
@@ -146,7 +184,8 @@
                     this,
                     async () =>
                     {
-                        // TODO: Open DM 
+                        await ClosePopupCallback.InvokeAsync(); 
+                        await OpenChatCallback.InvokeAsync(await UserInteractionService.FindDmIfExists(FocusUser.Id));
                     }),
                 "Send Message",
                 IconName.Mail
@@ -191,7 +230,7 @@
                 );
             }
         }
-        else
+        else if (IsBlocked)
         {
             StatusBadge = @<Badge Color="Color.Danger">
                               <Icon Name="IconName.ShieldAlt"/>

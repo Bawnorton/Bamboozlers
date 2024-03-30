@@ -30,11 +30,15 @@
                  Allows for dynamic creation of popups without using Blazorise ModalProvider/Service, which isn't
                  very cooperative!
             -->
-            <CascadingValue Value="_popupCallback">
-                <NavLayout @ref="_navLayout"/>
-                <Modal @ref="_popupComponent" Closed="OnPopupClosed">
-                    @_popupContent
-                </Modal>
+            <CascadingValue Value="_openPopupCallback">
+                <CascadingValue Value="_closePopupCallback">
+                    <CascadingValue Value="_openChatCallback">
+                        <NavLayout @ref="_navLayout"/>
+                        <Modal @ref="_popupComponent" Closed="OnPopupClosed">
+                            @_popupContent
+                        </Modal>
+                    </CascadingValue>
+                </CascadingValue>
             </CascadingValue>
         </AuthorizeView>
     </ChildContent>
@@ -64,13 +68,19 @@
 @code {
     private NavLayout? _navLayout;
 
-    private EventCallback<PopupCallbackArgs> _popupCallback;
+    private EventCallback<PopupCallbackArgs> _openPopupCallback;
+    private EventCallback _closePopupCallback;
+    private EventCallback<Chat?> _openChatCallback;
+    
     private Modal? _popupComponent;
     private RenderFragment? _popupContent;
     
     protected override void OnInitialized()
     {
-        _popupCallback = EventCallback.Factory.Create<PopupCallbackArgs>(this, OpenPopup);
+        _openPopupCallback = EventCallback.Factory.Create<PopupCallbackArgs>(this, OpenPopup);
+        _openChatCallback = EventCallback.Factory.Create<Chat?>(this, chat => _navLayout?.OpenChatIfExists(chat));
+        _closePopupCallback = EventCallback.Factory.Create(this, ClosePopup);
+        
         MessageService.Init(Db);
         JsInteropHelper.Init(JsRuntime);
     }
@@ -79,18 +89,14 @@
     {
         if (_popupComponent is null)
             return;
-
+        
         _popupContent = args.PopupType switch
         {
             RecognizedPopupType.Settings => @<text>
                                                  <CompSettings StateChangedCallback="@(async () => await _navLayout!.Refresh())"/>
                                              </text>,
             RecognizedPopupType.Profile => @<text>
-                                                <ModalContent Centered>
-                                                    <ModalBody>
-                                                        @args.BodyContent
-                                                    </ModalBody>
-                                                </ModalContent>
+                                                <CompProfileView FocusUser="UserRecord.From(args.FocusUser!)"/>
                                             </text>,
             _ => @<text>
                       <ModalContent Size="args.Size" Centered>
@@ -120,12 +126,17 @@
         await _popupComponent.Show();
     }
 
+    private async Task ClosePopup()
+    {
+        if (_popupComponent is null)
+            return;
+        await _popupComponent.Hide();
+    }
+    
     private void OnPopupClosed()
     {
         if (_popupComponent is null)
             return;
-        
-        _popupComponent.Hide();
         _popupContent = null;
     }
 }

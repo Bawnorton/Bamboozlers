@@ -1,4 +1,5 @@
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Func;
 using Bamboozlers.Classes.Services.Authentication;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.EntityFrameworkCore;
@@ -10,12 +11,26 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     private IAuthService AuthService { get; set; } = authService;
     private IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; set; } = dbContextFactory;
 
-    private async Task<(User?, User?)> GetInvolvedUsers(int? otherId)
+    private async Task<(User?, User?)> GetInvolvedUsers(int? otherId, Unary<IQueryable<User>>? inclusionCallback = null)
     {        
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        var self = await AuthService.GetUser();
+        var self = await AuthService.GetUser(inclusionCallback);
         var other = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == otherId);
         return (self, other);
+    }
+
+    public async Task<Chat?> FindDmIfExists(int? otherId)
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var (self, other) = await GetInvolvedUsers(otherId, 
+            query => 
+                query.Include(u => u.Chats)
+                        .ThenInclude(c => c.Users));
+        
+        if (self is null || other is null)
+            return null;           
+        
+        return self.Chats.Except(self.Chats.OfType<GroupChat>().ToList()).FirstOrDefault(chat => chat.Users.Contains(other));
     }
     
     public async Task<Friendship?> FindFriendship(int? otherId)
@@ -68,7 +83,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
             && r.Status == RequestStatus.Pending
         );
     }
-
+    
     public async Task<Block?> FindIfBlocked(int? otherId)
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
@@ -263,6 +278,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
 
 public interface IUserInteractionService : IAsyncPublisher
 {
+    Task<Chat?> FindDmIfExists(int? otherId);
     Task<Friendship?> FindFriendship(int? otherId);
     Task<FriendRequest?> FindIncomingRequest(int? otherId);
     Task<FriendRequest?> FindOutgoingRequest(int? otherId);
@@ -273,7 +289,6 @@ public interface IUserInteractionService : IAsyncPublisher
     Task SendFriendRequest(int? otherId);
     Task RevokeFriendRequest(int? otherId);
     Task AcceptFriendRequest(int? otherId);
-    
     Task DeclineFriendRequest(int? otherId);
     Task RemoveFriend(int? otherId);
 }

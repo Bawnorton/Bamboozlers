@@ -117,7 +117,7 @@
             await OpenPopupCallback.InvokeAsync(
                     new PopupCallbackArgs(
                         RecognizedPopupType.Profile,
-                        @<CompProfileView FocusUser="@UserRecord.From(Message.Sender)"/>
+                        FocusUser: Message.Sender
                     )
                 );
         }
