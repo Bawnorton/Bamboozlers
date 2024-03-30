@@ -760,12 +760,12 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("Uploaded file was not an image.",resultArgs!.AlertDescription);
         
         // Arrange: Invalid file passed (image, but not png)
-        fakeFile = new MockBrowserFile { ContentType = "image/jpeg" };
+        fakeFile = new MockBrowserFile { ContentType = "image/gif" };
         spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
         // Act
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
-        Assert.Equal("Avatar must be a Portable Network Graphics (PNG) file.",resultArgs!.AlertDescription);
+        Assert.Equal("Avatar must be a PNG, or JPG file.",resultArgs!.AlertDescription);
         
         // Arrange: Valid file passed, but image was empty
         fakeFile = new MockBrowserFile { ContentType = "image/png", Bytes = Array.Empty<byte>()};

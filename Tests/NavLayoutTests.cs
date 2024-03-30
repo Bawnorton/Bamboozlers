@@ -1,14 +1,22 @@
 using Bamboozlers.Classes.AppDbContext;
-using Bamboozlers.Classes.Services;
-using Bamboozlers.Classes.Services.Authentication;
 using Bamboozlers.Layout;
+using Blazorise;
+using Blazorise.Modules;
+using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
-using Tests.Provider;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Tests;
 
 public class NavLayoutTests : AuthenticatedBlazoriseTestBase
 {
+    public NavLayoutTests()
+    {
+        Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
+        Ctx.Services.AddBlazorise().Replace(ServiceDescriptor.Transient<IComponentActivator, ComponentActivator>());
+    }
+    
     [Fact]
     public async Task NavLayoutTests_FindAndOpenDms()
     {
