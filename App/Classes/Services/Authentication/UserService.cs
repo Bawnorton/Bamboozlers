@@ -3,7 +3,6 @@ using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Identity;
-using Xunit;
 
 namespace Bamboozlers.Classes.Services.Authentication;
 

@@ -1,9 +1,7 @@
 using Bamboozlers.Classes.Interop;
+using Microsoft.JSInterop;
 
 namespace Bamboozlers.Classes.Services;
-using System;
-using System.Threading.Tasks;
-using Microsoft.JSInterop;
 
 public class KeyPressService : IKeyPressService
 {

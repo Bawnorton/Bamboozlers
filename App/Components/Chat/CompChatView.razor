@@ -143,11 +143,11 @@
         
 
         var self = await AuthService.GetUser();
-        _hubConnection.On("RecievePacketOnClient", async (string packet) =>
+        _hubConnection.On("RecievePacketOnClient", async (string packetJson) =>
         {
-            await ClientNetworkHandler.Instance.Handle(packet, async handled =>
+            await ClientNetworkHandler.Instance.Handle(packetJson, async packet =>
             {
-                switch (handled)
+                switch (packet)
                 {
                     case ReadDatabaseS2CPacket readDatabaseS2CPacket:
                         if (readDatabaseS2CPacket.DbEntry == DbEntry.ChatMessage)

@@ -1,4 +1,3 @@
-using Bamboozlers.Classes.Events;
 using Bamboozlers.Classes.Networking.Packets;
 using Bamboozlers.Classes.Networking.Packets.Clientbound;
 using Bamboozlers.Classes.Networking.Packets.Serverbound;
