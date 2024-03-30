@@ -1,27 +1,24 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Bamboozlers.Classes.Data;
 
 namespace Bamboozlers.Classes.Networking.Packets.Serverbound;
 
-public class TellOthersToReadDatabaseC2SPacket : IServerboundPacket
+public class TellOthersToReadDatabaseC2SPacket : IPacket
 {
-    internal static readonly PacketType<TellOthersToReadDatabaseC2SPacket> Type = PacketType<TellOthersToReadDatabaseC2SPacket>.Create("tell_others_to_read_db_c2s");
+    internal static readonly PacketType<TellOthersToReadDatabaseC2SPacket> Type = PacketType<TellOthersToReadDatabaseC2SPacket>.Create("tell_others_to_read_db_c2s", json => new TellOthersToReadDatabaseC2SPacket(json));
 
-    private int _senderId;
-    private int[] _recipientIds;
-    private DbEntry _dbEntry;
+    internal int SenderId;
+    internal int ChatId;
+    internal DbEntry DbEntry;
 
-    private TellOthersToReadDatabaseC2SPacket() { }
+    internal TellOthersToReadDatabaseC2SPacket() { }
 
-    public static TellOthersToReadDatabaseC2SPacket Create(int senderId, IEnumerable<int> recipientIds, DbEntry dataType)
+    private TellOthersToReadDatabaseC2SPacket(JsonElement json)
     {
-        var packet = new TellOthersToReadDatabaseC2SPacket
-        {
-            _senderId = senderId,
-            _recipientIds = recipientIds.ToArray(),
-            _dbEntry = dataType
-        };
-        return packet;
+        SenderId = json.GetProperty("sender_id").GetInt32();
+        ChatId = json.GetProperty("chat_id").GetInt32();
+        DbEntry = DbEntry.FromId(json.GetProperty("db_entry").GetString()!);
     }
     
     public PacketType PacketType()
@@ -31,13 +28,8 @@ public class TellOthersToReadDatabaseC2SPacket : IServerboundPacket
 
     public void Write(JsonObject obj)
     {
-        obj["sender_id"] = _senderId;
-        var recipientIds = new JsonArray();
-        foreach (var recipientId in _recipientIds)
-        {
-            recipientIds.Add(recipientId);
-        }
-        obj["recipient_ids"] = recipientIds;
-        obj["db_entry"] = _dbEntry.GetId();
+        obj["sender_id"] = SenderId;
+        obj["chat_id"] = ChatId;
+        obj["db_entry"] = DbEntry.GetId();
     }
 }

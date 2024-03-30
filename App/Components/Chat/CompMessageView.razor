@@ -7,6 +7,7 @@
 @using Bamboozlers.Classes.Services
 
 @inject IDbContextFactory<AppDbContext> Db
+@inject IKeyPressService KeyPressService
 
 @if(Loaded)
 {
@@ -63,12 +64,12 @@
     [Parameter] public MessageState MessageState { get; set; }
     
     [Parameter] public bool EchoRecieved { get; set; }
-
+    
+    [CascadingParameter] private bool IsShiftHeld { get; set; }
+    
     private bool Loaded { get; set; }
 
     private User? Self { get; set; }
-
-    private bool IsShiftHeld { get; set; }
 
     private bool IsSelfMessage => Message.Sender!.Id == Self!.Id;
 
@@ -86,29 +87,7 @@
         }
 
         Loaded = true;
+        
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-
-        var messageViewEventId = $"message-view-{Message.ID}";
-        KeyboardEvents.Keydown.Register(messageViewEventId, (key, _, _, _, _, _) =>
-        {
-            if (key != "Shift") return Task.CompletedTask;
-
-            IsShiftHeld = true;
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        });
-
-        KeyboardEvents.Keyup.Register(messageViewEventId, (key, _, _, _, _, _) =>
-        {
-            if (key != "Shift") return Task.CompletedTask;
-
-            IsShiftHeld = false;
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        });
-    }
 }

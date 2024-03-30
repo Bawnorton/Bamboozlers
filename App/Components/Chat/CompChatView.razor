@@ -1,15 +1,24 @@
 @inherits UserViewComponentBase;
+@implements IAsyncDisposable
 
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
-@using Bamboozlers.Classes.Interop
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Networking
+@using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Networking.Packets.Serverbound
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using Bamboozlers.Classes.Networking.Packets.Clientbound
+@using Bamboozlers.Classes.Networking.SignalR
 
 @inject IDbContextFactory<AppDbContext> Db
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+@inject IKeyPressService KeyPressService
 
 <Layout>
     <LayoutHeader Fixed
@@ -23,45 +32,141 @@
         <Layout>
             <LayoutContent>
                 <Div>
-                    @foreach (var message in Messages)
-                    {
-                        <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()" EchoRecieved="@message.OthersCanSee"/>
-                    }
+                    <CascadingValue Value="IsShiftHeld">
+                        @foreach (var message in Messages)
+                        {
+                            <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()" EchoRecieved="@message.OthersCanSee"/>
+                        }
+                    </CascadingValue>
                 </Div>
             </LayoutContent>
         </Layout>
     </LayoutContent>
     <LayoutFooter>
-        <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Class="m-4" Style="bottom: 0">
-            <Div Display="Display.Flex" Overflow="Overflow.Hidden" >
-                <Div contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
-                     id="message-input" class="@($"message-input word-break {InputEvents.EventCssClass} {ClipboardEvents.EventCssClass}")" data-placeholder="@($"Message {ChatName}")">
-                </Div>
+        <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Class="m-4" Style="bottom: 0; border-radius: 5px;">
+            <Div Display="Display.Flex" Overflow="Overflow.Hidden">
+                <textarea id="message-input" placeholder="@($"Message {ChatName}")" class="message-input p-3" @onkeyup="OnInput" @bind="MessageInput" @bind:event="oninput">
+                </textarea>
             </Div>
         </Div>
     </LayoutFooter>
 </Layout>
+<script>
+    function waitForElm(selector) {
+        return new Promise(resolve => {
+            if (document.querySelector(selector)) {
+                return resolve(document.querySelector(selector));
+            }
+    
+            const observer = new MutationObserver(_ => {
+                if (document.querySelector(selector)) {
+                    observer.disconnect();
+                    resolve(document.querySelector(selector));
+                }
+            });
+    
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    }
+    
+    function resizeTextarea(textarea) {
+        textarea.style.height = '1px';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+    
+    waitForElm("#message-input").then(textarea => {
+        textarea.addEventListener('input', () => resizeTextarea(textarea));
+        textarea.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+        resizeTextarea(textarea);
+        textarea.focus();
+    });
+</script>
 
 
 @code {
     [Parameter] public int ChatID { get; set; }
+
     private Chat? Chat { get; set; }
 
     private User? Self { get; set; }
 
     private string ChatName { get; set; }
 
-    private string TypedMessage { get; set; }
-
     private List<LinkedMessage> Messages { get; } = [];
 
     private DateTime? _lastMessageSentAt;
 
+    private string MessageInput { get; set; }
+
+    private string _hubUrl;
+
+    private HubConnection? _hubConnection;
+
+    private bool IsShiftHeld { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         Self = await AuthService.GetUser();
+        
+        await KeyPressService.StartListeningAsync();
+        KeyPressService.KeyPressed += OnKeyPressed;
+        KeyPressService.KeyReleased += OnKeyReleased;
     }
-    
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        NetworkEvents.ReadDatabaseRequest.Register(nameof(CompChatView), async entry =>
+        {
+            if (entry != DbEntry.ChatMessage) return;
+
+            await UpdateMessages();
+        });
+
+        await Connect();
+    }
+
+    private async Task Connect()
+    {
+        var baseUrl = NavigationManager.BaseUri;
+        _hubUrl = baseUrl.TrimEnd('/') + BamboozlersHub.HubUrl;
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(_hubUrl, options => { options.HttpMessageHandlerFactory = innerHandler => new IncludeRequestCredentialsMessageHandler { InnerHandler = innerHandler }; })
+            .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)])
+            .Build();
+
+        _hubConnection.On("RecievePacketOnClient", async (string packet) => { await ClientNetworkHandler.Instance.HandlePacket(packet); });
+
+        await _hubConnection.StartAsync();
+
+        await _hubConnection.SendAsync("JoinChat", Self!.Id, ChatID);
+    }
+
+    private async Task SendToServer<T>(T packet) where T : IPacket
+    {
+        if (_hubConnection is null) throw new InvalidOperationException("Hub connection is not initialized");
+        if(_hubConnection.State != HubConnectionState.Connected) throw new InvalidOperationException("Hub connection is not connected");
+        await _hubConnection.SendAsync("RecievePacketOnServer", packet.Serialize());
+    }
+
+    private async Task OnInput(KeyboardEventArgs eventArgs)
+    {
+        if (eventArgs.Key != "Enter" || eventArgs.ShiftKey) return;
+
+        await SendMessage(MessageInput);
+        MessageInput = "";
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         await using var db = await Db.CreateDbContextAsync();
@@ -71,7 +176,7 @@
         switch (Chat)
         {
             case null:
-                throw new InvalidOperationException($"Chat from ID {ChatID} not found"); 
+                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
             case GroupChat groupChat:
                 ChatName = groupChat.Name;
                 break;
@@ -86,84 +191,20 @@
         await UpdateMessages();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-
-        await JsInteropHelper.Register();
-
-        const string chatEventViewId = "chat-view";
-        InputEvents.DisallowedInputs.Register(chatEventViewId, DisallowedInputsCallback);
-        InputEvents.InputKeydown.Register(chatEventViewId, KeydownListener);
-        InputEvents.InputKeyup.Register(chatEventViewId, KeyupListener);
-        ClipboardEvents.OnPaste.Register(chatEventViewId, PasteListener);
-        NetworkEvents.ReadDatabaseRequest.Register(chatEventViewId, DatabaseRequestListener);
-        
-        StateHasChanged();
-    }
-    
-    private Task<List<KeyData>> DisallowedInputsCallback()
-    {
-        return Task.FromResult(new List<KeyData> { KeyData.Normal("Enter", "Enter") });
-    }
-
-    private async Task DatabaseRequestListener(DbEntry entry)
-    {
-        if (entry != DbEntry.ChatMessage) return;
-
-        await UpdateMessages();
-        Console.WriteLine("Updated messages");
-    }
-
-    private async Task<string> PasteListener(string elementId, string content)
-    {
-        if (elementId != "message-input") return content;
-
-        TypedMessage = content;
-        await InvokeAsync(StateHasChanged);
-        return content;
-    }
-
-    private async Task KeyupListener(string elementId, string key, string s, bool b, bool shift, bool b1, bool b2, string content, bool b3)
-    {
-        if (elementId != "message-input") return;
-
-        TypedMessage = content;
-        switch (key)
-        {
-            case "Backspace" when TypedMessage.Equals("\n"):
-                await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
-                break;
-            case "Enter" when !shift:
-                await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
-                break;
-        }
-    }
-
-    private async Task KeydownListener(string elementId, string key, string s, bool b, bool shift, bool b1, bool b2, string s1, bool b3)
-    {
-        if (elementId != "message-input") return;
-        if (key != "Enter" || shift) return;
-
-        await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
-        await SendMessage();
-        await InvokeAsync(StateHasChanged);
-    }
-
     private async Task UpdateMessages()
     {
         var newMessages = await (await Db.CreateDbContextAsync()).Messages
             .Where(m => m.ChatID == Chat!.ID && (_lastMessageSentAt == null || m.SentAt > _lastMessageSentAt))
             .ToListAsync();
         if (newMessages.Count == 0) return;
-            
+
         newMessages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         Dictionary<int, int> clientOnlyMessages = new();
         for (var index = 0; index < Messages.Count; index++)
         {
             var message = Messages[index];
             if (message.OthersCanSee) continue;
-            
+
             clientOnlyMessages[message.Message.ID] = index;
         }
 
@@ -179,58 +220,97 @@
                 clientMessage.Previous = previous;
                 continue;
             }
+
             Messages.Add(new LinkedMessage(newMessage, previous));
         }
+
         _lastMessageSentAt = newMessages[^1].SentAt;
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SendMessage()
+    private async Task SendMessage(string messageText)
     {
-        if (string.IsNullOrWhiteSpace(TypedMessage)) return;
+        if (string.IsNullOrWhiteSpace(messageText)) return;
 
-        while (TypedMessage.EndsWith("\n")) TypedMessage = TypedMessage[..^1];
-        while (TypedMessage.StartsWith("\n")) TypedMessage = TypedMessage[1..];
+        while (messageText.EndsWith("\n")) messageText = messageText[..^1];
+        while (messageText.StartsWith("\n")) messageText = messageText[1..];
 
         var message = new Message
         {
             ChatID = Chat!.ID,
             SenderID = Self!.Id,
-            Content = TypedMessage,
+            Content = messageText,
             SentAt = DateTime.Now,
             IsPinned = false
         };
         await using var db = await Db.CreateDbContextAsync();
-            
+
         db.Messages.Add(message);
         await db.SaveChangesAsync();
-        await MessageEvents.MessageCreated.Invoker().Invoke(message);
 
-        var recipientIds = Chat.Users.Select(u => u.Id).ToList();
-        recipientIds.Remove(Self.Id);
-        var readDatabaseRequest = TellOthersToReadDatabaseC2SPacket.Create(Self.Id, recipientIds, DbEntry.ChatMessage);
-        WebSocketHandler.SendPacket(readDatabaseRequest);
-        
+        var readDatabaseRequest = new TellOthersToReadDatabaseC2SPacket
+        {
+            SenderId = Self.Id,
+            ChatId = ChatID,
+            DbEntry = DbEntry.ChatMessage
+        };
+        await SendToServer(readDatabaseRequest);
+
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message, othersCanSee: false));
     }
 
+    private void OnKeyPressed(object? sender, KeyEventArgs e)
+    {
+        if (!e.ShiftKey) return;
+        
+        IsShiftHeld = true;
+        StateHasChanged();
+    }
+    
+    private void OnKeyReleased(object? sender, KeyEventArgs e)
+    {
+        if (e.ShiftKey || !IsShiftHeld) return;
+        
+        IsShiftHeld = false;
+        StateHasChanged();
+    }
+    
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        try
+        {
+            KeyPressService.KeyPressed -= OnKeyPressed;
+            KeyPressService.KeyReleased -= OnKeyReleased;
+            await KeyPressService.StopListeningAsync();
+        } catch (JSDisconnectedException ex) { /* Ignore */ }
+
+        if (_hubConnection is null) return;
+
+        await _hubConnection.StopAsync();
+        await _hubConnection.DisposeAsync();
+
+        _hubConnection = null;
+        
+        GC.SuppressFinalize(this);
+    }
+    
     public class LinkedMessage(Message message, Message? previous, bool othersCanSee = true)
     {
         public MessageState GetMessageState()
         {
-            if (Previous is null)
-            {
-                return MessageState.First;
-            }
-
-            return Previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
+            // if (Previous is null)
+            // {
+            //     return MessageState.First;
+            // }
+            //
+            // return Previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
+            return MessageState.NewUser;
         }
 
         public Message Message { get; } = message;
-        
-        public Message? Previous { get; set;  } = previous;
-        
+
+        public Message? Previous { get; set; } = previous;
+
         public bool OthersCanSee { get; set; } = othersCanSee;
     }
-
-}
+}   

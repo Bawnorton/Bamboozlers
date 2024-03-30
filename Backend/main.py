@@ -2,6 +2,7 @@ import json
 import logging
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse
 
 from networking import PacketRegistry
 from packets import TellOthersToReadDatabaseC2SPacket, ReadDatabaseS2CPacket
@@ -20,9 +21,6 @@ class ConnectionManager:
 
     async def connect(self, client_id: int, websocket: WebSocket):
         await websocket.accept()
-        if client_id in self.connected_clients:
-            logging.warning(f"Client {client_id} already connected")
-            return
         self.connected_clients[client_id] = ConnectedClient(client_id, websocket)
 
     def disconnect(self, client_id: int):
@@ -57,7 +55,7 @@ class ConnectedClient:
         self.websocket = websocket
 
     async def send_message(self, json_obj: dict):
-        logging.warning(f"Sending message to client {self.client_id}: {json_obj}")
+        logging.warning(f"Sending message to client {self.websocket.url}: {json_obj}")
         await self.websocket.send_text(json.dumps(json_obj))
 
 
@@ -79,6 +77,38 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     except WebSocketDisconnect:
         manager.disconnect(client_id)
         logging.info(f"Client {client_id} disconnected")
+
+
+html = """
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>User</title>
+    </head>
+    <body>
+        <h1>Client {client_id}</h1>
+        <h2>WebSocket URL: {ws_url}</h2>
+        <h3>Open the browser console to see messages</h3>
+        <script>
+            var ws = new WebSocket("{ws_url}");
+            ws.onopen = () => {{
+                console.log("WebSocket connection established");
+            }};
+            ws.onmessage = (event) => {{
+                console.log("Message from server", event.data);
+            }};
+        </script>
+    </body>
+</html>
+"""
+
+
+@app.get("/ws/{client_id}")
+async def read_connection(client_id: int):
+    connected_client = manager.get_connected_client(client_id)
+    if connected_client is None:
+        return HTMLResponse("Client {client_id} not connected".format(client_id=client_id))
+    return HTMLResponse(html.format(client_id=client_id, ws_url=connected_client.websocket.url))
 
 
 async def handle_tell_others_to_read_database_c2s(packet: TellOthersToReadDatabaseC2SPacket):

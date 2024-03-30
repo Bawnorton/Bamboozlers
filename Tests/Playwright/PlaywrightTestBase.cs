@@ -34,27 +34,29 @@ public class PlaywrightTestBase : IClassFixture<CustomWebApplicationFactory>
         if (tcpConnections.Any(connection => connection.LocalEndPoint.Port == 5180))
         {
             outputHelper.WriteLine("Found existing websocket server on port 5180, skipping server start");
-            return;
+        }
+        else
+        {
+            var websocketProcess = new Process();
+            websocketProcess.StartInfo = new ProcessStartInfo
+            {
+                FileName = "/bin/bash",
+                UseShellExecute = false,
+                CreateNoWindow = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                Arguments = "-c \"cd ../../../../Backend && uvicorn main:app --reload --port 5180\""
+            };
+            Task.Run(() => // Start the websocket server in a separate thread
+            {
+                websocketProcess.Start();
+                var websocketProcessId = websocketProcess.Id;
+                outputHelper.WriteLine($"Started websocket server on port 5180 with PID {websocketProcessId}");
+                
+                fixture.Disposing += (_, _) => websocketProcess.Kill();
+            });
         }
         
-        var websocketProcess = new Process();
-        websocketProcess.StartInfo = new ProcessStartInfo
-        {
-            FileName = "/bin/bash",
-            UseShellExecute = false,
-            CreateNoWindow = false,
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
-            Arguments = "-c \"cd ../../../../Backend && uvicorn main:app --reload --port 5180\""
-        };
-        Task.Run(() => // Start the websocket server in a separate thread
-        {
-            websocketProcess.Start();
-            var websocketProcessId = websocketProcess.Id;
-            outputHelper.WriteLine($"Started websocket server on port 5180 with PID {websocketProcessId}");
-            
-            fixture.Disposing += (_, _) => websocketProcess.Kill();
-        });
     }
 
     protected async Task<IPage> Setup(bool headless = true)

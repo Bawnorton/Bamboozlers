@@ -1,17 +1,9 @@
 ﻿@page "/"
 
 @rendermode InteractiveServer
-
-@inherits LayoutComponentBase
-
-@using Microsoft.AspNetCore.Authorization
-@using Bamboozlers.Classes.Interop
-@using Bamboozlers.Classes.Networking
-@using Bamboozlers.Classes.Services.Authentication
 @using Bamboozlers.Components.Settings
-
-@inject IJSRuntime JsRuntime;
-@inject IUserService UserService;
+@using Microsoft.AspNetCore.Authorization
+@inherits LayoutComponentBase
 
 @attribute [Authorize]
 
@@ -50,21 +42,4 @@
 @code {
     private NavLayout? _navLayout;
     private CompSettings? _settingsComponent;
-
-    protected override void OnInitialized()
-    {
-        JsInteropHelper.Init(JsRuntime);
-        WebSocketHandler.Init();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-
-        var user = await UserService.GetUserDataAsync();
-        var id = user.Id;
-        if (id == null) return;
-        
-        await WebSocketHandler.ConnectAsync((int) id);
-    }
 }
