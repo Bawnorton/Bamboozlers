@@ -65,7 +65,7 @@ public class ChatJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper 
 
         var content = await page
             .Locator("#message-input")
-            .InnerTextAsync();
+            .InputValueAsync();
 
         Assert.Equal("Hello\nWorld", content, ignoreAllWhiteSpace: true);
     }

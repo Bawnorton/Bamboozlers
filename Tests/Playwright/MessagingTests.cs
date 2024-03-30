@@ -12,7 +12,7 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
     [Fact]
     public async Task TestMessageEcho()
     {
-        var page = await SetupAndLoginAtFirstDm();
+        var page = await SetupAndLoginAtFirstDm(headless: false);
 
         await page
             .Locator("#message-input")
@@ -38,21 +38,14 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
     public async Task TestRealtimeMessaging()
     {
         var user1Page = await SetupAndLoginAtFirstDm(headless: false);
-        
-        await Task.Delay(1000);
+        var user2Context = await Browser!.NewContextAsync();
+        var user2Page = await user2Context.NewPageAsync();
+        await user2Page.GotoAsync(ServerAddress);
+        await Login(user2Page, "testuser2", "testuser2@gmail.com");
+        await OpenFirstDm(user2Page);
         
         const string message = "Hello, User1!";
         const string reply = "Hello, User2!";
-        
-        var recievedMessage = false;
-        var recievedReply = false;
-        
-        NetworkEvents.ReadDatabaseRequest.Register("messaging-test", (type) =>
-        {
-            Assert.Equal(type, DbEntry.ChatMessage);
-            recievedMessage = true;
-            return Task.CompletedTask;
-        });
         
         await user1Page
             .Locator("#message-input")
@@ -63,22 +56,17 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
             .PressAsync("Enter");
         await Task.Delay(500);
         
-        Assert.True(recievedMessage);
-
-        await Task.Delay(500);
+        var user1Message = await user1Page
+            .Locator(".message-content")
+            .Last
+            .InnerTextAsync();
+        Assert.Equal(message, user1Message, ignoreAllWhiteSpace: true);
         
-        var user2Context = await Browser!.NewContextAsync();
-        var user2Page = await user2Context.NewPageAsync();
-        await user2Page.GotoAsync(ServerAddress);
-        await Login(user2Page, "testuser2", "testuser2@gmail.com");
-        await OpenFirstDm(user2Page);
-        
-        NetworkEvents.ReadDatabaseRequest.Register("messaging-test", (type) =>
-        {
-            Assert.Equal(type, DbEntry.ChatMessage);
-            recievedReply = true;
-            return Task.CompletedTask;
-        });
+        var user2Message = await user2Page
+            .Locator(".message-content")
+            .Last
+            .InnerTextAsync();
+        Assert.Equal(message, user2Message, ignoreAllWhiteSpace: true);
         
         await user2Page
             .Locator("#message-input")
@@ -87,8 +75,18 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
         await user2Page
             .Locator("#message-input")
             .PressAsync("Enter");
-        await Task.Delay(1000);
+        await Task.Delay(500);
         
-        Assert.True(recievedReply);
+        user1Message = await user1Page
+            .Locator(".message-content")
+            .Last
+            .InnerTextAsync();
+        Assert.Equal(reply, user1Message, ignoreAllWhiteSpace: true);
+        
+        user2Message = await user2Page
+            .Locator(".message-content")
+            .Last
+            .InnerTextAsync();
+        Assert.Equal(reply, user2Message, ignoreAllWhiteSpace: true);
     }
 }
