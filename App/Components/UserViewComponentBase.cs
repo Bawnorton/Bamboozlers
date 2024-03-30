@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components;
 
-public class UserViewComponentBase : ComponentBase, IAsyncSubscriber
+public class UserViewComponentBase : ComponentBase, IAsyncUserSubscriber
 {
     [Inject] protected IUserService UserService { get; set; }
     [Inject] protected IAuthService AuthService { get; set; } = default!;
@@ -17,9 +17,15 @@ public class UserViewComponentBase : ComponentBase, IAsyncSubscriber
         UserService.AddSubscriber(this);
     }
     
-    public virtual async Task OnUpdate<T>()
+    public virtual async Task OnUserUpdate()
     {
         UserData = await UserService.GetUserDataAsync();
         StateHasChanged();
+    }
+
+    public Task OnUpdate()
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 }

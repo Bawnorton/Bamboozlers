@@ -157,7 +157,7 @@
 
 
 @code {
-    [Inject] UserGroupService UserGroupService { get; set; } = default!;
+    [Inject] IUserGroupService UserGroupService { get; set; } = default!;
     
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
@@ -169,7 +169,7 @@
     private string TypedMessage { get; set; }
     private List<LinkedMessage> Messages { get; set; } = [];
 
-    private AlertArguments AlertArguments { get; set; } = new();
+    public AlertArguments AlertArguments { get; set; } = new();
 
     private bool IsMod { get; set; }
     
