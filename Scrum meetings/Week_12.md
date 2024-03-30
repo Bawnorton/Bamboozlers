@@ -3,16 +3,16 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| | | | 
+| Completed | Completed | Unnecessary | 
 
 ### Sprint Team Members
-| Name | Role |
-| --- | --- |
-| | |
-| | |
-| | |
-| | |
-| | |
+| Name               | Role        |
+|--------------------|-------------|
+| Bridgette Hunt     | Team Leader |
+| Ben Norton         | Developer   |
+| MacKenzie Richards | Developer   |
+| Zahra Kagda        | Developer   |
+| Ryan Osmond        | Developer   |
 
 ## Sprint Planning Meeting Items
 
@@ -20,23 +20,29 @@
 <table>
   <tr>
     <th>Sprint Theme</th>
-    <td>e.g., Bugs</td>
+    <td>Development</td>
   </tr>
   <tr>
     <th>Issues Completed</th>
-    <td></td>
+    <td>10 Issues</td> 
   </tr>
   <tr>
     <th>Issues Left</th>
-    <td></td>
+    <td>5 Issues</td> 
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td></td>
+    <td>
+      Bridgette Hunt - 4 issues<br>
+      MacKenzie Richards - 5 issues<br>
+      Zahra Kagda - 3 issues<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 3 issues
+    </td>
   </tr>
   <tr>
     <th>Summary</th>
-    <td></td>
+    <td>Some issues could not be completed due to technical problems related to the tech stack. Some issues could not be completed due to necessary prioritization of other tasks for team members.</td> 
   </tr>
 </table>
 
@@ -44,44 +50,40 @@
 <table>
   <tr>
     <th>Start Date</th>
-    <td></td>
+    <td>03/26/2024</td>
   </tr>
   <tr>
     <th>End Date</th>
-    <td></td>
+    <td>04/02/2024</td>
   </tr>
   <tr>
     <th>Sprint Theme</th>
-    <td></td>
+    <td>Development & Milestone 4</td> 
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <td></td>
+    <td>At least 8 hours per teammate</td> 
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td></td>
+    <td>19 issues</td> 
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      Member 1<br>
-      Member 2<br>
-      Member 3<br>
-      Member 4<br>
-      Member 5
+      Bridgette Hunt - 4 issues<br> 
+      MacKenzie Richards - 3 issues<br> 
+      Zahra Kagda - 4 issues<br> 
+      Ben Norton - 5 issues<br> 
+      Ryan Osmond - 3 issues 
     </td>
   </tr>
   <tr>
     <th>Potential Risks</th>
-    <td></td>
+    <td>Milestone 4 is high priority and needs to be completed for friday.</td>
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td></td>
+    <td>Some issues may need to be re-assigned to other team members during the week to ensure Milestone 4 completion is prioritized.</td> 
   </tr>
 </table>
-
-## Sprint Planning Resources
-- ...
-- ...

@@ -27,7 +27,8 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
         MockUserManager = new MockUserManager(Ctx, MockDatabaseProvider);
         
         AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
-        UserService = new UserService(AuthService, MockUserManager.GetUserManager());
+        UserService = new UserService(AuthService, new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper());
+        
         Ctx.Services.AddSingleton<IUserService>(UserService);
         Ctx.Services.AddSingleton<IAuthService>(AuthService);
         Ctx.Services.AddScoped<IKeyPressService, KeyPressService>();

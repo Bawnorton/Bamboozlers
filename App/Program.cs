@@ -8,11 +8,11 @@ using Bamboozlers.Classes.Services.Authentication;
 using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,9 +42,10 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
 {
-    options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING"),
-        o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
-        );
+    options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING"), sqlServerOptions =>
+    {
+        sqlServerOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+    });
 });
 
 builder.Services.AddIdentityCore<User>(options =>
@@ -59,6 +60,7 @@ builder.Services.AddIdentityCore<User>(options =>
 builder.Services.AddTransient<IEmailSender<User>, EmailSender>();
 builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
 
+builder.Services.AddScoped<ServiceProviderWrapper>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IKeyPressService, KeyPressService>();

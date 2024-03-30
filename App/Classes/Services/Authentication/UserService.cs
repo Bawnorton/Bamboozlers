@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Utility.Observer;
@@ -6,35 +5,23 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Bamboozlers.Classes.Services.Authentication;
 
-public class UserService(IAuthService authService, UserManager<User> userManager) : IUserService
+public class UserService(IAuthService authService, ServiceProviderWrapper serviceProvider)
+    : IUserService
 {
     private IAuthService AuthService { get; } = authService;
-    private UserManager<User> UserManager { get; } = userManager;
+    private ServiceProviderWrapper ServiceProvider { get; } = serviceProvider;
 
     /* User (Data) Retrieval */
     private UserRecord? UserRecord { get; set; }
-    
-    /// <summary>
-    /// Gets an awaitable task to retrieve the User from the UserManager service.
-    /// </summary>
-    /// <param name="claimsPrincipal">
-    /// The claims principal corresponding to the desired user.
-    /// </param>
-    /// <returns>
-    /// An awaitable task that returns the desired user, or null if the user is not found based on the claims principal.
-    /// </returns>
-    public virtual Task<User?> GetUserAsync(ClaimsPrincipal claimsPrincipal)
-    {
-        return UserManager.GetUserAsync(claimsPrincipal);
-    }
 
     /// <summary>
     /// Builds a display record corresponding to the current user.
     /// </summary>
     private async Task<UserRecord> BuildUserDataAsync()
     {
-        var claims = await AuthService.GetClaims();
-        var user = await UserManager.GetUserAsync(claims);
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var user = await userManager.GetUserAsync(await AuthService.GetClaims()).ConfigureAwait(false);
         
         var record = user is not null
         ? new UserRecord(
@@ -62,7 +49,10 @@ public class UserService(IAuthService authService, UserManager<User> userManager
     
     public virtual async Task<IdentityResult> UpdateUserAsync(UserRecord? newValues = null)
     {
-        var user = await GetUserAsync(await AuthService.GetClaims());
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var user = await userManager.GetUserAsync(await AuthService.GetClaims());
+        
         if (user is null) 
             return IdentityResult.Failed([new IdentityError { Description = "User not found." }]);
         
@@ -80,7 +70,7 @@ public class UserService(IAuthService authService, UserManager<User> userManager
             }
         }
         
-        var iResult = await UserManager.UpdateAsync(user);
+        var iResult = await userManager.UpdateAsync(user);
 
         if (iResult.Succeeded)
             await RebuildAndNotify(true);
@@ -90,49 +80,58 @@ public class UserService(IAuthService authService, UserManager<User> userManager
     
     public virtual async Task<IdentityResult> ChangeUsernameAsync(string username, string password)
     {
-        var user = await GetUserAsync(await AuthService.GetClaims());
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = scope.ServiceProvider.GetService<UserManager<User>>()!;
+        var user = await userManager.GetUserAsync(await AuthService.GetClaims());
+        
         if (user is null) 
             return IdentityResult.Failed([new IdentityError { Description = "User not found." }]);
 
-        var res = await UserManager.CheckPasswordAsync(user, password);
+        var res = await userManager.CheckPasswordAsync(user, password);
         if (!res) return IdentityResult.Failed([new IdentityError { Description = "Password was incorrect." }]);
         
-        var iResult = await UserManager.SetUserNameAsync(user, username);
+        var iResult = await userManager.SetUserNameAsync(user, username);
         if (!iResult.Succeeded) return iResult;
         
-        iResult = await UserManager.UpdateAsync(user);
+        iResult = await userManager.UpdateAsync(user);
         if (!iResult.Succeeded) return iResult;
 
-        iResult = await UserManager.UpdateSecurityStampAsync(user);
+        iResult = await userManager.UpdateSecurityStampAsync(user);
         return iResult;
     }
     
     public virtual async Task<IdentityResult> ChangePasswordAsync(string currentPassword, string newPassword)
     {
-        var user = await GetUserAsync(await AuthService.GetClaims());
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
+        var user = await userManager.GetUserAsync(await AuthService.GetClaims());
+        
         if (user is null) 
             return IdentityResult.Failed([new IdentityError { Description = "User not found." }]);
         
-        var iResult = await UserManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        var iResult = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
         if (!iResult.Succeeded) return iResult;
         
-        iResult = await UserManager.UpdateAsync(user);
+        iResult = await userManager.UpdateAsync(user);
         if (!iResult.Succeeded) return iResult;
 
-        iResult = await UserManager.UpdateSecurityStampAsync(user);
+        iResult = await userManager.UpdateSecurityStampAsync(user);
         return iResult;
     }
     
     public virtual async Task<IdentityResult> DeleteAccountAsync(string password)
     {
-        var user = await GetUserAsync(await AuthService.GetClaims());
+        using var scope = ServiceProvider.CreateScope();
+        var userManager = ServiceProvider.GetService<UserManager<User>>()!;
+        var user = await userManager.GetUserAsync(await AuthService.GetClaims());
+        
         if (user is null) 
             return IdentityResult.Failed([new IdentityError { Description = "User not found." }]);
 
-        var res = await UserManager.CheckPasswordAsync(user, password);
+        var res = await userManager.CheckPasswordAsync(user, password);
         if (!res) return IdentityResult.Failed([new IdentityError { Description = "Password was incorrect." }]);
 
-        var iResult = await UserManager.DeleteAsync(user);
+        var iResult = await userManager.DeleteAsync(user);
         
         return iResult;
     }

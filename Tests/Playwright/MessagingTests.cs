@@ -1,5 +1,3 @@
-using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Events;
 using Tests.Playwright.Infrastructure;
 using Xunit.Abstractions;
 using Assert = Xunit.Assert;
