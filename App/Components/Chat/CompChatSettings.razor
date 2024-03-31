@@ -48,7 +48,8 @@
     <ModalFooter>
         @if (Chat?.OwnerID != Self?.Id)
         {
-            <CompActionButton ButtonCaption="Leave Group"
+            <CompActionButton ButtonId="leaveGroup"
+                              ButtonCaption="Leave Group"
                               Color="Color.Danger"
                               IconName="IconName.Running"
                               ColumnWrapped="@false"
@@ -131,30 +132,34 @@
             .First();
 
         var owner = await db.Users.Where(u => u.Id == Chat.OwnerID).FirstOrDefaultAsync();
-        MemberList = @<text>
-                          @foreach (var user in Chat.Users)
-                          {
-                              @GetUserFragment(user)
-                              <Divider/>
-                          }
-                      </text>;
+        MemberList = @<div id="memberList">
+                         @foreach (var user in Chat.Users)
+                         {
+                             <div id="@($"{Chat.Name}_memberDisplay")">
+                                  @GetUserFragment(user)
+                                  <Divider/>
+                             </div>
+                         }
+                     </div>;
 
-        ModList = @<text>
-                       @foreach (var user in Chat.Moderators.Except(new[] { owner }).Where(u => u != null))
-                       {
-                           if (user is not null)
-                           {
-                               @GetUserFragment(user)
-                               <Divider/>
-                           }
-                       }
-                   </text>;
+        ModList = @<div id="modList">
+                      @foreach (var user in Chat.Moderators.Except(new[] { owner }).Where(u => u != null))
+                      {
+                          if (user is not null)
+                          {
+                              <div id="@($"{Chat.Name}_memberDisplay")">
+                                  @GetUserFragment(user)
+                                  <Divider/>
+                              </div>
+                          }
+                      }
+                  </div>;
 
         if (Self.Id == Chat.OwnerID || Chat.Moderators.FirstOrDefault(m => m.Id == Self.Id) is not null)
         {
             GroupDisplay = @<text>
                                 <Div>
-                                    <Row>
+                                    <Row ElementId="@($"{Chat.Name}_avatarEdit")">
                                         <Label Width="@Width.Px(128)" Height="@Height.Px(128)" Class="overlay-wrapper" Style="margin-left: 20px" for="input-file">
                                             <Image ElementId="avatar-display"
                                                    Class="border-mask overlay-base fit"
@@ -168,7 +173,8 @@
                                     <Row>
                                         @if (Chat?.Avatar is not null)
                                         {
-                                            <Paragraph TextSize="TextSize.Small" Display="Display.Inline"
+                                            <Paragraph ElementId="@($"{Chat.Name}_avatarDelete")"
+                                                       TextSize="TextSize.Small" Display="Display.Inline"
                                                        role="button"
                                                        Class="text-decoration-underline mb-0 text-danger-emphasis"
                                                        @onclick="@DeleteAvatar">Delete Avatar</Paragraph>
@@ -190,7 +196,7 @@
         else
         {
             GroupDisplay = @<text>
-                                <Div>
+                                <Div ElementId=@($"{Chat.Name}_display")>
                                     <Row>
                                         <Div Style="margin-left: 20px">
                                             <Image Width="@Width.Px(128)" Height="@Height.Px(128)" ElementId="avatar-display"
@@ -200,11 +206,11 @@
                                     </Row>
                                 </Div>
                                 <TextEdit Class="w-50"
-                                      Text="@(Chat is null ? "Chat" : Chat.Name)"
-                                      ElementId="chat-name"
-                                      Placeholder="Chat Name" 
-                                      Disabled>
-                                </TextEdit>
+                                          Text="@(Chat is null ? "Chat" : Chat.Name)"
+                                          ElementId="chat-name"
+                                          Placeholder="Chat Name" 
+                                          Disabled/>
+                                
                             </text>;
         }
     }
@@ -261,21 +267,26 @@
         var isOwner = Chat.OwnerID == user.Id;
         var isMod = Chat.Moderators.Contains(user);
         
-        return @<div style="display: block">
+        return @<div style="display: block" ElementId="@($"{user.UserName}_section")">
                    <div style="display: inline-block">
-                       <Image Class="_32x32 message-avatar"
+                       <Image ElementId="@($"{user.UserName}_avatar")"
+                              Class="_32x32 message-avatar"
                               Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
                               alt=""/>
                        <CompInteractUsername User="@user"/>
                        @if (isOwner)
                        {
-                           <Badge Style="margin-left: 5px; margin-right: 5px;" Color="Color.Success">
+                           <Badge ElementId="@($"{user.UserName}_badge")"
+                                  Style="margin-left: 5px; margin-right: 5px;" 
+                                  Color="Color.Success">
                                OWNER
                            </Badge>
                        }
                        else if (isMod)
                        {
-                           <Badge Style="margin-left: 5px; margin-right: 5px;" Color="Color.Light">
+                           <Badge ElementId="@($"{user.UserName}_badge")"
+                                  Style="margin-left: 5px; margin-right: 5px;" 
+                                  Color="Color.Light">
                                MODERATOR
                            </Badge>
                        }
@@ -301,7 +312,8 @@
         
         var isMod = Chat.Moderators.Contains(user);
         return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
-                   <CompActionButton ButtonCaption="@(isMod ? "Revoke permissions" : "Assign permissions")"
+                   <CompActionButton ButtonId="@($"{user.UserName}_permsButton")"
+                                     ButtonCaption="@(isMod ? "Revoke permissions" : "Assign permissions")"
                                      Color="@(isMod ? Color.Warning : Color.Success)"
                                      IconName="@(isMod ? IconName.Ban : IconName.ShieldAlt)"
                                      ColumnWrapped="@false"
@@ -312,7 +324,8 @@
     private RenderFragment? GetKickButton(User user)
     {
         return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
-                   <CompActionButton ButtonCaption="Kick user"
+                   <CompActionButton ButtonId="@($"{user.UserName}_kickButton")"
+                                     ButtonCaption="Kick user"
                                      Color="Color.Danger"
                                      IconName="IconName.Ban"
                                      ColumnWrapped="@false"

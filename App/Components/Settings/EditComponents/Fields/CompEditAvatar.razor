@@ -79,40 +79,4 @@
                 )
         );
     }
-
-    private async Task<AlertArguments> ProcessFile(byte[] image, EventCallback<byte[]> setCallback)
-    {
-        if (image.IsNullOrEmpty())
-        {
-            return new AlertArguments(
-                Color.Danger,
-                true,
-                "Could not change avatar.",
-                "An error was encountered while processing uploaded avatar."
-            );
-        }
-
-        var result = await DataChangeFunction!.Invoke(new UserDataRecord
-        {
-            DataType = UserDataType.Visual,
-            AvatarBytes = image,
-        });
-        
-        if (result)
-        {
-            return new AlertArguments(
-                Color.Success,
-                true,
-                "Success!",
-                "Your avatar has been changed."
-            );
-        }
-        
-        return new AlertArguments(
-            Color.Danger,
-            true,
-            "Unable to change avatar.",
-            "Unknown error occurred. Please try again."
-        );
-    }
 }

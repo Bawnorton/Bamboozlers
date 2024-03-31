@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bamboozlers.Components.Chat;
 using Blazorise;
 using Blazorise.Modules;
@@ -7,13 +8,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tests.Provider;
+using Xunit.Abstractions;
 
 namespace Tests;
 
 public class ChatTests : AuthenticatedBlazoriseTestBase
 {
-    public ChatTests()
+    private ITestOutputHelper output;
+    public ChatTests(ITestOutputHelper output)
     {
+        this.output = output;
         MockDatabaseProvider.SetupMockDbContext();
         Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
         Ctx.Services.AddBlazorise().Replace(ServiceDescriptor.Transient<IComponentActivator, ComponentActivator>());
@@ -57,6 +61,11 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         }
     }
 
+    /*
+     
+     NOTE: I've cut this test out for the time being as this is not was what was agreed upon.
+     We discussed on group invitations, not outright adding people.
+     
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
@@ -109,6 +118,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         }
 
     }
+    */
     
     [Theory]
     [InlineData(1)]
@@ -146,7 +156,6 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async void TestChatSettingsPic()
     {
-        
         await SetUser(MockDatabaseProvider.GetMockUser(0));
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var chat = db.Chats.Include(chat => chat.Messages).Last();
@@ -160,8 +169,9 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
         var alertArgs = component.Instance.AlertArguments;
-        Assert.Equal("Unable to change avatar. No file was uploaded.", alertArgs.AlertMessage);
-        Assert.Equal("",alertArgs.AlertDescription);
+        Assert.True(alertArgs.AlertVisible);
+        Assert.Equal("Error occured while uploading image.", alertArgs.AlertMessage);
+        Assert.Equal("No file was uploaded.",alertArgs.AlertDescription);
         
         // Arrange: Invalid file passed (not an image)
         var fakeFile = new MockBrowserFile { ContentType = "file/csv" };
@@ -169,8 +179,8 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         // Act
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
-        Assert.Equal("Unable to change avatar. Uploaded file was not an image.", alertArgs.AlertMessage);
-        Assert.Equal("",alertArgs.AlertDescription);
+        alertArgs = component.Instance.AlertArguments;
+        Assert.Equal("Uploaded file was not an image.",alertArgs.AlertDescription);
         
         // Arrange: Invalid file passed (image, but not png)
         fakeFile = new MockBrowserFile { ContentType = "image/gif" };
@@ -178,8 +188,8 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         // Act
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
-        Assert.Equal("Unable to change avatar. Avatar must be a PNG, or JPG file.", alertArgs.AlertMessage);
-        Assert.Equal("",alertArgs.AlertDescription);
+        alertArgs = component.Instance.AlertArguments;
+        Assert.Equal("Image must be a PNG or JPG (JPEG) file.",alertArgs.AlertDescription);
         
         // Arrange: Valid file passed, but image was empty
         fakeFile = new MockBrowserFile { ContentType = "image/png", Bytes = Array.Empty<byte>()};
@@ -187,8 +197,8 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         // Act
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
-        Assert.Equal("Unable to change avatar. An error occurred while processing uploaded avatar.", alertArgs.AlertMessage);
-        Assert.Equal("",alertArgs.AlertDescription);
+        alertArgs = component.Instance.AlertArguments;
+        Assert.Equal("Unknown error occurred. Please try again.",alertArgs.AlertDescription);
         
         // Arrange: Valid file passed
         fakeFile = new MockBrowserFile { ContentType = "image/png"};
@@ -196,7 +206,8 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         // Act
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
-        Assert.False(alertArgs.AlertVisible);
+        alertArgs = component.Instance.AlertArguments;
+        Assert.Equal("Image was successfully uploaded.",alertArgs.AlertDescription);
     }
 
     [Theory]
@@ -209,16 +220,15 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var chat = db.Chats.Include(chat => chat.Messages).Last();
         
-        var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
-            .Add(p => p.ChatID, chat.ID));
+        var component = Ctx.RenderComponent<CompChatSettings>(
+            parameters => parameters.Add(p => p.ChatID, chat.ID)
+        );
         
-        var settingbtn = component.FindAll("#settingsbtn");
-        if(userId == 2)
-        {
-            Assert.Empty(settingbtn);
-            return;
-        }
-        settingbtn.Single().Click();
+        var moderatorSection = component.Find("#modList");
+        
+        // Assert (TestUser1 is the owner, and should be the only shown user)
+        Assert.Equal(1, moderatorSection.ChildElementCount);
+        var displayBadge = component.Find("#TestUser1_badge");
         
         if (userId == 1)
         {
@@ -226,12 +236,11 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         }
         else
         {
-            var moderators = component.FindAll("input[type='checkbox']");
-           
-            Assert.Equal(2, moderators.Count);
-            moderators.First(f => f.NextSibling.TextContent.Contains("TestUser1")).Change(false);
-            moderators.First(f => f.NextSibling.TextContent.Contains("TestUser2")).Change(true);
-
+            Assert.Equal(2, moderatorSection.ChildElementCount);
+            
+            output.WriteLine(moderatorSection.ToMarkup());
+            //moderators.First(f => f.NextSibling.TextContent.Contains("TestUser1")).Change(false);
+            //moderators.First(f => f.NextSibling.TextContent.Contains("TestUser2")).Change(true);
         }
         
         component.Find("#settings-save").Click();

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Bamboozlers.Classes.Data;
 using Blazorise;
 using Blazorise.Extensions;
@@ -71,7 +72,6 @@ public interface ICompImageUploader
                 "Error occured while uploading image.",
                 "Unknown error occurred. Please try again."
             );
-        
         try
         {
             var result = await setCallback.Invoke(image.ToArray());

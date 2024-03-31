@@ -9,7 +9,6 @@ namespace Bamboozlers.Classes.Services.UserServices;
 public class UserGroupService(IAuthService authService, IUserInteractionService userInteractionService, IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory) : IUserGroupService
 {
     private IAuthService AuthService { get; } = authService;
-
     private IUserInteractionService UserInteractionService { get; } = userInteractionService;
     private IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; } = dbContextFactory;
     
