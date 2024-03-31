@@ -1,28 +1,23 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
-name: .NET
-
+name: Playwright Tests
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
-
+    branches: [ main ]
 jobs:
-  build:
-
+  playwright:
+    name: 'Playwright Tests'
     runs-on: ubuntu-latest
-
+    container:
+      image: mcr.microsoft.com/playwright/dotnet:v1.42.0-jammy
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
-    - name: Build
-      run: dotnet build
-    - name: Init Browsers
-      run: pwsh bin/Debug/net8.0/playwright.ps1 install --with-deps
-    - name: Test
-      run: dotnet test --verbosity normal
+      - uses: actions/checkout@v4
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet build
+      - name: Run your tests
+        run: dotnet test
+        env:
+          HOME: /root
