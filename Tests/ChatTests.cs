@@ -98,6 +98,8 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         {
             checkboxes.Single().Change(true);
         }
+        
+        await Task.Delay(100); // avoid concurrency issues when running on fast machines
         component.Find("#saveChanges").Click();
         if(userId == 1)
         {        
@@ -137,7 +139,6 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         }
 
         removeMembersButton[0].Click();
-        
         
         Assert.Equal(2, db.Chats.Include(c => c.Users).Last().Users.Count);
         
@@ -193,7 +194,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         // Assert
         Assert.False(component.Instance.AlertVisible);
     }
-
+    
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
@@ -233,6 +234,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         
         var updatedChat = db.GroupChats.Include(i => i.Moderators).First();
 
+        await Task.Delay(100); // avoid concurrency issues when running on fast machines
         if (userId == 0)
         {
             Assert.Equal("TestUser2", updatedChat.Moderators.First().UserName);
@@ -244,7 +246,5 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         }
 
         Assert.Equal("Settings updated successfully!", component.Instance.AlertMessage);
-        
-        
     }
 }

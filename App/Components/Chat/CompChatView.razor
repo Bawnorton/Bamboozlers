@@ -330,14 +330,14 @@
 
         await _hubConnection.StartAsync();
 
-        await _hubConnection.SendAsync("JoinChat", Self.Id, ChatID);
+        await _hubConnection.SendAsync("JoinChat", ChatID);
     }
 
     private async Task SendToServer<T>(T packet) where T : IPacket
     {
         if (_hubConnection is null) throw new InvalidOperationException("Hub connection is not initialized");
         if (_hubConnection.State != HubConnectionState.Connected) throw new InvalidOperationException("Hub connection is not connected");
-        await _hubConnection.SendAsync("RecievePacketOnServer", packet.Serialize());
+        await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());
     }
 
     private async Task OnInput(KeyboardEventArgs eventArgs)
@@ -395,7 +395,7 @@
         var self = await AuthService.GetUser();
         var message = new Message
         {
-            ChatID = Chat!.ID,
+            ChatID = ChatID,
             SenderID = self!.Id,
             Content = messageText,
             SentAt = DateTime.Now,
@@ -406,11 +406,10 @@
         db.Messages.Add(message);
         await db.SaveChangesAsync();
 
-        var recipientIdentiyNames = Chat.Users.Select(u => u.UserName!).ToArray();
         var readDatabaseRequest = new TellOthersToReadDatabaseC2SPacket
         {
             SenderId = self.Id,
-            RecipientIdentityNames = recipientIdentiyNames,
+            ChatId = ChatID,
             DbEntry = DbEntry.ChatMessage
         };
         await SendToServer(readDatabaseRequest);
