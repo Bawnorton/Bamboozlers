@@ -9,6 +9,7 @@
 @using Bamboozlers.Components.VisualUtility
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.Utility.Observer
+@using Blazorise.Extensions
 @inject IDbContextFactory<AppDbContext> Db
 
 <ModalContent Centered>
@@ -25,6 +26,7 @@
 
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
@@ -33,7 +35,7 @@
     public List<int?> WatchedIDs { get; set; } = [];
     
     private GroupChat? Chat { get; set; }
-    private RenderFragment? InviteList { get; set; }
+    public RenderFragment? InviteList { get; set; }
     
     private User? Self { get; set; }
     
@@ -44,7 +46,7 @@
         await LoadGroupData();
     }
     
-    private async Task LoadGroupData()
+    public async Task LoadGroupData()
     {
         Self = await AuthService.GetUser();
         if (Self is null) 
@@ -55,13 +57,16 @@
         Chat = db.GroupChats.Where(c => c.ID == ChatID)
             .Include(c => c.Users)
             .Include(c => c.Moderators)
-            .First();
-
-        var friendList = (await Self.GetFriends(db)).ToList();
+            .FirstOrDefault();
+        
+        if (Chat is null)
+            return;
+        
+        var friendList = await UserInteractionService.GetAllFriends();
+        
         var inGroup = friendList.Where(
                 f => Chat.Users.FirstOrDefault(u => u.UserName == f.UserName) is not null
             ).ToList();
-        var notInGroup = friendList.Except(inGroup).ToList();
 
         var allInvites = await UserGroupService.GetAllOutgoingInvites();
         var invitesForGroup = allInvites is not null 
@@ -83,7 +88,8 @@
                                   <CompInteractUsername User="@user"/>
                                   @if (inGroup.Contains(user))
                                   {
-                                      @GetActionButton(Color.Dark,
+                                      @GetActionButton(user,
+                                          Color.Dark,
                                           "Already in group",
                                           null,
                                           EventCallback.Empty,
@@ -94,14 +100,16 @@
                                   {
                                       if (invitedFriends.Contains(user))
                                       {
-                                          @GetActionButton(Color.Danger,
+                                          @GetActionButton(user,
+                                              Color.Danger,
                                               "Revoke Invitation",
                                               IconName.Ban,
                                               new EventCallbackFactory().Create(this, async () => await UserGroupService.RevokeGroupInvite(ChatID, user.Id)))
                                       }
                                       else
                                       {
-                                          @GetActionButton(null,
+                                          @GetActionButton(user,
+                                              null,
                                               "Invite",
                                               IconName.UserPlus,
                                               new EventCallbackFactory().Create(this, async () => await UserGroupService.SendGroupInvite(ChatID, user.Id)))
@@ -113,9 +121,9 @@
                       </text>;
     }
     
-    private RenderFragment GetActionButton(Color? color, string? caption, IconName? iconName, EventCallback? actionCallback, bool disabled = false)
+    private RenderFragment GetActionButton(User user, Color? color, string? caption, IconName? iconName, EventCallback? actionCallback, bool disabled = false)
     {
-        return @<div id="@($"action-button")" style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
+        return @<div id="@($"{user.UserName}-action-button")" style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
                    <CompActionButton ButtonCaption="@caption"
                                      Color="@(color ?? Color.Success)"
                                      IconName="@(iconName ?? null)"

@@ -8,7 +8,7 @@ public class MockFriendships : AbstractMockDbSet<Friendship>
 {
     public Mock<DbSet<Friendship>> mockFriendships;
     private readonly Func<Friendship, Friendship, bool> matchFunction = (f0, f1) =>
-        f0.User1ID == f1.User2ID && f0.User1ID == f1.User2ID;
+        (f0.User1ID == f1.User1ID && f0.User2ID == f1.User2ID) || (f0.User1ID == f1.User2ID && f0.User2ID == f1.User1ID);
 
     public MockFriendships(MockAppDbContext mockAppDbContext, DbSet<User> users) : base(mockAppDbContext)
     {
@@ -56,7 +56,7 @@ public class MockFriendships : AbstractMockDbSet<Friendship>
         );
         MockAppDbContext.MockDbContext.Setup(x => x.FriendShips).Returns(mockFriendships.Object);
     }
-    
+
     public override void UpdateMock(Friendship friendship)
     {
         RemoveMock(friendship);

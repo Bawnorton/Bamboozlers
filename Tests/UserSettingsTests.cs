@@ -52,7 +52,6 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         MockUserManager.ClearMockUsers();
         var user = MockUserManager.CreateMockUser(0);
         await SetUser(user);
-        UserService.Invalidate();
         
         var component = Ctx.RenderComponent<CompSettings>();
         

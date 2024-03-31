@@ -240,18 +240,33 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         }
     }
 
-    public async Task<List<FriendRequest>?> GetAllIncomingRequests()
+    public async Task<List<FriendRequest>> GetAllIncomingRequests()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
-        return self is not null ? dbContext.FriendRequests.AsNoTracking().Where(r => r.ReceiverID == self.Id).ToList() : null;
+        return self is not null 
+            ? dbContext.FriendRequests.AsNoTracking().Where(r => r.ReceiverID == self.Id).ToList() 
+            : [];
     }
 
-    public async Task<List<FriendRequest>?> GetAllOutgoingRequests()
+    public async Task<List<FriendRequest>> GetAllOutgoingRequests()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
-        return self is not null ? dbContext.FriendRequests.AsNoTracking().Where(r => r.SenderID == self.Id).ToList() : null;
+        return self is not null
+            ? dbContext.FriendRequests.AsNoTracking().Where(r => r.SenderID == self.Id).ToList() 
+            : [];
+    }
+
+    public async Task<List<User>> GetAllFriends()
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var self = await AuthService.GetUser();
+        return self is not null
+            ? dbContext.FriendShips.AsNoTracking()
+                .Where(f => f.User1ID == self.Id || f.User2ID == self.Id)
+                .Select(s => s.User1ID != self.Id ? s.User1 : s.User2).ToList()
+            : [];
     }
 
     public List<IAsyncInteractionSubscriber> Subscribers { get; } = [];
@@ -289,6 +304,7 @@ public interface IUserInteractionService : IAsyncPublisher<IAsyncInteractionSubs
     Task AcceptFriendRequest(int? otherId);
     Task DeclineFriendRequest(int? otherId);
     Task RemoveFriend(int? otherId);
-    Task<List<FriendRequest>?> GetAllIncomingRequests();
-    Task<List<FriendRequest>?> GetAllOutgoingRequests();
+    Task<List<FriendRequest>> GetAllIncomingRequests();
+    Task<List<FriendRequest>> GetAllOutgoingRequests();
+    Task<List<User>> GetAllFriends();
 }

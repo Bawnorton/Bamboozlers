@@ -19,7 +19,7 @@ public abstract class AbstractMockDbSet<T>(MockAppDbContext mockAppDbContext) wh
             matchPredicate
         );
     }
-
+    
     public Mock<DbSet<T>> RemoveMock(T entry,
         Mock<DbSet<T>> entries,
         Func<T, T, bool> matchPredicate)

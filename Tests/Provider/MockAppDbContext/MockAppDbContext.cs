@@ -10,8 +10,6 @@ public class MockAppDbContext
     public Mock<AppDbContext> MockDbContext { get; set; }
     public MockUsers MockUsers { get; set; }
     public MockChats MockChats { get; set; }
-    
-    public MockGroupChats MockGroupChats { get; set; }
     public MockMessages MockMessages { get; set; }
     public MockBlocks MockBlocks { get; set; }
     public MockFriendRequests MockFriendRequests { get; set; }
@@ -24,7 +22,6 @@ public class MockAppDbContext
 
         MockUsers = new MockUsers(this);
         MockChats = new MockChats(this, MockUsers.mockUsers.Object);
-        MockGroupChats = new MockGroupChats(this, MockChats.mockChats.Object.OfType<GroupChat>());
         MockMessages = new MockMessages(this, MockUsers.mockUsers.Object, MockChats.mockChats.Object);
         MockBlocks = new MockBlocks(this, MockUsers.mockUsers.Object);
         MockFriendRequests = new MockFriendRequests(this, MockUsers.mockUsers.Object);

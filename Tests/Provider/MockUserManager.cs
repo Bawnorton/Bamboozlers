@@ -140,7 +140,10 @@ public class MockUserManager
             PasswordHash = $"@Password{idx}",
             DisplayName = displayName,
             Bio = description,
-            Avatar = avatar
+            Avatar = avatar,
+            Chats = [],
+            ModeratedChats = [],
+            OwnedChats = []
         };
 
         if (match is not null)

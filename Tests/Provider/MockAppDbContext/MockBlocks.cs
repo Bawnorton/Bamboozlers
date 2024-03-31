@@ -48,7 +48,7 @@ public class MockBlocks : AbstractMockDbSet<Block>
         );
         MockAppDbContext.MockDbContext.Setup(x => x.BlockList).Returns(mockBlocks.Object);
     }
-    
+
     public override void UpdateMock(Block block)
     {
         RemoveMock(block);
