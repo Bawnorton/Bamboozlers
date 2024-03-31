@@ -2,7 +2,7 @@ using Bamboozlers;
 using Bamboozlers.Account;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
-using Bamboozlers.Classes.Services.Authentication;
+using Bamboozlers.Classes.Services.UserServices;
 using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
@@ -93,4 +93,7 @@ app.MapRazorComponents<App>()
 app.MapAdditionalIdentityEndpoints();
 app.Run();
 
-public partial class Program;
+namespace Bamboozlers
+{
+    public partial class Program;
+}

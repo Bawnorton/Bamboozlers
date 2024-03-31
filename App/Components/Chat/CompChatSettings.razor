@@ -9,17 +9,19 @@
 @using Bamboozlers.Components.VisualUtility
 @using System.Xml.Schema
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
+@using Microsoft.EntityFrameworkCore.ChangeTracking
 
 @inject IDbContextFactory<AppDbContext> Db
 
-<ModalContent Centered>
+<ModalContent Centered Size="ModalSize.Large">
     <ModalHeader>
-        <ModalTitle>Chat Settings</ModalTitle>
-        <CloseButton />
+        <ModalTitle>@(Chat is null ? "Chat" : Chat.Name) Settings</ModalTitle>
+        <CloseButton/>
     </ModalHeader>
     <ModalBody>
-        <Alert ElementId="settings-alert" Color="@AlertArguments.AlertColor" @Visible="@AlertArguments.AlertVisible">
+        <Alert ElementId="settings-alert" Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
             <AlertMessage>
                 @AlertArguments.AlertMessage
                 <CloseButton Clicked="@(() => AlertArguments = new AlertArguments())" 
@@ -31,73 +33,47 @@
             <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
         </Alert>
         <Div Display="Display.InlineFlex" Class="justify-content-between align-items-center w-100 mb-2">
-            <Div>
-                <Row>
-                    <Label Width="@Width.Px(128)" Height="@Height.Px(128)" Class="overlay-wrapper" for="input-file">
-                        @if (Chat.Avatar is not null)
-                        {
-                            <Image ElementId="avatar-display"
-                                   Class="border-mask overlay-base fit"
-                                   Source="@($"data:image/png;base64,{Convert.ToBase64String(Chat.Avatar)}")"/>
-                        }
-                        else
-                        {
-                            <Image ElementId="avatar-display"
-                                   Class="border-mask overlay-base fit"
-                                   Source="images/default_profile.png"/>
-                        }
-                        <Image ElementId="hover-effect"
-                               Class="border-mask overlay fit"
-                               Source="images/edit_overlay.png"/>
-                    </Label>
-                    <InputFile id="input-file" OnChange="@OnFileUpload" hidden/>
-                </Row>
-                <Row>
-                    @if (Chat.Avatar is not null)
-                    {
-                        <Paragraph TextSize="TextSize.Small" Display="Display.Inline" 
-                                   role="button" Class="text-decoration-underline mb-0 text-danger-emphasis" 
-                                   ElementId="removeMember" @onclick="@DeleteAvatar">Delete Avatar</Paragraph>
-                    }
-                </Row>
-            </Div>
-            
-            <TextEdit Class="w-50" @bind-Text="@Chat.Name" ElementId="chat-name" Placeholder="Chat Name"></TextEdit>
+            @GroupDisplay
         </Div>
-        @if (Self.Id == Chat.OwnerID)
-        {
+        <CompSimpleDivider/>
+        <Div style="margin-left: 5dvw; margin-right: 5dvw;">
+            <Heading ElementId="mod-heading" Size="HeadingSize.Is4">Group Moderators</Heading>
+            <Paragraph TextSize="TextSize.Small" TextColor="TextColor.Warning">These users can add and remove members and change the chat settings.</Paragraph>
+            @ModList
             <CompSimpleDivider/>
-            <Div>
-                <Heading ElementId="mod-heading" Size="HeadingSize.Is4">Moderators</Heading>
-                <Paragraph TextSize="TextSize.Small" TextColor="TextColor.Warning">These users can add and remove members and change the chat settings.</Paragraph>
-                @foreach (var user in Members)
-                {
-                    <Check TValue="bool" Checked="@IsChecked(user)" CheckedChanged="@(value => Change(value, user))">
-                        @if (user.Avatar != null)
-                        {
-                            <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") Class="message-avatar" alt=""/>
-                        }
-                        @(user.DisplayName ?? user.UserName)
-                    </Check>
-                }
-            </Div>
-        }
-
+            <Heading ElementId="member-heading" Size="HeadingSize.Is4">Group Members</Heading>
+            @MemberList
+        </Div>
     </ModalBody>
     <ModalFooter>
-        <Button Color="Color.Danger" Clicked="ClosePopupCallback">Cancel</Button>
-        <Button ElementId="settings-save" Color="Color.Success" Clicked="@SaveChanges">Save Changes</Button>
+        @if (Chat?.OwnerID != Self?.Id)
+        {
+            <CompActionButton ButtonCaption="Leave Group"
+                              Color="Color.Danger"
+                              IconName="IconName.Running"
+                              ColumnWrapped="@false"
+                              ActionCallback="@(async () => await UserGroupService.LeaveGroup(ChatID))"/>
+        }
     </ModalFooter>
 </ModalContent>
 
 @code{
-    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
-    [CascadingParameter] public int? ChatID { get; set; }
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+
+    [Parameter] public int? ChatID { get; set; }
+    public List<int?> WatchedIDs { get; set; } = [];
+    
     private GroupChat? Chat { get; set; }
 
     public AlertArguments AlertArguments { get; set; } = new();
 
+    private RenderFragment? GroupDisplay { get; set; }
+    private RenderFragment? ModList { get; set; }
+    private RenderFragment? MemberList { get; set; }
+    
     private List<UserVisualRecord> Moderators { get; set; } = [];
     private List<UserVisualRecord> Members { get; set; } = [];
     
@@ -106,10 +82,13 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        UserGroupService.AddSubscriber(this);
+        await LoadGroupData();
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        WatchedIDs = [ChatID];
         await LoadGroupData();
     }
     
@@ -137,23 +116,6 @@
             );
         });
     }
-
-    private void Change(bool isChecked, UserVisualRecord user)
-    {
-        if (isChecked)
-        {
-            Moderators.Add(user);
-        }
-        else
-        {
-            Moderators.Remove(user);
-        }
-    }
-
-    private bool IsChecked(UserVisualRecord user)
-    {
-        return Moderators.Any(a => a.UserName == user.UserName);
-    }
     
     private async Task LoadGroupData()
     {
@@ -167,21 +129,84 @@
             .Include(c => c.Users).ThenInclude(u => u.ModeratedChats)
             .Include(c => c.Moderators)
             .First();
-        
-        Members = Chat.Users.Where(w => w.Id != Self.Id && w.Id != Chat.OwnerID).Select(s => new UserVisualRecord(
-                s.UserName!,
-                s.DisplayName,
-                s.Avatar
-            )
-        ).ToList();
-        
-        var mods =
-        Moderators = Chat.Moderators.Select(s => new UserVisualRecord(
-                s.UserName!,
-                s.DisplayName,
-                s.Avatar
-            )
-        ).ToList();
+
+        var owner = await db.Users.Where(u => u.Id == Chat.OwnerID).FirstOrDefaultAsync();
+        MemberList = @<text>
+                          @foreach (var user in Chat.Users)
+                          {
+                              @GetUserFragment(user)
+                              <Divider/>
+                          }
+                      </text>;
+
+        ModList = @<text>
+                       @foreach (var user in Chat.Moderators.Except(new[] { owner }).Where(u => u != null))
+                       {
+                           if (user is not null)
+                           {
+                               @GetUserFragment(user)
+                               <Divider/>
+                           }
+                       }
+                   </text>;
+
+        if (Self.Id == Chat.OwnerID || Chat.Moderators.FirstOrDefault(m => m.Id == Self.Id) is not null)
+        {
+            GroupDisplay = @<text>
+                                <Div>
+                                    <Row>
+                                        <Label Width="@Width.Px(128)" Height="@Height.Px(128)" Class="overlay-wrapper" Style="margin-left: 20px" for="input-file">
+                                            <Image ElementId="avatar-display"
+                                                   Class="border-mask overlay-base fit"
+                                                   Source="@(Chat?.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(Chat.Avatar)}")"/>
+                                            <Image ElementId="hover-effect"
+                                                   Class="border-mask overlay fit"
+                                                   Source="images/edit_overlay.png"/>
+                                        </Label>
+                                        <InputFile id="input-file" OnChange="@OnFileUpload" hidden/>
+                                    </Row>
+                                    <Row>
+                                        @if (Chat?.Avatar is not null)
+                                        {
+                                            <Paragraph TextSize="TextSize.Small" Display="Display.Inline"
+                                                       role="button"
+                                                       Class="text-decoration-underline mb-0 text-danger-emphasis"
+                                                       @onclick="@DeleteAvatar">Delete Avatar</Paragraph>
+                                        }
+                                    </Row>
+                                </Div>
+                                <TextEdit Class="w-50"
+                                          Text="@(Chat is null ? "Chat" : Chat.Name)"
+                                          ElementId="chat-name"
+                                          Placeholder="Chat Name">
+                                </TextEdit>
+                                <Button Style="float: right; margin-left: 2dvw; margin-right: 2dvh;"
+                                        ElementId="settings-save" Color="Color.Success"
+                                        Clicked="@SaveChanges">
+                                    Save Changes
+                                </Button>
+                            </text>;
+        }
+        else
+        {
+            GroupDisplay = @<text>
+                                <Div>
+                                    <Row>
+                                        <Div Style="margin-left: 20px">
+                                            <Image Width="@Width.Px(128)" Height="@Height.Px(128)" ElementId="avatar-display"
+                                                   Class="border-mask"
+                                                   Source="@(Chat?.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(Chat.Avatar)}")"/>
+                                        </Div>
+                                    </Row>
+                                </Div>
+                                <TextEdit Class="w-50"
+                                      Text="@(Chat is null ? "Chat" : Chat.Name)"
+                                      ElementId="chat-name"
+                                      Placeholder="Chat Name" 
+                                      Disabled>
+                                </TextEdit>
+                            </text>;
+        }
     }
     
     private async Task SaveChanges()
@@ -202,28 +227,23 @@
         try
         {
             await using var dbContext = await Db.CreateDbContextAsync();
-            
-            var editedMods = Chat.Moderators.Where(m => Moderators.Exists(m0 => m0.UserName == m.UserName)).ToList();
-            var addedMods = editedMods.Except(Chat.Moderators).ToList();
-            var removedMods = Chat.Moderators.Except(editedMods).ToList();
-
-            Chat.Moderators = editedMods;
-            foreach (var user in Chat.Users.Where(addedMods.Contains))
-            {
-                user.ModeratedChats.Add(Chat);
-            }
-
-            foreach (var user in Chat.Moderators.Where(removedMods.Contains))
-            {
-                user.ModeratedChats.Remove(Chat);
-            }
-            
-            dbContext.Update(Chat);
+            var chat = await dbContext.GroupChats.Where(gc => gc.ID == ChatID).FirstOrDefaultAsync();
+            if (chat is null)
+                throw new Exception();
+            var entry = dbContext.Entry(chat);
+            entry.CurrentValues.SetValues(Chat);
             await dbContext.SaveChangesAsync();
-            await ClosePopupCallback.InvokeAsync();
+            AlertArguments = new AlertArguments(
+                Color.Success,
+                true,
+                "Success!",
+                "Changes made were saved successfully."
+            );
+            await LoadGroupData();
         }
         catch (Exception ex)
         {
+            // TODO: Don't tell the user the stack trace?
             AlertArguments = new AlertArguments(
                 Color.Danger,
                 true,
@@ -233,6 +253,73 @@
         }
     }
 
+    private RenderFragment? GetUserFragment(User user)
+    {
+        if (Chat is null || Self is null)
+            return null;
+
+        var isOwner = Chat.OwnerID == user.Id;
+        var isMod = Chat.Moderators.Contains(user);
+        
+        return @<div style="display: block">
+                   <div style="display: inline-block">
+                       <Image Class="_32x32 message-avatar"
+                              Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
+                              alt=""/>
+                       <CompInteractUsername User="@user"/>
+                       @if (isOwner)
+                       {
+                           <Badge Style="margin-left: 5px; margin-right: 5px;" Color="Color.Success">
+                               OWNER
+                           </Badge>
+                       }
+                       else if (isMod)
+                       {
+                           <Badge Style="margin-left: 5px; margin-right: 5px;" Color="Color.Light">
+                               MODERATOR
+                           </Badge>
+                       }
+                   </div>
+                   @if (!isOwner)
+                   {
+                       @if ((Chat.Moderators.Contains(Self) && !isMod) || Chat.OwnerID == Self.Id)
+                       {
+                           @GetKickButton(user)
+                       }
+                       @if (Chat.OwnerID == Self.Id)
+                       {
+                           @GetPermsButton(user)
+                       }
+                   }
+               </div>;
+    }
+    
+    private RenderFragment? GetPermsButton(User user)
+    {
+        if (Chat is null) 
+            return null;
+        
+        var isMod = Chat.Moderators.Contains(user);
+        return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
+                   <CompActionButton ButtonCaption="@(isMod ? "Revoke permissions" : "Assign permissions")"
+                                     Color="@(isMod ? Color.Warning : Color.Success)"
+                                     IconName="@(isMod ? IconName.Ban : IconName.ShieldAlt)"
+                                     ColumnWrapped="@false"
+                                     ActionCallback="@(isMod ? async () => await UserGroupService.RevokePermissions(ChatID, user.Id) : async () => await UserGroupService.AssignPermissions(ChatID, user.Id))"/>
+               </div>;
+    }
+    
+    private RenderFragment? GetKickButton(User user)
+    {
+        return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
+                   <CompActionButton ButtonCaption="Kick user"
+                                     Color="Color.Danger"
+                                     IconName="IconName.Ban"
+                                     ColumnWrapped="@false"
+                                     ActionCallback="@(async () => await UserGroupService.RemoveGroupMember(ChatID, user.Id))"/>
+                </div>;
+    }
+    
     public async Task OnGroupUpdate()
     {
         await LoadGroupData();

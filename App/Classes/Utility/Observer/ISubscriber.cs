@@ -34,7 +34,7 @@ public interface IAsyncInteractionSubscriber : IAsyncSubscriber
 
 public interface IAsyncGroupSubscriber : IAsyncSubscriber
 {
-    int? ChatID { get; set; }
+    List<int?> WatchedIDs { get; }
 
     /// <summary>
     /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.

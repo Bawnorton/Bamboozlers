@@ -2,13 +2,10 @@ using System.Security.Claims;
 using System.Security.Principal;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Func;
-using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 
-namespace Bamboozlers.Classes.Services.Authentication;
+namespace Bamboozlers.Classes.Services.UserServices;
 
 public class AuthService : IAuthService
 {

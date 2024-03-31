@@ -6,6 +6,7 @@
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services
+@using Bamboozlers.Components.VisualUtility
 @using System.Diagnostics
 
 @inject IDbContextFactory<AppDbContext> Db
@@ -21,9 +22,7 @@
                     {
                         <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Message.Sender.Avatar)}") Class="message-avatar" alt=""/>
                     }
-                    <Div Class="message-username" onclick="@(() => OpenProfilePopup())">
-                        @(Message.Sender.DisplayName ?? Message.Sender.UserName)
-                    </Div>
+                    <CompInteractUsername User="@Message.Sender"/>
                     <Div Class="message-timestamp">
                         @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
                     </Div>
@@ -107,19 +106,5 @@
             InvokeAsync(StateHasChanged);
             return Task.CompletedTask;
         });
-    }
-
-    private async void OpenProfilePopup()
-    {
-        if (Message.Sender is not null)
-        {
-            Debug.WriteLine($"Popup exists: {OpenPopupCallback.ToString()}");
-            await OpenPopupCallback.InvokeAsync(
-                    new PopupCallbackArgs(
-                        RecognizedPopupType.Profile,
-                        FocusUser: Message.Sender
-                    )
-                );
-        }
     }
 }

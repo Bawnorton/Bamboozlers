@@ -1,7 +1,6 @@
 using Bamboozlers.Classes.Data;
 using Blazorise;
 using Blazorise.Extensions;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace Bamboozlers.Components;
@@ -81,7 +80,7 @@ public interface ICompImageUploader
                     Color.Success,
                     true,
                     "Success!",
-                    "Your avatar has been changed."
+                    "Image was successfully uploaded."
                 );
             throw new Exception();
         }
@@ -90,7 +89,7 @@ public interface ICompImageUploader
             return new AlertArguments(
                 Color.Danger,
                 true,
-                "Unable to change avatar.",
+                "Error occured while uploading image.",
                 "Unknown error occurred. Please try again."
             );
         }

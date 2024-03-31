@@ -1,5 +1,5 @@
 using Bamboozlers.Classes.AppDbContext;
-using Bamboozlers.Classes.Services.Authentication;
+using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Classes.Utility.Observer;
 using HttpContextMoq;
 using Microsoft.EntityFrameworkCore;

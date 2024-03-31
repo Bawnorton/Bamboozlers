@@ -3,7 +3,7 @@ using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Identity;
 
-namespace Bamboozlers.Classes.Services.Authentication;
+namespace Bamboozlers.Classes.Services.UserServices;
 
 public class UserService : IUserService
 {

@@ -1,7 +1,7 @@
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Interop;
 using Bamboozlers.Classes.Services;
-using Bamboozlers.Classes.Services.Authentication;
+using Bamboozlers.Classes.Services.UserServices;
 using Blazorise.Modules;
 using HttpContextMoq;
 using Microsoft.Extensions.DependencyInjection;

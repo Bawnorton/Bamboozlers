@@ -6,13 +6,14 @@
 @using Blazorise.Extensions
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Services
-@using Bamboozlers.Classes.Services.Authentication
 @using Microsoft.Playwright
 @using Bamboozlers.Classes.Utility.Observer
 @using System.Diagnostics
+@using Bamboozlers.Classes.Services.UserServices
 
 @inject IDbContextFactory<AppDbContext> DbContextFactory;
 @inject IUserInteractionService UserInteractionService
+@inject IUserGroupService UserGroupService
 
 <style>
     .dropdown {
@@ -24,7 +25,6 @@
         display: none;
         position: absolute;
         width: max-content;
-        z-index: 1;
     }
     
     .dropdown-option {
@@ -32,7 +32,7 @@
         width: fit-content;
     }
     
-    .dropdown:hover .dropdown-content {
+    .dropdown:hover > .dropdown-content {
         display: inline-block;
     }
    
@@ -120,7 +120,6 @@
 @code {
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
-    [CascadingParameter] public EventCallback<Classes.AppDbContext.Chat?> OpenChatCallback { get; set; }
     
     [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
     private RenderFragment? ActionButton { get; set; }
@@ -178,17 +177,6 @@
         
         if (IsFriend)
         {
-            ActionButton = GetActionButton(
-                EventCallback.Factory.Create(
-                    this,
-                    async () =>
-                    {
-                        await ClosePopupCallback.InvokeAsync(); 
-                        await OpenChatCallback.InvokeAsync(await UserInteractionService.FindDmIfExists(FocusUser.Id));
-                    }),
-                "Send Message",
-                IconName.Mail
-            );
             StatusBadge = @<Badge Color="Color.Success">
                               <Icon Name="IconName.UserFriends"/>
                               FRIEND
@@ -237,7 +225,9 @@
                           </Badge>;
         }
 
-        ActionOptions = GetProfileActions();
+        var moddedChats = await UserGroupService.GetAllModeratedGroups();
+        
+        ActionOptions = GetProfileActions(moddedChats);
         
         StateHasChanged();
     }
@@ -255,13 +245,16 @@
                 />;
     }
 
-    private RenderFragment GetProfileActions()
+    private RenderFragment GetProfileActions(List<GroupChat>? moddedChats = null)
     {
+        var viableChats = moddedChats?.Where(
+            c => c.Users.FirstOrDefault(u => u.Id == FocusUser.Id) is null)
+            .ToList();
         return @<text>
                     <Div id="profile-actions" 
                          Class="dropdown">
                         <Icon Name="@("fa-ellipsis-v")"/>
-                        <Div Background="Background.Dark"
+                        <Div Background="Background.Primary" Border="Border.Dark"
                              Class="dropdown-content">
                             @if (HasIncomingRequest && !IsBlocked)
                             {
@@ -279,12 +272,29 @@
                             }
                             @if (IsFriend)
                             {
-                                <Button Class="dropdown-option" Clicked="@(async () => 
-                                                                         { 
-                                                                             // TODO: Invite to Group
-                                                                         })">
-                                    Invite to group
-                                </Button>
+                                @if (viableChats is not null && viableChats.Count > 0)
+                                {
+                                    <Div id="group-actions" 
+                                         Class="dropdown">
+                                        <Button>
+                                            Invite to group
+                                        </Button>
+                                        <Div Class="dropdown-content"
+                                             Background="Background.Primary" 
+                                             Border="Border.Dark">
+                                            @foreach (var chat in viableChats)
+                                            {
+                                                <Button Class="dropdown-option"
+                                                        Clicked="@(async () => { 
+                                                                   await ClosePopupCallback.InvokeAsync();
+                                                                   await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.ChatAddMember, ChatId = chat.ID});
+                                                                 })">
+                                                    Invite to @chat.Name
+                                                </Button>
+                                            }
+                                        </Div>
+                                    </Div>
+                                }
                                 <Button Class="dropdown-option" TextColor="TextColor.Danger"
                                         Clicked="@(async () => await UserInteractionService.RemoveFriend(FocusUser.Id))">
                                     Remove friend

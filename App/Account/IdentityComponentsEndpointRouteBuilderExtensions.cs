@@ -6,7 +6,7 @@ using System.Web;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services;
-using Bamboozlers.Classes.Services.Authentication;
+using Bamboozlers.Classes.Services.UserServices;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

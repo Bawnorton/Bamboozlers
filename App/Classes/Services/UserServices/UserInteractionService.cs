@@ -1,10 +1,9 @@
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Func;
-using Bamboozlers.Classes.Services.Authentication;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bamboozlers.Classes.Services;
+namespace Bamboozlers.Classes.Services.UserServices;
 
 public class UserInteractionService(IAuthService authService, IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory) : IUserInteractionService
 {
@@ -17,20 +16,6 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         var self = await AuthService.GetUser(inclusionCallback);
         var other = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == otherId);
         return (self, other);
-    }
-
-    public async Task<Chat?> FindDmIfExists(int? otherId)
-    {
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        var (self, other) = await GetInvolvedUsers(otherId, 
-            query => 
-                query.Include(u => u.Chats)
-                        .ThenInclude(c => c.Users));
-        
-        if (self is null || other is null)
-            return null;           
-        
-        return self.Chats.Except(self.Chats.OfType<GroupChat>().ToList()).FirstOrDefault(chat => chat.Users.Contains(other));
     }
     
     public async Task<Friendship?> FindFriendship(int? otherId)
@@ -292,7 +277,6 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
 
 public interface IUserInteractionService : IAsyncPublisher<IAsyncInteractionSubscriber>
 {
-    Task<Chat?> FindDmIfExists(int? otherId);
     Task<Friendship?> FindFriendship(int? otherId);
     Task<FriendRequest?> FindIncomingRequest(int? otherId);
     Task<FriendRequest?> FindOutgoingRequest(int? otherId);

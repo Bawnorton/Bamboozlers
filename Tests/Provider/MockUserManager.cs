@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Bamboozlers.Classes.AppDbContext;
-using Bamboozlers.Classes.Services.Authentication;
 using Bunit.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

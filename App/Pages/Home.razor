@@ -8,11 +8,9 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Interop
-@using Bamboozlers.Classes.Services.Authentication
 @using Bamboozlers.Components.Chat
 @using Bamboozlers.Components.Settings
 @using IMessageService = Bamboozlers.Classes.Services.IMessageService
-@using System.Runtime.CompilerServices
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IMessageService MessageService;
@@ -33,12 +31,10 @@
             -->
             <CascadingValue Value="_openPopupCallback">
                 <CascadingValue Value="_closePopupCallback">
-                    <CascadingValue Value="_openChatCallback">
-                        <NavLayout @ref="_navLayout"/>
-                        <Modal @ref="_popupComponent" Closed="OnPopupClosed">
-                            @_popupContent
-                        </Modal>
-                    </CascadingValue>
+                    <NavLayout @ref="_navLayout"/>
+                    <Modal @ref="_popupComponent" Closed="OnPopupClosed">
+                        @_popupContent
+                    </Modal>
                 </CascadingValue>
             </CascadingValue>
         </AuthorizeView>
@@ -71,7 +67,6 @@
 
     private EventCallback<PopupCallbackArgs> _openPopupCallback;
     private EventCallback _closePopupCallback;
-    private EventCallback<Chat?> _openChatCallback;
     
     private Modal? _popupComponent;
     private RenderFragment? _popupContent;
@@ -79,7 +74,6 @@
     protected override void OnInitialized()
     {
         _openPopupCallback = EventCallback.Factory.Create<PopupCallbackArgs>(this, OpenPopup);
-        _openChatCallback = EventCallback.Factory.Create<Chat?>(this, chat => _navLayout?.OpenChatIfExists(chat));
         _closePopupCallback = EventCallback.Factory.Create(this, ClosePopup);
         
         MessageService.Init(Db);
@@ -99,11 +93,11 @@
             RecognizedPopupType.Profile => @<text>
                                                 <CompProfileView FocusUser="UserRecord.From(args.FocusUser!)"/>
                                             </text>,
-            RecognizedPopupType.ChatSettings => @<text>
-                                                     <CompChatSettings ChatId="args.ChatId"/>
+            RecognizedPopupType.GroupChatSettings => @<text>
+                                                     <CompChatSettings ChatID="@args.ChatId"/>
                                                  </text>,
             RecognizedPopupType.ChatAddMember => @<text>
-                                                      <CompAddMember ChatId="args.ChatId"/>
+                                                      <CompAddMember ChatID="@args.ChatId"/>
                                                   </text>,
             _ => @<text>
                       <ModalContent Size="args.Size" Centered>

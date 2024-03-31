@@ -19,7 +19,7 @@ public enum RecognizedPopupType
     None,
     Settings,
     Profile,
-    ChatSettings,
+    GroupChatSettings,
     ChatAddMember,
     
 }

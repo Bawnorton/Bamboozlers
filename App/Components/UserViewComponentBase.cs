@@ -1,5 +1,5 @@
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Services.Authentication;
+using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components;
 

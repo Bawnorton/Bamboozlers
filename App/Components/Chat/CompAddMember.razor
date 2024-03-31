@@ -5,6 +5,7 @@
 @using AngleSharp.Diffing.Extensions
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.VisualUtility
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.Utility.Observer
@@ -16,17 +17,20 @@
         <CloseButton/>
     </ModalHeader>
     <ModalBody>
-        @InviteList
+        <Div Style="display: block">
+            @InviteList
+        </Div>
     </ModalBody>
 </ModalContent>
 
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
     
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
-    [CascadingParameter] public int? ChatID { get; set; }
-    
-    [Parameter] public EventCallback<List<User>> OnAdd { get; set; }
+
+    [Parameter] public int? ChatID { get; set; }
+    public List<int?> WatchedIDs { get; set; } = [];
     
     private GroupChat? Chat { get; set; }
     private RenderFragment? InviteList { get; set; }
@@ -35,6 +39,8 @@
     
     protected override async Task OnInitializedAsync()
     {
+        UserGroupService.AddSubscriber(this);
+        WatchedIDs = [ChatID];
         await LoadGroupData();
     }
     
@@ -66,43 +72,57 @@
             .Select(i => friendList.FirstOrDefault(u => u.Id == i.RecipientID))
             .Where(u => u != null)
             .ToList();
-        
+
         InviteList = @<text>
                           @foreach (var user in friendList)
                           {
-                              <div style="display: inline-block">
-                                  <Image Class="_32x32 message-avatar" 
-                                         Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") 
+                              <div style="display: inline-block; width: max-content;">
+                                  <Image Class="_32x32 message-avatar"
+                                         Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
                                          alt=""/>
-                                  @(user.DisplayName ?? user.UserName)
+                                  <CompInteractUsername User="@user"/>
                                   @if (inGroup.Contains(user))
                                   {
-                                      <CompActionButton ButtonCaption="Already in group"
-                                                        Color="Color.Dark"
-                                                        ColumnWrapped="@false"
-                                                        ActionCallback="EventCallback.Empty"
-                                                        Disabled="true"/>
+                                      @GetActionButton(Color.Dark,
+                                          "Already in group",
+                                          null,
+                                          EventCallback.Empty,
+                                          true
+                                      )
                                   }
                                   else if (notInGroup.Contains(user))
                                   {
                                       if (invitedFriends.Contains(user))
                                       {
-                                          <CompActionButton ButtonCaption="Revoke Invitation" 
-                                                            ColumnWrapped="@false"
-                                                            ActionCallback="@(async () => await UserGroupService.RevokeGroupInvite(ChatID,user.Id))"
-                                                            IconName="IconName.Ban"/>
+                                          @GetActionButton(Color.Danger,
+                                              "Revoke Invitation",
+                                              IconName.Ban,
+                                              new EventCallbackFactory().Create(this, async () => await UserGroupService.RevokeGroupInvite(ChatID, user.Id)))
                                       }
                                       else
                                       {
-                                          <CompActionButton ButtonCaption="Invite"
-                                                            ColumnWrapped="@false"
-                                                            ActionCallback="@(async () => await UserGroupService.SendGroupInvite(ChatID, user.Id))"
-                                                            IconName="IconName.UserPlus"/>
+                                          @GetActionButton(null,
+                                              "Invite",
+                                              IconName.UserPlus,
+                                              new EventCallbackFactory().Create(this, async () => await UserGroupService.SendGroupInvite(ChatID, user.Id)))
                                       }
                                   }
                               </div>
+                              <Divider/>
                           }
                       </text>;
+    }
+    
+    private RenderFragment GetActionButton(Color? color, string? caption, IconName? iconName, EventCallback? actionCallback, bool disabled = false)
+    {
+        return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
+            <CompActionButton ButtonCaption="@caption"
+                              Color="@(color ?? Color.Success)"
+                              IconName="@(iconName ?? null)"
+                              ColumnWrapped="@false"
+                              ActionCallback="@(actionCallback ?? EventCallback.Empty)"
+                              Disabled="@disabled"/>
+        </div>;
     }
     
     public async Task OnGroupUpdate()
