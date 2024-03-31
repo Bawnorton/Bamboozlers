@@ -5,9 +5,9 @@
 @using Bamboozlers.Classes
 @using AngleSharp.Diffing.Extensions
 @using Bamboozlers.Classes.Events
-@using Bamboozlers.Classes.Interop
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Components.Settings
 @using Bamboozlers.Classes.Services
@@ -58,7 +58,7 @@
                                             {
                                                 <BarIcon IconName="Icons.User"></BarIcon>
                                             }
-                                            @chat.User.DisplayName
+                                            @(chat.User.DisplayName ?? chat.User.UserName)
                                         </BarLink>
                                     </BarItem>
                                 }
@@ -136,9 +136,9 @@
     
     protected override async Task OnInitializedAsync()
     {
-        await GetDataAsync();     
+        await Refresh();
     }
-
+    
     public async Task Refresh()
     {
         await GetDataAsync();

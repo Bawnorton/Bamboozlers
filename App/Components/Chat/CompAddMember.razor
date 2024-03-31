@@ -5,7 +5,7 @@
 @inject IDbContextFactory<AppDbContext> Db
 @inherits UserViewComponentBase
 
-<Modal @ref="modalRef">
+<Modal @ref="_modalRef">
     <ModalContent Centered>
         <ModalHeader>
             <ModalTitle>Add Member(s)</ModalTitle>
@@ -48,14 +48,15 @@
     
     private List<Names> UsersToAdd { get; set; }
     private List<Names> Users { get; set; }
-    private Modal modalRef;
-    private bool ErrorVisible { get; set; } = false;
-    private record Names(string UserName, string? DisplayName, byte[]? Avatar);
+    
     private User Self { get; set; }
+    
+    private Modal _modalRef;
+    private bool ErrorVisible { get; set; } = false;
     
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthService.GetUser();
+        Self = (await AuthService.GetUser())!;
     }
 
     private void Change(bool isChecked, Names user)
@@ -77,16 +78,16 @@
     
     public async Task ShowModal()
     {
-        UsersToAdd = new List<Names>();
+        UsersToAdd = [];
         await using var db = await Db.CreateDbContextAsync();
         var friends = (await Self.GetFriends(db)).Select(s => new Names(
-            s.UserName,
+            s.UserName!,
             s.DisplayName,
             s.Avatar
         )).ToList();
         
         var current = Chat.Users.Select(s => new Names(
-            s.UserName,
+            s.UserName!,
             s.DisplayName,
             s.Avatar
         )).ToList();
@@ -95,13 +96,13 @@
             .Where(f => current.All(c => c.UserName != f.UserName))
             .ToList();
 
-        await modalRef.Show();
+        await _modalRef.Show();
     }
 
-    private async Task HideModal(List<User> usersAdded = null)
+    private async Task HideModal(List<User>? usersAdded = null)
     {
         await OnAdd.InvokeAsync(usersAdded);
-        await modalRef.Hide();
+        await _modalRef.Hide();
     }
 
     private async Task AddMembers()
@@ -125,4 +126,6 @@
         }
         
     }
+    
+    private record Names(string UserName, string? DisplayName, byte[]? Avatar);
 }

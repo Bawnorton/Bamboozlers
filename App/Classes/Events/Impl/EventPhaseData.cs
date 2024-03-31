@@ -2,17 +2,15 @@ using Bamboozlers.Classes.Collections.Toposort;
 
 namespace Bamboozlers.Classes.Events.Impl;
 
-public class EventPhaseData<T>(string id, Type listenerType) : SortableNode<EventPhaseData<T>>
+public class EventPhaseData<T>(string id) : SortableNode<EventPhaseData<T>>
 {
-    internal T[] Listeners = (T[]) Array.CreateInstance(listenerType, 0);
+    internal readonly Dictionary<string, T> Listeners = new();
 
     internal readonly string ID = id;
 
-    public void AddListener(T listener)
+    public void AddListener(string id, T listener)
     {
-        var length = Listeners.Length;
-        Array.Resize(ref Listeners, length + 1);
-        Listeners[length] = listener;
+        Listeners[id] = listener;
     }
 
     protected override string GetDescription()
