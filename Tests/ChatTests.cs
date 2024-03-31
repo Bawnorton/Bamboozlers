@@ -18,7 +18,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     public ChatTests(ITestOutputHelper output)
     {
         this.output = output;
-        MockDatabaseProvider.SetupMockDbContext();
+        //MockDatabaseProvider.SetupMockDbContext();
         Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
         Ctx.Services.AddBlazorise().Replace(ServiceDescriptor.Transient<IComponentActivator, ComponentActivator>());
         
@@ -28,7 +28,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async void ComponentInitializesCorrectly()
     {
-        await SetUser(MockDatabaseProvider.GetMockUser(0));
+        //await SetUser(MockDatabaseProvider.GetMockUser(0));
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var chat = db.Chats.Include(chat => chat.Messages).First();
 
@@ -125,7 +125,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     [InlineData(2)]
     public async void TestRemoveMembers(int userId)
     {
-        await SetUser(MockDatabaseProvider.GetMockUser(userId));
+        //await SetUser(MockDatabaseProvider.GetMockUser(userId));
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var chat = db.Chats.Include(chat => chat.Messages).Last();
         
@@ -156,7 +156,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async void TestChatSettingsPic()
     {
-        await SetUser(MockDatabaseProvider.GetMockUser(0));
+        //await SetUser(MockDatabaseProvider.GetMockUser(0));
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var chat = db.Chats.Include(chat => chat.Messages).Last();
         
@@ -216,7 +216,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     [InlineData(2)]
     public async void TestChatSettingsSave(int userId)
     {
-        await SetUser(MockDatabaseProvider.GetMockUser(userId));
+        //await SetUser(MockDatabaseProvider.GetMockUser(userId));
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var chat = db.Chats.Include(chat => chat.Messages).Last();
         

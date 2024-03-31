@@ -17,7 +17,7 @@ public class GroupChatTests : AuthenticatedBlazoriseTestBase
     public GroupChatTests(ITestOutputHelper outputHelper)
     {
         output = outputHelper;
-        MockDatabaseProvider.SetupMockDbContext();
+        //MockDatabaseProvider.SetupMockDbContext();
         Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
         Ctx.Services.AddBlazorise().Replace(ServiceDescriptor.Transient<IComponentActivator, ComponentActivator>());
         
@@ -28,11 +28,8 @@ public class GroupChatTests : AuthenticatedBlazoriseTestBase
     public async void GroupChatTests_CompAddMember()
     {
         var user0 = MockUserManager.CreateMockUser(0);
-        MockDatabaseProvider.AddMockUser(user0);
         var user1 = MockUserManager.CreateMockUser(1);
-        MockDatabaseProvider.AddMockUser(user1);
         var user2 = MockUserManager.CreateMockUser(0);
-        MockDatabaseProvider.AddMockUser(user2);
         
         var groupChat = new GroupChat
         {

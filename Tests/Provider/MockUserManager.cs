@@ -47,7 +47,7 @@ public class MockUserManager
         _mockUserManager.Setup(x 
             => x.UpdateAsync(It.IsAny<User>())
         ).Callback(
-            (User user) => _mockDatabaseProvider.AddMockUser(user)
+            (User user) => _mockDatabaseProvider.GetMockAppDbContext().MockUsers.UpdateMock(user)
         ).ReturnsAsync(IdentityResult.Success);
         
         _mockUserManager.Setup(x 
@@ -127,7 +127,10 @@ public class MockUserManager
         string? description = null, 
         byte[]? avatar = null)
     {
-        if (idx == -1) idx = _mockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.Count();
+        var userList = _mockDatabaseProvider.GetMockAppDbContext().MockUsers.mockUsers.Object.ToList();
+        var match = userList.FirstOrDefault(u => u.Id == idx);
+        
+        if (idx == -1) idx = userList.Count;
         var newUser = new User
         {
             Id = idx,
@@ -139,14 +142,22 @@ public class MockUserManager
             Bio = description,
             Avatar = avatar
         };
-        _mockDatabaseProvider.AddMockUser(newUser);
+
+        if (match is not null)
+        {
+            _mockDatabaseProvider.GetMockAppDbContext().MockUsers.UpdateMock(newUser);
+        }
+        else
+        {
+            _mockDatabaseProvider.GetMockAppDbContext().MockUsers.AddMock(newUser);
+        }
         
         return newUser;
     }
     
     public void ClearMockUsers()
     {
-        _mockDatabaseProvider.ClearMockUsers();
+        _mockDatabaseProvider.GetMockAppDbContext().MockUsers.ClearAll();
     }
     
     public UserManager<User> GetUserManager()
