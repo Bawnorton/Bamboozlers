@@ -10,7 +10,7 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
     [Fact]
     public async Task TestMessageEcho()
     {
-        var page = await SetupAndLoginAtFirstDm(headless: false);
+        var page = await SetupAndLoginAtFirstDm();
 
         await page
             .Locator("#message-input")
@@ -35,7 +35,7 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
     [Fact]
     public async Task TestRealtimeMessaging()
     {
-        var user1Page = await SetupAndLoginAtFirstDm(headless: false);
+        var user1Page = await SetupAndLoginAtFirstDm();
         var user2Context = await Browser!.NewContextAsync();
         var user2Page = await user2Context.NewPageAsync();
         await user2Page.GotoAsync(ServerAddress);

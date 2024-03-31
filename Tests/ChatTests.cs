@@ -99,7 +99,15 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
             checkboxes.Single().Change(true);
         }
         component.Find("#saveChanges").Click();
-        Assert.Contains(userId == 1 ? db.Users.Last().UserName! : "No member(s) added!", component.Markup);
+        if(userId == 1)
+        {        
+            Assert.Contains(db.Users.Last().UserName!, component.Markup);
+        }
+        else
+        {
+            Assert.Contains("No member(s) added!", component.Markup);
+        }
+
     }
     
     [Theory]
@@ -225,7 +233,15 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         
         var updatedChat = db.GroupChats.Include(i => i.Moderators).First();
 
-        Assert.Equal(userId == 0 ? "TestUser2" : "TestUser1", updatedChat.Moderators.First().UserName);
+        if (userId == 0)
+        {
+            Assert.Equal("TestUser2", updatedChat.Moderators.First().UserName);
+        }
+        else
+        {
+            Assert.Equal("TestUser1", updatedChat.Moderators.First().UserName);
+
+        }
 
         Assert.Equal("Settings updated successfully!", component.Instance.AlertMessage);
         
