@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: .NET Tests
 on:
   push:
     branches: [ main ]
@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 jobs:
   playwright:
-    name: 'Playwright Tests'
+    name: '.NET Tests'
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright/dotnet:v1.42.0-jammy
@@ -16,8 +16,9 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
-      - run: dotnet build
-      - name: Run your tests
-        run: dotnet test
+      - name: Build
+        run: dotnet build
+      - name: Tests
+        run: dotnet test --no-build --verbosity normal
         env:
           HOME: /root
