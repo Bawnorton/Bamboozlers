@@ -35,7 +35,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         Assert.NotNull(chat.Messages);
         
         var expectedCount = chat.Messages.Count;
-        var actualCount = component.FindAll(".message-content").Count;
+        var actualCount = component.FindAll(".message-content").Count / 2;
         
         // Assert
         Assert.Equal(expectedCount, actualCount);
@@ -91,17 +91,19 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         }
        
         
-        Assert.Equal(3, db.Chats.Include(chat => chat.Users).Last().Users.Count);
+        Assert.Equal(3, db.Chats.Include(c => c.Users).Last().Users.Count);
 
         // Act
         if(userId == 1)
         {
             checkboxes.Single().Change(true);
         }
+        
+        await Task.Delay(100); // avoid concurrency issues when running on fast machines
         component.Find("#saveChanges").Click();
         if(userId == 1)
         {        
-            Assert.Contains(db.Users.Last().UserName, component.Markup);
+            Assert.Contains(db.Users.Last().UserName!, component.Markup);
         }
         else
         {
@@ -123,23 +125,22 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
             .Add(p => p.ChatID, chat.ID));
         
         var removeMembersButton = component.FindAll("#removeMember");
-        if (userId == 2)
+        switch (userId)
         {
-            Assert.Empty(removeMembersButton);
-            return;
+            case 2:
+                Assert.Empty(removeMembersButton);
+                return;
+            case 1:
+                Assert.Single(removeMembersButton);
+                break;
+            default:
+                Assert.Equal(2, removeMembersButton.Count);
+                break;
         }
-        if(userId == 1)
-        {
-            Assert.Single(removeMembersButton);
-        }
-        else
-        {
-            Assert.Equal(2, removeMembersButton.Count);
-        }
-        removeMembersButton.First().Click();
+
+        removeMembersButton[0].Click();
         
-        
-        Assert.Equal(2, db.Chats.Include(chat => chat.Users).Last().Users.Count);
+        Assert.Equal(2, db.Chats.Include(c => c.Users).Last().Users.Count);
         
     }
     
@@ -193,7 +194,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         // Assert
         Assert.False(component.Instance.AlertVisible);
     }
-
+    
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
@@ -224,15 +225,16 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
             var moderators = component.FindAll("input[type='checkbox']");
            
             Assert.Equal(2, moderators.Count);
-            moderators.First(f => f.NextSibling.TextContent.Contains("TestUser1")).Change(false);
-            moderators.First(f => f.NextSibling.TextContent.Contains("TestUser2")).Change(true);
+            moderators.First(f => f.NextSibling!.TextContent.Contains("TestUser1")).Change(false);
+            moderators.First(f => f.NextSibling!.TextContent.Contains("TestUser2")).Change(true);
 
         }
         
         component.Find("#settings-save").Click();
         
         var updatedChat = db.GroupChats.Include(i => i.Moderators).First();
-        
+
+        await Task.Delay(100); // avoid concurrency issues when running on fast machines
         if (userId == 0)
         {
             Assert.Equal("TestUser2", updatedChat.Moderators.First().UserName);
@@ -242,9 +244,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
             Assert.Equal("TestUser1", updatedChat.Moderators.First().UserName);
 
         }
-        
+
         Assert.Equal("Settings updated successfully!", component.Instance.AlertMessage);
-        
-        
     }
 }

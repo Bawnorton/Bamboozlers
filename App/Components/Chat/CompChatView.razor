@@ -1,19 +1,25 @@
+@implements IAsyncDisposable
 @using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes.Events
-@using Bamboozlers.Classes.Interop
-@using Bamboozlers.Classes
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Clientbound
+@using Bamboozlers.Classes.Networking.Packets.Serverbound
+@using Bamboozlers.Classes.Networking.SignalR
 @using Bamboozlers.Classes.Services
-@using System.Runtime.CompilerServices
-@using System.Diagnostics
+@using Microsoft.AspNetCore.SignalR.Client
+@using Bamboozlers.Classes
+@using Blazorise.Extensions
 @using AngleSharp.Diffing.Extensions
-@using Microsoft.IdentityModel.Tokens
-@using IMessageService = Bamboozlers.Classes.Services.IMessageService
-
-@inject IWebSocketService WebSocketService
-@inject IDbContextFactory<AppDbContext> Db
-@inject IJSRuntime JsRuntime
 @inherits UserViewComponentBase
 
+@inject IDbContextFactory<AppDbContext> Db
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+@inject IKeyPressService KeyPressService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<!--suppress JSVoidFunctionReturnValueUsed, JSUnresolvedReference -->
 <script>
     function showConfirmDialog(message) {
         return Swal.fire({
@@ -31,6 +37,43 @@
             return result.isConfirmed;
         });
     }
+    
+    function waitForElm(selector) {
+        return new Promise(resolve => {
+            if (document.querySelector(selector)) {
+                return resolve(document.querySelector(selector));
+            }
+    
+            const observer = new MutationObserver(_ => {
+                if (document.querySelector(selector)) {
+                    observer.disconnect();
+                    resolve(document.querySelector(selector));
+                }
+            });
+    
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    }
+    
+    function resizeTextarea(textarea) {
+        textarea.style.height = '1px';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+    
+    waitForElm("#message-input").then(textarea => {
+        textarea.addEventListener('input', () => resizeTextarea(textarea));
+        textarea.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+        resizeTextarea(textarea);
+        textarea.focus();
+    });
 </script>
 
 <Layout>
@@ -42,16 +85,17 @@
                   Display="Display.InlineFlex"
                   Class="justify-content-between align-items-center">
         <Div>
-            @if (Chat is GroupChat groupChat && groupChat.Avatar != null)
+            @if (Chat is GroupChat { Avatar: not null } groupChat)
             {
                 <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}") Class="message-avatar" alt=""/>
-            }else if (Chat is not null && Chat is not GroupChat && Chat.Users.FirstOrDefault(f => f.Id != Self.Id).Avatar != null)
+            }
+            else if (Chat is not null && Chat is not GroupChat && Chat.Users.First(f => f.Id != Self.Id).Avatar != null)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.FirstOrDefault(f => f.Id != Self.Id).Avatar)}") Class="message-avatar" alt=""/>
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.First(f => f.Id != Self.Id).Avatar!)}") Class="message-avatar" alt=""/>
             }
             <Text ElementId="header-text">@ChatName</Text>
         </Div>
-        
+
         @if (IsMod)
         {
             <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="() => CompChatSettings.ShowModal()"/>
@@ -68,20 +112,21 @@
         <Layout>
             <LayoutContent>
                 <Div>
-                    @foreach (var message in Messages)
-                    {
-                        <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()"></CompMessageView>
-                    }
+                    <CascadingValue Value="IsShiftHeld">
+                        @foreach (var message in Messages)
+                        {
+                            <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()" EchoRecieved="@message.OthersCanSee"/>
+                        }
+                    </CascadingValue>
                 </Div>
             </LayoutContent>
         </Layout>
     </LayoutContent>
     <LayoutFooter>
-        <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Class="rounded-pill m-4" Style="bottom: 0">
-            <Div Display="Display.Flex" Overflow="Overflow.Hidden" >
-                <Div contenteditable="true" Width="Width.Is100" Height="Height.Is100" Padding="Padding.Is3"
-                     id="message-input" class="@($"message-input word-break {InputEvents.EventCssClass} {ClipboardEvents.EventCssClass}")" data-placeholder="@($"Message {ChatName}")">
-                </Div>
+        <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Class="m-4" Style="bottom: 0; border-radius: 5px;">
+            <Div Display="Display.Flex" Overflow="Overflow.Hidden">
+                <textarea id="message-input" placeholder="@($"Message {ChatName}")" class="message-input p-3" @onkeyup="OnInput" @bind="MessageInput" @bind:event="oninput">
+                </textarea>
             </Div>
         </Div>
     </LayoutFooter>
@@ -116,22 +161,21 @@
                                     {
                                         <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(friend.Avatar)}") Class="message-avatar" alt=""/>
                                     }
-    
+
                                     @(friend.DisplayName ?? friend.UserName)
                                 </Div>
-                                
+
                                 @if (IsMod && friend.Id != Self.Id && friend.Id != ((Chat as GroupChat)!).OwnerID)
                                 {
-                                    <Paragraph TextSize="TextSize.Small" Display="Display.Inline" 
-                                          role="button" Class="text-decoration-underline mb-0 text-danger-emphasis" 
-                                          ElementId="removeMember"
-                                          @onclick="() => RemoveMember(friend.Id)">
+                                    <Paragraph TextSize="TextSize.Small" Display="Display.Inline"
+                                               role="button" Class="text-decoration-underline mb-0 text-danger-emphasis"
+                                               ElementId="removeMember"
+                                               @onclick="() => RemoveMember(friend.Id)">
                                         Remove
                                     </Paragraph>
                                 }
                             </BarLink>
                         </BarItem>
-                        
                     }
                 </BarMenu>
             </Bar>
@@ -141,38 +185,86 @@
 
 @if (IsMod)
 {
-    <CompAddMember @ref="CompAddMember" OnAdd="@((usersAdded) => UpdateMembers(usersAdded))" Chat="@(Chat as GroupChat)"/>
+    <CompAddMember @ref="CompAddMember" OnAdd="@(usersAdded => UpdateMembers(usersAdded))" Chat="@(Chat as GroupChat)"/>
     <CompChatSettings @ref="CompChatSettings" Chat="@(Chat as GroupChat)" OnChange="SettingsChanged"/>
 }
-
-
 
 @code {
     [Parameter] public int ChatID { get; set; }
     private Chat? Chat { get; set; }
+    private string ChatName { get; set; }
+    
+    private List<LinkedMessage> Messages { get; set; } = [];
+    private DateTime? _lastMessageSentAt;
+    
+    private string MessageInput { get; set; }
+    
+    private User Self { get; set; }
+    
+    private bool IsMod { get; set; }
+
     private CompAddMember CompAddMember { get; set; }
     private CompChatSettings CompChatSettings { get; set; }
-    private User Self { get; set; }
-    private string ChatName { get; set; }
-    private string TypedMessage { get; set; }
-    private List<LinkedMessage> Messages { get; set; } = [];
+    
     private Color AlertColor { get; set; }
     private bool AlertVisible { get; set; }
-    public string AlertMessage { get; set; }
-    private bool IsMod { get; set; }
+    public string AlertMessage { get; private set; }
     
+    private string _hubUrl;
+    private HubConnection? _hubConnection;
+
+    private bool IsShiftHeld { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthService.GetUser();
-    }
-    
-    protected override async Task OnParametersSetAsync()
-    {
-        await GetData();   
-        IsMod = IsModerator();
-        await WebSocketService.ConnectAsync(Self.Id);
+        Self = (await AuthService.GetUser())!;
+        
+        await KeyPressService.StartListeningAsync();
+        KeyPressService.KeyPressed += OnKeyPressed;
+        KeyPressService.KeyReleased += OnKeyReleased;
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        await GetData();
+        
+        IsMod = IsModerator();
+        
+        await using var db = await Db.CreateDbContextAsync();
+        Chat = await db.Chats
+            .Include(c => c.Users)
+            .FirstOrDefaultAsync(c => c.ID == ChatID);
+        switch (Chat)
+        {
+            case null:
+                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
+            case GroupChat groupChat:
+                ChatName = groupChat.Name;
+                break;
+            default:
+            {
+                var self = await AuthService.GetUser();
+                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
+                ChatName = (other.DisplayName ?? other.UserName)!;
+                break;
+            }
+        }
+
+        await UpdateMessages();
+    }
+    
+    private bool IsModerator()
+    {
+        if (Chat is not GroupChat)
+        {
+            return false;
+        }
+
+        using var db = Db.CreateDbContext();
+        var gc = db.GroupChats.Include(i => i.Moderators).First(f => f.ID == ChatID);
+        return gc.OwnerID == Self.Id || gc.Moderators.Any(m => m.Id == Self.Id);
+    }
+    
     private async Task GetData()
     {
         await using var db = await Db.CreateDbContextAsync();
@@ -203,89 +295,136 @@
     {
         if (!firstRender) return;
 
-        await JsInteropHelper.Register();
+        await Connect();
+    }
 
-        InputEvents.DisallowedInputs.Register(() => Task.FromResult(new List<KeyData>
-        {
-            KeyData.Normal("Enter", "Enter")
-        }));
-        InputEvents.InputKeydown.Register(async (elementId, key, _, _, shift, _, _, _, _) =>
-        {
-            if (elementId != "message-input") return;
-            if (key != "Enter" || shift) return;
+    private async Task Connect()
+    {
+        var baseUrl = NavigationManager.BaseUri;
+        _hubUrl = baseUrl.TrimEnd('/') + BamboozlersHub.HubUrl;
 
-            await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
-            await SendMessage();
-            await InvokeAsync(StateHasChanged);
-        });
-        InputEvents.InputKeyup.Register(async (elementId, key, _, _, shift, _, _, content, _) =>
-        {
-            if (elementId != "message-input") return;
-
-            TypedMessage = content;
-            switch (key)
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(_hubUrl, options =>
             {
-                case "Backspace" when TypedMessage.Equals("\n"):
-                    await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.clear", "message-input");
-                    break;
-                case "Enter" when !shift:
-                    await JsInteropHelper.GetJsRuntime().InvokeVoidAsync("inputInterop.scrollToBottom", "message-container");
-                    break;
-            }
-        });
-        ClipboardEvents.OnPaste.Register(async (elementId, content) =>
-        {
-            if (elementId != "message-input") return content;
-
-            TypedMessage = content;
-            await InvokeAsync(StateHasChanged);
-            return content;
-        });
+                options.UseDefaultCredentials = true;
+                options.HttpMessageHandlerFactory = innerHandler => new IncludeRequestCredentialsMessageHandler { InnerHandler = innerHandler };
+            })
+            .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)])
+            .Build();
         
-        StateHasChanged();
+        _hubConnection.On("RecievePacketOnClient", async (string packetJson) =>
+        {
+            await ClientNetworkHandler.Instance.Handle(packetJson, async packet =>
+            {
+                switch (packet)
+                {
+                    case ReadDatabaseS2CPacket readDatabaseS2CPacket:
+                        if (readDatabaseS2CPacket.DbEntry == DbEntry.ChatMessage)
+                        {
+                            await UpdateMessages();
+                        }
+                        break;
+                }
+            });
+        });
+
+        await _hubConnection.StartAsync();
+
+        await _hubConnection.SendAsync("JoinChat", ChatID);
     }
 
-    private bool IsModerator()
+    private async Task SendToServer<T>(T packet) where T : IPacket
     {
-        if (Chat is not GroupChat)
+        if (_hubConnection is null) throw new InvalidOperationException("Hub connection is not initialized");
+        if (_hubConnection.State != HubConnectionState.Connected) throw new InvalidOperationException("Hub connection is not connected");
+        await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());
+    }
+
+    private async Task OnInput(KeyboardEventArgs eventArgs)
+    {
+        if (eventArgs.Key != "Enter" || eventArgs.ShiftKey) return;
+
+        await SendMessage(MessageInput);
+        MessageInput = "";
+    }
+
+    private async Task UpdateMessages()
+    {
+        var newMessages = await (await Db.CreateDbContextAsync()).Messages
+            .Where(m => m.ChatID == Chat!.ID && (_lastMessageSentAt == null || m.SentAt > _lastMessageSentAt))
+            .ToListAsync();
+        if (newMessages.Count == 0) return;
+
+        newMessages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
+        Dictionary<int, int> clientOnlyMessages = new();
+        for (var index = 0; index < Messages.Count; index++)
         {
-            return false;
+            var message = Messages[index];
+            if (message.OthersCanSee) continue;
+
+            clientOnlyMessages[message.Message.ID] = index;
         }
-        
-        using var db = Db.CreateDbContext();
-        var gc = db.GroupChats.Include(i => i.Moderators).FirstOrDefault(f => f.ID == ChatID);
-        return gc.OwnerID == Self.Id ||  gc.Moderators.Any(m => m.Id == Self.Id);
+
+        var previousLastMessage = Messages.Count == 0 ? null : Messages[^1].Message;
+        for (var i = 0; i < newMessages.Count; i++)
+        {
+            var previous = i == 0 ? previousLastMessage : newMessages[i - 1];
+            var newMessage = newMessages[i];
+            if (clientOnlyMessages.TryGetValue(newMessage.ID, value: out var existingMessageIndex))
+            {
+                var clientMessage = Messages[existingMessageIndex];
+                clientMessage.OthersCanSee = true;
+                clientMessage.Previous = previous;
+                continue;
+            }
+
+            Messages.Add(new LinkedMessage(newMessage, previous));
+        }
+
+        _lastMessageSentAt = newMessages[^1].SentAt;
+        await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SendMessage()
+    private async Task SendMessage(string messageText)
     {
-        if (string.IsNullOrWhiteSpace(TypedMessage)) return;
+        if (string.IsNullOrWhiteSpace(messageText)) return;
 
-        while (TypedMessage.EndsWith("\n")) TypedMessage = TypedMessage[..^1];
-        while (TypedMessage.StartsWith("\n")) TypedMessage = TypedMessage[1..];
-        
+        while (messageText.EndsWith("\n")) messageText = messageText[..^1];
+        while (messageText.StartsWith("\n")) messageText = messageText[1..];
+
+        var self = await AuthService.GetUser();
         var message = new Message
         {
-            ChatID = Chat!.ID,
-            SenderID = Self.Id,
-            Content = TypedMessage,
+            ChatID = ChatID,
+            SenderID = self!.Id,
+            Content = messageText,
             SentAt = DateTime.Now,
             IsPinned = false
         };
-        await MessageEvents.MessageCreated.Invoker().Invoke(message);
-        WebSocketService.SendMessage(message);
+        await using var db = await Db.CreateDbContextAsync();
 
-        Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message));
+        db.Messages.Add(message);
+        await db.SaveChangesAsync();
+
+        var readDatabaseRequest = new TellOthersToReadDatabaseC2SPacket
+        {
+            SenderId = self.Id,
+            ChatId = ChatID,
+            DbEntry = DbEntry.ChatMessage
+        };
+        await SendToServer(readDatabaseRequest);
+
+        Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message, othersCanSee: false));
     }
-    
+
     private void UpdateMembers(List<User> usersAdded)
     {
         if (!usersAdded.IsNullOrEmpty())
-        {   
-           Chat!.Users.AddRange(usersAdded); 
-           AlertVisible = true;
-           AlertMessage = "Member(s) added successfully!";
-           AlertColor = Color.Success;
+        {
+            Chat!.Users.AddRange(usersAdded);
+            AlertVisible = true;
+            AlertMessage = "Member(s) added successfully!";
+            AlertColor = Color.Success;
         }
         else
         {
@@ -293,24 +432,30 @@
             AlertMessage = "No member(s) added!";
             AlertColor = Color.Warning;
         }
-        
     }
-    
+
     private async Task RemoveMember(int userID)
     {
         try
         {
-            using var db = Db.CreateDbContext();
+            await using var db = await Db.CreateDbContextAsync();
             var user = db.Users.Include(i => i.Chats).FirstOrDefault(f => f.Id == userID);
+            if (user is null)
+            {
+                AlertVisible = true;
+                AlertMessage = "User not found";
+                AlertColor = Color.Warning;
+                return;
+            }
             var confirmed = await JsRuntime.InvokeAsync<bool>("showConfirmDialog", $"Are you sure you want to remove {user.DisplayName ?? user.UserName}?");
-            
+
             if (confirmed)
             {
-                db.Chats.Include(i => i.Users).FirstOrDefault(f => f.ID == Chat.ID).Users.Remove(user);
-                db.Users.Include(i => i.Chats).FirstOrDefault(f => f.Id == userID).Chats.Remove(Chat);
-                db.Chats.OfType<GroupChat>().Include(i => i.Moderators).FirstOrDefault(f => f.ID == Chat.ID).Moderators.Remove(user);
-                db.Users.Include(i => i.ModeratedChats).FirstOrDefault(f => f.Id == userID).Chats.Remove(Chat);
-                db.SaveChanges();
+                db.Chats.Include(i => i.Users).First(f => f.ID == Chat!.ID).Users.Remove(user);
+                db.Users.Include(i => i.Chats).First(f => f.Id == userID).Chats.Remove(Chat!);
+                db.Chats.OfType<GroupChat>().Include(i => i.Moderators).First(f => f.ID == Chat!.ID).Moderators.Remove(user);
+                db.Users.Include(i => i.ModeratedChats).First(f => f.Id == userID).Chats.Remove(Chat!);
+                await db.SaveChangesAsync();
                 Chat!.Users.Remove(Chat.Users.FirstOrDefault(r => r.Id == userID)!);
                 AlertVisible = true;
                 AlertMessage = "Member removed successfully!";
@@ -322,15 +467,49 @@
                 AlertMessage = "Member not removed";
                 AlertColor = Color.Warning;
             }
-            
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             AlertVisible = true;
             AlertMessage = "Sorry we failed to remove that member :( Please try again";
             AlertColor = Color.Danger;
         }
-        
+    }
+
+    private void OnKeyPressed(object? sender, KeyEventArgs e)
+    {
+        if (!e.ShiftKey) return;
+
+        IsShiftHeld = true;
+        StateHasChanged();
+    }
+
+    private void OnKeyReleased(object? sender, KeyEventArgs e)
+    {
+        if (e.ShiftKey || !IsShiftHeld) return;
+
+        IsShiftHeld = false;
+        StateHasChanged();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        try
+        {
+            KeyPressService.KeyPressed -= OnKeyPressed;
+            KeyPressService.KeyReleased -= OnKeyReleased;
+            await KeyPressService.StopListeningAsync();
+        }
+        catch (JSDisconnectedException) { /* Ignore */ }
+
+        if (_hubConnection is null) return;
+
+        await _hubConnection.StopAsync();
+        await _hubConnection.DisposeAsync();
+
+        _hubConnection = null;
+
+        GC.SuppressFinalize(this);
     }
 
     private async Task SettingsChanged()
@@ -340,20 +519,24 @@
         AlertColor = Color.Success;
         await GetData();
     }
-    
-    public class LinkedMessage(Message message, Message? previous)
+
+    public class LinkedMessage(Message message, Message? previous, bool othersCanSee = true)
     {
         public MessageState GetMessageState()
         {
-            if (previous is null)
-            {
-                return MessageState.First;
-            }
-
-            return previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
+            // if (Previous is null)
+            // {
+            //     return MessageState.First;
+            // }
+            //
+            // return Previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
+            return MessageState.NewUser;
         }
 
         public Message Message { get; } = message;
-    }
 
+        public Message? Previous { get; set; } = previous;
+
+        public bool OthersCanSee { get; set; } = othersCanSee;
+    }
 }

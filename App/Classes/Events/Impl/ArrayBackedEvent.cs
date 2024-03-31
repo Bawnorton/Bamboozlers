@@ -7,7 +7,7 @@ namespace Bamboozlers.Classes.Events.Impl;
 public class ArrayBackedEvent<T> : Event<T>, IArrayBackedEvent
 {
     private readonly Func<T[], T> _invokerFactory;
-    private T[] _handlers;
+    private Dictionary<string, T> _handlers;
 
     private readonly LinkedHashMap<string, EventPhaseData<T>> _phases = new();
 
@@ -16,27 +16,27 @@ public class ArrayBackedEvent<T> : Event<T>, IArrayBackedEvent
     public ArrayBackedEvent(Func<T[], T> invokerFactory)
     {
         _invokerFactory = invokerFactory;
-        _handlers = Array.Empty<T>();
+        _handlers = new Dictionary<string, T>();
         Update();
     }
 
     public void Update()
     {
-        invoker = _invokerFactory(_handlers);
+        invoker = _invokerFactory(_handlers.Values.ToArray());
     }
     
-    public override void Register(T listener)
+    public override void Register(string id, T listener)
     {
-        Register(DefaultPhase, listener);
+        Register(id, DefaultPhase, listener);
     }
 
-    private void Register(string phase, T listener)
+    private void Register(string id, string phase, T listener)
     {
         ArgumentNullException.ThrowIfNull(phase, "Tried to register listener with null phase");
         ArgumentNullException.ThrowIfNull(listener, "Tried to register null listener");
         
-        GetOrCreatePhase(phase, true).AddListener(listener);
-        RebuildInvoker(_handlers.Length + 1);
+        GetOrCreatePhase(phase, true).AddListener(id, listener);
+        RebuildInvoker();
     }
     
     private EventPhaseData<T> GetOrCreatePhase(string phase, bool sortIfCreate)
@@ -44,7 +44,7 @@ public class ArrayBackedEvent<T> : Event<T>, IArrayBackedEvent
         var phaseData = _phases.Get(phase);
         if (phaseData != null) return phaseData;
         
-        phaseData = new EventPhaseData<T>(phase, typeof(T));
+        phaseData = new EventPhaseData<T>(phase);
         _phases.Add(phase, phaseData);
         _sortedPhases.Add(phaseData);
             
@@ -56,7 +56,7 @@ public class ArrayBackedEvent<T> : Event<T>, IArrayBackedEvent
         return phaseData;
     }
     
-    private void RebuildInvoker(int newLength)
+    private void RebuildInvoker()
     {
         if (_sortedPhases.Count == 1)
         {
@@ -64,16 +64,17 @@ public class ArrayBackedEvent<T> : Event<T>, IArrayBackedEvent
         }
         else
         {
-            var newHandlers = new T[newLength];
-            var index = 0;
-            
+            var newHandlers = new Dictionary<string, T>();
             foreach (var phase in _sortedPhases)
             {
-                var length = phase.Listeners.Length;
-                Array.Copy(phase.Listeners, 0, newHandlers, index, length);
-                index += length;
+                lock (phase.Listeners)
+                {
+                    foreach (var (key, value) in phase.Listeners)
+                    {
+                        newHandlers[key] = value;
+                    }
+                }
             }
-            
             _handlers = newHandlers;
         }
         
@@ -94,7 +95,7 @@ public class ArrayBackedEvent<T> : Event<T>, IArrayBackedEvent
         var second = GetOrCreatePhase(secondPhase, false);
         EventPhaseData<T>.Link(first, second);
         NodeSorting.Sort(_sortedPhases, new EventPhaseComparer<T>());
-        RebuildInvoker(_handlers.Length);
+        RebuildInvoker();
     }
 
     private class EventPhaseComparer<TE> : Comparer<EventPhaseData<TE>>

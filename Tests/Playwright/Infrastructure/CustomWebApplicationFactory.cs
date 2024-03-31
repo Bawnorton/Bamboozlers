@@ -12,6 +12,7 @@ namespace Tests.Playwright.Infrastructure;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private IHost? _host;
+    public event EventHandler? Disposing;
 
     public string ServerAddress
     {
@@ -21,13 +22,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return ClientOptions.BaseAddress.ToString();
         }
     }
-
+    
     protected override IHost CreateHost(IHostBuilder builder)
     {
         var testHost = builder.Build();
 
         builder.ConfigureWebHost(hostBuilder => hostBuilder.UseKestrel());
-
+        
         _host = builder.Build();
         _host.Start();
         
@@ -43,6 +44,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     protected override void Dispose(bool disposing)
     {
         _host?.Dispose();
+        Disposing?.Invoke(this, EventArgs.Empty);
     }
     
     private void EnsureServer()

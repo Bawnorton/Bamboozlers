@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,20 +14,20 @@ public class User:IdentityUser<int>
 
     public async Task<List<User>> GetFriends(AppDbContext db)
     {
-        var Friends = new List<User>();
+        var friends = new List<User>();
         var friendships = await db.FriendShips.Include(f => f.User1).Include(f => f.User2).ToListAsync();
         foreach (var friendship in friendships)
         {
             if (friendship.User1ID == Id)
             {
-                Friends.Add(friendship.User2);
+                friends.Add(friendship.User2);
             }
             else if (friendship.User2ID == Id)
             {
-                Friends.Add(friendship.User1);
+                friends.Add(friendship.User1);
             }
         }
 
-        return Friends;
+        return friends;
     }
 }

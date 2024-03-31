@@ -1,19 +1,9 @@
 ﻿@page "/"
 
 @rendermode InteractiveServer
-
-@inherits LayoutComponentBase
-
-@using Microsoft.AspNetCore.Authorization
-@using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes.Interop
-@using Bamboozlers.Classes.Services.Authentication
 @using Bamboozlers.Components.Settings
-@using IMessageService = Bamboozlers.Classes.Services.IMessageService
-
-@inject IDbContextFactory<AppDbContext> Db
-@inject IMessageService MessageService;
-@inject IJSRuntime JsRuntime;
+@using Microsoft.AspNetCore.Authorization
+@inherits LayoutComponentBase
 
 @attribute [Authorize]
 
@@ -52,10 +42,4 @@
 @code {
     private NavLayout? _navLayout;
     private CompSettings? _settingsComponent;
-
-    protected override void OnInitialized()
-    {
-        MessageService.Init(Db);
-        JsInteropHelper.Init(JsRuntime);
-    }
 }

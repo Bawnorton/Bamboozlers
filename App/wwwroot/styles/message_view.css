@@ -2,6 +2,17 @@
     --hover-background-colour: hsl(217, 16%, 20%);
 }
 
+.message-input {
+    width: 100%;
+    border: none;
+    
+    background-color: transparent;
+    outline: none;
+    box-shadow: none;
+    resize: none;
+    overflow: hidden;
+}
+
 .message-header {
     flex-direction: row;
     align-items: center;

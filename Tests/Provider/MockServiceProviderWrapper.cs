@@ -1,4 +1,3 @@
-
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
 using Microsoft.AspNetCore.Identity;

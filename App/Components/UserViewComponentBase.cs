@@ -1,5 +1,3 @@
-
-using System.Diagnostics;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services.Authentication;
 using Bamboozlers.Classes.Utility.Observer;

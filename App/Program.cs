@@ -1,6 +1,8 @@
 using Bamboozlers;
 using Bamboozlers.Account;
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Networking;
+using Bamboozlers.Classes.Networking.SignalR;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.Authentication;
 using Blazorise;
@@ -8,8 +10,8 @@ using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using IMessageService = Bamboozlers.Classes.Services.IMessageService;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,9 +32,6 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IIdentityRedirectManager, IdentityRedirectManager>();
 builder.Services.AddScoped<IdentityRedirectManagerWrapper>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
-
-builder.Services.AddScoped<IMessageService, MessageService>();
-builder.Services.AddScoped<IWebSocketService, WebSocketService>();
 
 builder.Services.AddAuthentication(options =>
     {
@@ -64,12 +63,15 @@ builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
 builder.Services.AddScoped<ServiceProviderWrapper>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IKeyPressService, KeyPressService>();
 
-builder.Services.AddStackExchangeRedisCache(options =>
+builder.Services.AddSignalR(e =>
 {
-    options.Configuration = builder.Configuration["AZURE_REDIS_CONNECTIONSTRING"];
-    options.InstanceName = "SampleInstance";
+    e.MaximumReceiveMessageSize = 1024 * 1024;
 });
+builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
+
+builder.WebHost.UseUrls("http://192.168.1.199:5152", "http://localhost:5152");
 
 var app = builder.Build();
 
@@ -84,7 +86,14 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
+
+app.MapHub<BamboozlersHub>(BamboozlersHub.HubUrl);
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

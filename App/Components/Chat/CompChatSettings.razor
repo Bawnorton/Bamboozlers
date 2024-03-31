@@ -4,14 +4,16 @@
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Components.Settings.VisualUtility
 @using System.Xml.Schema
-@inject IDbContextFactory<AppDbContext> Db
-@inherits UserViewComponentBase
-@if (Chat is null || Chat.Users is null || Self is null)
 
+@inject IDbContextFactory<AppDbContext> Db
+
+@inherits UserViewComponentBase
+
+@if (Chat?.Users is null || Self is null)
 {
     return;
 }
-<Modal @ref="modalRef">
+<Modal @ref="_modalRef">
     <ModalContent Centered>
         <ModalHeader>
             <ModalTitle>Chat Settings</ModalTitle>
@@ -87,24 +89,27 @@
 @code{
     [Parameter] public GroupChat Chat {get; set;}
     [Parameter] public EventCallback OnChange { get; set; }
+    
     private List<Names> Moderators { get; set; }
     private List<Names> Users { get; set; }
-    private Modal modalRef;
-    public bool AlertVisible { get; set; }
-    public string AlertMessage { get; set; }
-    public Color AlertColor { get; set; }
-    private record Names(string UserName, string? DisplayName, byte[]? Avatar);
+    
     private User Self { get; set; }
-    private static readonly string[] Allowed_Formats = ["png", "jpg"];
+    
+    private Modal _modalRef;
+    public bool AlertVisible { get; private set; }
+    public string AlertMessage { get; private set; }
+    private Color AlertColor { get; set; }
+    
+    private static readonly string[] AllowedFormats = ["png", "jpg"];
     
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthService.GetUser();
-        Users = new List<Names>();
-        Moderators = new List<Names>();
+        Self = (await AuthService.GetUser())!;
+        Users = [];
+        Moderators = [];
     }
-    
-    public async Task DeleteAvatar()
+
+    private void DeleteAvatar()
     {
         AlertVisible = false;
         Chat.Avatar = null;
@@ -135,7 +140,7 @@
         }
         
         var imageType = upload.ContentType[6..];
-        if (!Allowed_Formats.Contains(imageType))
+        if (!AllowedFormats.Contains(imageType))
         {
             AlertColor = Color.Danger;
             AlertMessage = "Unable to change avatar. Avatar must be a PNG, or JPG file.";
@@ -144,7 +149,7 @@
         }
 
         ArraySegment<byte> image; 
-        var success = false;
+        bool success;
         using (var stream = new MemoryStream())
         {
             try
@@ -173,26 +178,29 @@
         }
     }
 
-    private async Task ProcessFile(string format, byte[] image)
+    private Task ProcessFile(string format, byte[] image)
     {
         try
         {
             if (image.IsNullOrEmpty())
             {
-               AlertColor = Color.Danger;
-               AlertMessage = "Unable to change avatar. An error occurred while processing uploaded avatar.";
-               AlertVisible = true;
-                return;
+                AlertColor = Color.Danger;
+                AlertMessage = "Unable to change avatar. An error occurred while processing uploaded avatar.";
+                AlertVisible = true;
+                return Task.CompletedTask;
             }
     
             Chat.Avatar = image;
             
-        }catch(Exception e)
+        }
+        catch(Exception)
         {
             AlertColor = Color.Danger;
             AlertMessage = "An error occurred while processing uploaded avatar.";
             AlertVisible = true;
         }
+
+        return Task.CompletedTask;
     }
 
     private void Change(bool isChecked, Names user)
@@ -218,21 +226,21 @@
         AlertVisible = false;
         await using var db = await Db.CreateDbContextAsync();
         Users = Chat.Users.Where(w => w.Id != Self.Id && w.Id != Chat.OwnerID).Select(s => new Names(
-            s.UserName,
+            s.UserName!,
             s.DisplayName,
             s.Avatar
         )).ToList();
         Moderators = db.GroupChats.Include(i => i.Moderators).FirstOrDefault(f => f.ID == Chat.ID)?.Moderators.Select(s => new Names(
-            s.UserName,
+            s.UserName!,
             s.DisplayName,
             s.Avatar
-        )).ToList() ?? new List<Names>();
-        await modalRef.Show();
+        )).ToList() ?? [];
+        await _modalRef.Show();
     }
 
-    private async Task HideModal(List<User> usersAdded = null)
+    private async Task HideModal(List<User>? usersAdded = null)
     {
-        await modalRef.Hide();
+        await _modalRef.Hide();
     }
     
     private async Task SaveChanges()
@@ -247,29 +255,29 @@
         }
         try
         {
-            using var db = await Db.CreateDbContextAsync();
+            await using var db = await Db.CreateDbContextAsync();
             var exMods = db.GroupChats
                 .Include(i => i.Moderators)
-                .ThenInclude((i => i.ModeratedChats))
-                .FirstOrDefault(f => f.ID == Chat.ID).Moderators;
+                .ThenInclude(i => i.ModeratedChats)
+                .First(f => f.ID == Chat.ID).Moderators;
             
-            db.GroupChats.FirstOrDefault(f => f.ID == Chat.ID).Name = Chat.Name;
-            db.GroupChats.FirstOrDefault(f => f.ID == Chat.ID).Avatar = Chat.Avatar;
+            db.GroupChats.First(f => f.ID == Chat.ID).Name = Chat.Name;
+            db.GroupChats.First(f => f.ID == Chat.ID).Avatar = Chat.Avatar;
             await db.SaveChangesAsync();
-            Chat = db.GroupChats.FirstOrDefault(f => f.ID == Chat.ID);
-            var currentMods = Moderators.Select(s => db.Users.FirstOrDefault(f => f.UserName == s.UserName)).ToList();
+            Chat = db.GroupChats.First(f => f.ID == Chat.ID);
+            var currentMods = Moderators.Select(s => db.Users.First(f => f.UserName == s.UserName)).ToList();
             var removed = exMods.Except(currentMods).ToList();
             foreach(var mod in removed)
             {
-                db.Users.Include(i => i.ModeratedChats).FirstOrDefault(f => f.Id == mod.Id).ModeratedChats.Remove(Chat);
+                db.Users.Include(i => i.ModeratedChats).First(f => f.Id == mod.Id).ModeratedChats.Remove(Chat);
             }
             var added = currentMods.Except(exMods).ToList();
             foreach(var mod in added)
             {
-                db.Users.Include(i => i.ModeratedChats).FirstOrDefault(f => f.Id == mod.Id).ModeratedChats.Add(Chat);
+                db.Users.Include(i => i.ModeratedChats).First(f => f.Id == mod.Id).ModeratedChats.Add(Chat);
             }
             db.GroupChats.Include(i => i.Moderators)
-                .FirstOrDefault(f => f.ID == Chat.ID).Moderators 
+                .First(f => f.ID == Chat.ID).Moderators 
                 = currentMods;
             await db.SaveChangesAsync();
             await OnChange.InvokeAsync();
@@ -283,4 +291,6 @@
             AlertMessage = $"An error occurred while saving changes. {ex.Message} {ex.StackTrace}";
         }
     }
+    
+    private record Names(string UserName, string? DisplayName, byte[]? Avatar);
 }
