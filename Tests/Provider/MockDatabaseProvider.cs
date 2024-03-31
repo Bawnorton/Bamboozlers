@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Func;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MockQueryable.Moq;
@@ -9,8 +11,9 @@ public class MockDatabaseProvider
 {
     private readonly Mock<IDbContextFactory<AppDbContext>> _mockDbContextFactory;
     private readonly Mock<AppDbContext> _mockDbContext;
-    public MockDatabaseProvider(TestContextBase ctx)
+    public MockDatabaseProvider(TestContextBase ctx, ref Mock<DbSet<GroupInvite>> mockGroupInvites)
     {
+        _mockGroupInvites = ref mockGroupInvites;
         _mockDbContextFactory = new Mock<IDbContextFactory<AppDbContext>>();
 
         var options = new DbContextOptions<AppDbContext>();
@@ -28,20 +31,32 @@ public class MockDatabaseProvider
         return _mockDbContextFactory.Object;
     }
 
-    private Mock<DbSet<User>> _mockUsers;
-    
-    public void SetupMockDbContext(List<User>? userList = null)
+    private ref struct MockDbSets
     {
-        _mockUsers = SetupMockUsers(userList);
+        public ref Mock<DbSet<User>> mockUsers;
+        public ref Mock<DbSet<Chat>> mockChats;
+        public ref Mock<DbSet<Message>> mockMessages;
+        public ref Mock<DbSet<Block>> mockBlocks;
+        public ref Mock<DbSet<FriendRequest>> mockFriendRequests;
+        public ref Mock<DbSet<Friendship>> mockFriendships;
+        public ref Mock<DbSet<GroupInvite>> mockGroupInvites;
+    }
+    
+    private void SetupMockDbContext()
+    {
+        MockDbSets sets = new()
+        {
+            mockUsers = SetupMockUsers(),
+        };
+        sets.mockChats = SetupMockChats(sets.mockUsers.Object);
+        sets.mockChats = SetupMockChats(sets.mockUsers.Object);
+        sets.mockMessages = SetupMockMessages(_mockUsers.Object, _mockChats.Object);
+        sets.mockBlocks = SetupMockBlocks(_mockUsers.Object);
+        sets.mockFriendRequests = SetupMockFriendRequests(_mockUsers.Object);
+        sets.mockFriendships = SetupMockFriendships(_mockUsers.Object);
+        sets.mockGroupInvites = SetupMockDbSet(new List<GroupInvite>());
         
-        var mockChats = SetupMockChats(_mockUsers.Object);
-        var mockMessages = SetupMockMessages(_mockUsers.Object, mockChats.Object);
-        var mockBlocks = SetupMockBlocks(_mockUsers.Object);
-        var mockFriendRequests = SetupMockFriendRequests(_mockUsers.Object);
-        var mockFriendships = SetupMockFriendships(_mockUsers.Object);
-        var mockGroupInvites = SetupMockDbSet(new List<GroupInvite>());
-        
-        _mockDbContext.Setup(x => x.GroupInvites).Returns(mockGroupInvites.Object);
+        _mockDbContext.Setup(x => x.GroupInvites).Returns(_mockGroupInvites.Object);
     }
 
     public void AddMockUser(User user)
@@ -56,14 +71,15 @@ public class MockDatabaseProvider
         {
             users.Add(user);
         }
-        SetupMockDbContext(users);
+
+        SetupMockUsers(users);
     }
 
     public bool RemoveMockUser(User user)
     {
         var users = _mockUsers.Object.ToList();
         var res = users.Remove(user);
-        SetupMockDbContext(users);
+        SetupMockUsers(users);
         
         return res;
     }
@@ -75,13 +91,13 @@ public class MockDatabaseProvider
     
     public void ClearMockUsers()
     {
-        SetupMockDbContext(new List<User>());
+        SetupMockUsers(new List<User>());
     }
 
     private Mock<DbSet<User>> SetupMockUsers(List<User>? values = null)
     {
-        var dbSet = SetupMockDbSet(values ?? new List<User>
-        {
+        Mock<DbSet<User>> dbSet = SetupMockDbSet(values ?? 
+        [
             new()
             {
                 Id = 0,
@@ -126,27 +142,40 @@ public class MockDatabaseProvider
                 Email = "test_user3@gmail.com",
                 EmailConfirmed = true
             }
-        });
+        ]);  
         _mockDbContext.Setup(x => x.Users).Returns(dbSet.Object);
         return dbSet;
     }
-
-    private Mock<DbSet<Chat>> SetupMockChats(IQueryable<User> users)
+    
+    public void AddMockChat(Chat chat)
     {
-        try
+        var chats = _mockChats.Object.ToList();
+        var match = chats.FirstOrDefault(c => c.ID == chat.ID);
+        if (match is not null)
         {
-            var user1 = users.First();
-            var user2 = users.Skip(1).First();
-            var user3 = users.Skip(2).First();
+            chats[chats.IndexOf(match)] = chat;
+        }
+        else
+        {
+            chats.Add(chat);
+        }
+        SetupMockChats(_mockUsers.Object, chats);
+    }
 
-            var dm = new Chat
+    private Mock<DbSet<Chat>> SetupMockChats(IQueryable<User> users, List<Chat>? values = null)
+    {
+        var user1 = users.First();
+        var user2 = users.Skip(1).First();
+        var user3 = users.Skip(2).First();
+        var chats = values ??
+        [
+            new Chat
             {
                 ID = 1,
                 Users = new List<User> { user1, user2 },
                 Messages = []
-            };
-        
-            var groupChat = new GroupChat
+            },
+            new GroupChat
             {
                 ID = 2,
                 Name = "TestGroupChat",
@@ -155,30 +184,55 @@ public class MockDatabaseProvider
                 Moderators = new List<User> { user2 },
                 Users = new List<User> { user1, user2, user3 },
                 Messages = []
-            };
+            }
+        ];
         
-            user1.Chats.Add(dm);
-            user1.Chats.Add(groupChat);
-            user1.OwnedChats.Add(groupChat);
-            user2.Chats.Add(dm);
-            user2.Chats.Add(groupChat);
-            user2.ModeratedChats.Add(groupChat);
-            user3.Chats.Add(groupChat);
-        
-            var dbSet = SetupMockDbSet(new List<Chat> { dm, groupChat });
-            var groupDbSet = SetupMockDbSet(new List<GroupChat> { groupChat });
-            _mockDbContext.Setup(x => x.Chats).Returns(dbSet.Object);
-            _mockDbContext.Setup(x => x.GroupChats).Returns(groupDbSet.Object);
-            return dbSet;
-        }
-        catch (Exception)
+        foreach (var chat in chats)
         {
-            var dbSet = SetupMockDbSet(new List<Chat>());
-            _mockDbContext.Setup(x => x.Chats).Returns(dbSet.Object);
-            return dbSet;
+            foreach (var user in chat.Users)
+            {
+                user.Chats.Add(chat);
+            }
         }
+
+        var groupChats = new List<GroupChat>();
+        foreach (var groupChat in chats.OfType<GroupChat>().ToList())
+        {
+            groupChat.ID = groupChats.Count;
+            groupChats.Add(groupChat);
+            
+            groupChat.Owner.Chats.Add(groupChat);
+            groupChat.Owner.OwnedChats.Add(groupChat);
+            
+            foreach (var mod in groupChat.Moderators)
+            {
+                mod.ModeratedChats.Add(groupChat);
+            }
+        }
+        
+        var dbSet = SetupMockDbSet(chats);
+        var groupDbSet = SetupMockDbSet(groupChats);
+        
+        _mockDbContext.Setup(x => x.Chats).Returns(dbSet.Object);
+        _mockDbContext.Setup(x => x.GroupChats).Returns(groupDbSet.Object);
+        
+        return dbSet;
     }
 
+    public void AddMockMessage(Message message)
+    {
+        var messages = _mockMessages.Object.ToList();
+        var match = messages.FirstOrDefault(m => m.ID == message.ID);
+        if (match is not null)
+        {
+            messages[messages.IndexOf(match)] = message;
+        }
+        else
+        {
+            messages.Add(message);
+        }
+        SetupMockChats(_mockUsers.Object, message);
+    }
     private Mock<DbSet<Message>> SetupMockMessages(IQueryable<User> users, IQueryable<Chat> chats)
     {
         try
@@ -297,6 +351,16 @@ public class MockDatabaseProvider
         }
     }
 
+    public void AddMockFriendRequest(FriendRequest friendRequest)
+    {
+        var dbSet = AddMockDbEntry<FriendRequest>(
+            friendRequest, 
+            _mockFriendRequests,
+            request => request.SenderID == friendRequest.SenderID && request.ReceiverID == friendRequest.ReceiverID
+        );
+        
+        SetupMockFriendships(_mockUsers.Object, friendships.AsQueryable());
+    }
     private Mock<DbSet<FriendRequest>> SetupMockFriendRequests(IQueryable<User> users)
     {
         try
@@ -325,16 +389,38 @@ public class MockDatabaseProvider
         }
     }
 
-    private Mock<DbSet<Friendship>> SetupMockFriendships(IQueryable<User> users)
+    public void AddMockFriendship(Friendship friendship)
+    {
+        var friendships = _mockFriendships.Object.ToList();
+        var match = friendships.FirstOrDefault(f => f.User1ID == friendship.User1ID && f.User2ID == friendship.User2ID);
+        if (match is not null)
+        {
+            friendships[friendships.IndexOf(match)] = friendship;
+        }
+        else
+        {
+            friendships.Add(friendship);
+        }
+        SetupMockFriendships(_mockUsers.Object, friendships.AsQueryable());
+    }
+    
+    private Mock<DbSet<Friendship>> SetupMockFriendships(IQueryable<User> users, IQueryable<Friendship>? friendships = null)
     {
         try
         {
-            var user1 = users.First();
-            var user2 = users.Skip(1).First();
-            var user4 = users.Last();
+            var user0 = users.First();
+            var user1 = users.Skip(1).First();
+            var user2 = users.Skip(2).First();
 
             var dbSet = SetupMockDbSet(new List<Friendship>
             {
+                new()
+                {
+                    User1 = user0,
+                    User1ID = user0.Id,
+                    User2 = user1,
+                    User2ID = user1.Id
+                },
                 new()
                 {
                     User1 = user1,
@@ -342,13 +428,6 @@ public class MockDatabaseProvider
                     User2 = user2,
                     User2ID = user2.Id
                 },
-                new()
-                {
-                    User1 = user2,
-                    User1ID = user2.Id,
-                    User2 = user4,
-                    User2ID = user4.Id
-                }
             });
             _mockDbContext.Setup(x => x.FriendShips).Returns(dbSet.Object);
             return dbSet;
@@ -361,6 +440,21 @@ public class MockDatabaseProvider
         }
     }
 
+    private void AddMockDbEntry<T>(T entry, ref Mock<DbSet<T>> entries, Func<T, bool> predicate) where T : class
+    {
+        var entriesList = entries.Object.ToList();
+        var entryMatch = entriesList.FirstOrDefault(predicate);
+        if (entryMatch is not null)
+        {
+            entriesList[entriesList.IndexOf(entryMatch)] = entry;
+        }
+        else
+        {
+            entriesList.Add(entry);
+        }
+        entries = SetupMockDbSet(entriesList);
+    }
+    
     public Mock<DbSet<T>> SetupMockDbSet<T>(IEnumerable<T> data) where T : class
     {
         return data.AsQueryable().BuildMockDbSet();

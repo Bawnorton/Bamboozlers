@@ -76,7 +76,7 @@
         InviteList = @<text>
                           @foreach (var user in friendList)
                           {
-                              <div style="display: inline-block; width: max-content;">
+                              <div id="@($"{user.UserName}-display")" style="display: inline-block; width: max-content;">
                                   <Image Class="_32x32 message-avatar"
                                          Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
                                          alt=""/>
@@ -90,7 +90,7 @@
                                           true
                                       )
                                   }
-                                  else if (notInGroup.Contains(user))
+                                  else
                                   {
                                       if (invitedFriends.Contains(user))
                                       {
@@ -115,14 +115,14 @@
     
     private RenderFragment GetActionButton(Color? color, string? caption, IconName? iconName, EventCallback? actionCallback, bool disabled = false)
     {
-        return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
-            <CompActionButton ButtonCaption="@caption"
-                              Color="@(color ?? Color.Success)"
-                              IconName="@(iconName ?? null)"
-                              ColumnWrapped="@false"
-                              ActionCallback="@(actionCallback ?? EventCallback.Empty)"
-                              Disabled="@disabled"/>
-        </div>;
+        return @<div id="@($"action-button")" style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
+                   <CompActionButton ButtonCaption="@caption"
+                                     Color="@(color ?? Color.Success)"
+                                     IconName="@(iconName ?? null)"
+                                     ColumnWrapped="@false"
+                                     ActionCallback="@(actionCallback ?? EventCallback.Empty)"
+                                     Disabled="@disabled"/>
+               </div>;
     }
     
     public async Task OnGroupUpdate()
