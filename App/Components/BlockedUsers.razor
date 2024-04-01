@@ -13,7 +13,7 @@
 
 @foreach (var blockedUser in BlockedList)
 {
-    <span style="font-size:1.4em;">@blockedUser.UserName</span>
+    <span id="user_@blockedUser.Id" style="font-size:1.4em;">@blockedUser.UserName</span>
     <p></p>
 }
 

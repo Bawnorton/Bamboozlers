@@ -15,23 +15,23 @@
 
 @foreach (var prospect in IncomingFriendReqs)
 {
-    <span style="font-size:1.4em;">Incoming request from @prospect.UserName</span>
-    <button @onclick="() => ManageRequest(prospect, true)" class="btn btn-success btn-sm">Accept</button>
-    <button @onclick="() => ManageRequest(prospect, false)" class="btn btn-danger btn-sm">Deny</button>
+    <span id="incomingUser_@prospect.Id" style="font-size:1.4em;">Incoming request from @prospect.UserName</span>
+    <button id="Accept" @onclick="() => ManageRequest(prospect, true)" class="btn btn-success btn-sm">Accept</button>
+    <button id="Deny" @onclick="() => ManageRequest(prospect, false)" class="btn btn-danger btn-sm">Deny</button>
     <p></p>
 }
 
 @foreach (var prospect in OutgoingFriendReqs)
 {
-    <span style="font-size:1.4em;">Outgoing request to @prospect.UserName</span>
-    <button @onclick="() => CancelRequest(prospect)" class="btn btn-danger btn-sm">Cancel</button>
+    <span id="outgoingUser_@prospect.Id" style="font-size:1.4em;">Outgoing request to @prospect.UserName</span>
+    <button id="Cancel" @onclick="() => CancelRequest(prospect)" class="btn btn-danger btn-sm">Cancel</button>
     <p></p>
 }
 
 @foreach (var prospect in DeniedFriendReqs)
 {
-    <span style="font-size:1.4em;">Friend request to @prospect.UserName has been denied</span>
-    <button @onclick="() => ResendRequest(prospect)" class="btn btn-success btn-sm">Resend</button>
+    <span id="deniedUser_@prospect.Id" style="font-size:1.4em;">Friend request to @prospect.UserName has been denied</span>
+    <button id="Resend" @onclick="() => ResendRequest(prospect)" class="btn btn-success btn-sm">Resend</button>
     <p></p>
 }
 
@@ -96,7 +96,8 @@
         }
         else
         {
-            db.FriendRequests.Find(prospect.Id, self.Id).Status = RequestStatus.Denied;
+            db.FriendRequests.Where(f => f.SenderID == prospect.Id && f.ReceiverID == self.Id).First().Status = RequestStatus.Denied;
+            db.SaveChanges();
         }
         
         db.SaveChanges();
@@ -119,8 +120,8 @@
     private async Task ResendRequest(User prospect)
     {
         await using var db = await Db.CreateDbContextAsync();
-        
-        db.FriendRequests.Find(self.Id,prospect.Id).Status = RequestStatus.Pending;
+
+        db.FriendRequests.Where(f => f.SenderID == self.Id && f.ReceiverID == prospect.Id).First().Status = RequestStatus.Pending;
         db.SaveChanges();
         DeniedFriendReqs.RemoveAll(user => user.Id == prospect.Id);
         OutgoingFriendReqs.Add(prospect);
