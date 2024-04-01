@@ -3,7 +3,7 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| Completed | T.B.A. | Not necessary | 
+| Completed | Complete | Not necessary | 
 
 ### Sprint Team Members
 | Name               | Role        |
@@ -67,16 +67,16 @@
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td></td>
+    <td>10 issues</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
     <td>
-      Bridgette Hunt - _ issues<br> 
-      MacKenzie Richards - _ issues<br> 
-      Zahra Kagda - _ issues<br> 
-      Ben Norton - _ issues<br> 
-      Ryan Osmond - _ issues 
+      Bridgette Hunt - 4 issues<br> 
+      MacKenzie Richards - 2 issues<br> 
+      Zahra Kagda - 1 issues<br> 
+      Ben Norton - 4 issues<br> 
+      Ryan Osmond - 1 issues 
     </td>
   </tr>
   <tr>
@@ -88,7 +88,3 @@
     <td>Dividing work among most teammates to work on Milestone 5 while development is finished up.</td>
   </tr>
 </table>
-
-## Sprint Planning Resources
-- ...
-- ...
