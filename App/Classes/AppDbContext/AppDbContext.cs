@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-namespace Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
+
+namespace Bamboozlers.Classes.AppDbContext;
 
 public class AppDbContext:IdentityDbContext<User, IdentityRole<int>, int>
 {

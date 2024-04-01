@@ -177,7 +177,9 @@ public class MockDatabaseProvider
             user3.Chats.Add(groupChat);
         
             var dbSet = SetupMockDbSet(new List<Chat> { dm, groupChat });
+            var groupDbSet = SetupMockDbSet(new List<GroupChat> { groupChat });
             _mockDbContext.Setup(x => x.Chats).Returns(dbSet.Object);
+            _mockDbContext.Setup(x => x.GroupChats).Returns(groupDbSet.Object);
             return dbSet;
         }
         catch (Exception)
@@ -284,7 +286,7 @@ public class MockDatabaseProvider
         {
             var user1 = users.First();
             var user2 = users.Skip(1).First();
-            var user3 = users.Skip(2).First();
+            var user3 = users.Skip(3).First();
             var user5 = users.Last();
 
             var dbSet = SetupMockDbSet(new List<Block>
@@ -320,7 +322,7 @@ public class MockDatabaseProvider
         try
         {
             var user1 = users.First();
-            var user3 = users.Skip(2).First();
+            var user3 = users.Skip(3).First();
             var user5 = users.Last();
 
             var dbSet = SetupMockDbSet(new List<FriendRequest>
@@ -358,6 +360,7 @@ public class MockDatabaseProvider
         {
             var user1 = users.First();
             var user2 = users.Skip(1).First();
+            var user4 = users.Skip(3).First();
 
             var dbSet = SetupMockDbSet(new List<Friendship>
             {
@@ -367,6 +370,13 @@ public class MockDatabaseProvider
                     User1ID = user1.Id,
                     User2 = user2,
                     User2ID = user2.Id
+                },
+                new()
+                {
+                    User1 = user2,
+                    User1ID = user2.Id,
+                    User2 = user4,
+                    User2ID = user4.Id
                 }
             });
             _mockDbContext.Setup(x => x.FriendShips).Returns(dbSet.Object);

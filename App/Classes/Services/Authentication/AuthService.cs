@@ -2,11 +2,8 @@ using System.Security.Claims;
 using System.Security.Principal;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Func;
-using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Bamboozlers.Classes.Services.Authentication;
 
@@ -54,6 +51,16 @@ public class AuthService : IAuthService
     {
         UserClaims ??= (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
         return UserClaims;
+    }
+    
+    public virtual async Task<string?> GetAccessToken()
+    {
+        var claims = await GetClaims();
+        if (!(claims.Identity?.IsAuthenticated ?? false)) return null;
+        
+        var token = claims.FindFirstValue("access_token");
+        Console.WriteLine($"Access token: {token}");
+        return token ?? null;
     }
 
     public void Invalidate()

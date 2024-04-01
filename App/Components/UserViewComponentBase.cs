@@ -1,5 +1,3 @@
-
-using System.Diagnostics;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services.Authentication;
 using Bamboozlers.Classes.Utility.Observer;
@@ -7,10 +5,9 @@ using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components;
 
-public class UserViewComponentBase : OwningComponentBase<IUserService>, IAsyncSubscriber
+public class UserViewComponentBase : ComponentBase, IAsyncSubscriber
 {
-    protected IUserService UserService => Service;
-
+    [Inject] protected IUserService UserService { get; set; }
     [Inject] protected IAuthService AuthService { get; set; } = default!;
     protected UserRecord? UserData { get; set; }
 

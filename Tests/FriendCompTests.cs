@@ -97,19 +97,19 @@ public class FriendCompTests : AuthenticatedBlazoriseTestBase
         var component = Ctx.RenderComponent<CompFriendsView>();
         
         component.FindAll(".nav-link")[3].Click();
-        component.Find("input").Input("TestUser3");
+        component.Find("input").Input("TestUser2");
         component.Find("button").MouseDown();
         
         var temp = component.Find("h7").TextContent;
         temp = temp.Substring(0, temp.Count() - 2);
         
         //Assert
-        Assert.Equal("Friend request sent to TestUser3",temp);
+        Assert.Equal("Friend request sent to TestUser2",temp);
     }
     
     [Theory]
     [InlineData(0)]
-    [InlineData(2)]
+    [InlineData(3)]
     [InlineData(4)]
     public async Task FriendCompTests_FriendRequestsTab(int userId)
     {

@@ -1,10 +1,7 @@
 using Bamboozlers.Classes.AppDbContext;
-using Bamboozlers.Classes.Interop;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.Authentication;
-using Blazorise.Modules;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.JSInterop;
 using Tests.Provider;
 
 namespace Tests;
@@ -14,7 +11,6 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
     protected MockDatabaseProvider MockDatabaseProvider;
     protected MockAuthenticationProvider MockAuthenticationProvider;
     protected MockJsRuntimeProvider MockJsRuntimeProvider;
-    protected MockWebSocketServiceProvider MockWebSocketServiceProvider;
     protected MockUserManager MockUserManager;
     
     protected AuthService AuthService;
@@ -25,16 +21,17 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
     protected AuthenticatedBlazoriseTestBase()
     {
         MockDatabaseProvider = new MockDatabaseProvider(Ctx);
+        Self = MockDatabaseProvider.GetDbContextFactory().CreateDbContext().Users.First();
         MockAuthenticationProvider = new MockAuthenticationProvider(Ctx);
         MockJsRuntimeProvider = new MockJsRuntimeProvider(Ctx);
-        MockWebSocketServiceProvider = new MockWebSocketServiceProvider(Ctx);
         MockUserManager = new MockUserManager(Ctx, MockDatabaseProvider);
         
         AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
-        UserService = new UserService(AuthService, MockUserManager.GetUserManager());
+        UserService = new UserService(AuthService, new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper());
         
         Ctx.Services.AddSingleton<IUserService>(UserService);
         Ctx.Services.AddSingleton<IAuthService>(AuthService);
+        Ctx.Services.AddScoped<IKeyPressService, KeyPressService>();
     }
 
     protected async Task SetUser(User? user)

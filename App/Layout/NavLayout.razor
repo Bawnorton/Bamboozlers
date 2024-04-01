@@ -5,9 +5,9 @@
 @using Bamboozlers.Classes
 @using AngleSharp.Diffing.Extensions
 @using Bamboozlers.Classes.Events
-@using Bamboozlers.Classes.Interop
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Components.Settings
 @using Bamboozlers.Classes.Services
@@ -49,9 +49,16 @@
                                 @foreach (var chat in DmChats)
                                 {
                                     <BarItem>
-                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => {CurrentView = View.Dm; CurrentChatId = chat.ID; }">
-                                            <BarIcon IconName="Icons.User"></BarIcon>
-                                            @chat.User.DisplayName
+                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => { CurrentView = View.Dm; CurrentChatId = chat.ID; }">
+                                            @if (chat.Avatar is not null)
+                                            {
+                                                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
+                                            }
+                                            else
+                                            {
+                                                <BarIcon IconName="Icons.User"></BarIcon>
+                                            }
+                                            @(chat.User.DisplayName ?? chat.User.UserName)
                                         </BarLink>
                                     </BarItem>
                                 }
@@ -69,7 +76,14 @@
                                 {
                                     <BarItem>
                                         <BarLink ElementId="@("group_" + chat.ID)" @onclick="() => { CurrentView = View.Group; CurrentChatId = chat.ID; }">
-                                            <BarIcon IconName="Icons.Users"></BarIcon>
+                                            @if (chat.Avatar is not null)
+                                            {
+                                                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
+                                            }
+                                            else
+                                            {
+                                                <BarIcon IconName="Icons.Users"></BarIcon>
+                                            }
                                             @chat.Name
                                         </BarLink>
                                     </BarItem>
@@ -81,13 +95,20 @@
             </Bar>
             <Div Padding="Padding.Is3"
                  TextSize="TextSize.Heading5"
-                 Class="sidebar-footer"
+                 Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
                  id="profile-button"
                  @onclick="ProfileButtonCallback">
                 <Text>
                     @(User is null ? UserRecord.Default.UserName : User.DisplayName.IsNullOrEmpty() ? User.UserName : User.DisplayName)
                 </Text>
-                <Icon Name="Icons.UserTie" IconSize="IconSize.Large"></Icon>
+                @if (User is not null && User.Avatar is not null)
+                {
+                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(User.Avatar)}") Class="message-avatar" alt=""/>
+                }
+                else
+                {
+                    <Icon Name="Icons.UserTie" IconSize="IconSize.Large"></Icon>
+                }
             </Div>
         </LayoutSiderContent>
     </LayoutSider>
@@ -115,9 +136,9 @@
     
     protected override async Task OnInitializedAsync()
     {
-        await GetDataAsync();     
+        await Refresh();
     }
-
+    
     public async Task Refresh()
     {
         await GetDataAsync();
@@ -140,7 +161,7 @@
         if (chats is not null)
         {
             GroupChats = User.Chats.OfType<GroupChat>().ToList();
-            DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat.ID, chat.Users.First(u => u.Id != User.Id))).ToList();
+            DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat.ID, chat.Users.First(u => u.Id != User.Id), chat.Users.First(u => u.Id != User.Id).Avatar)).ToList();
         }
 
         FriendCount = 0;
@@ -161,6 +182,6 @@
         Friends
     }
     
-    private record DmChat(int ID, User User);
+    private record DmChat(int ID, User User, byte[]? Avatar);
 
 }
