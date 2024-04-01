@@ -89,7 +89,6 @@
                    </div>
                </div>
                <div class="opt-bar right">
-                   <CloseButton Class="item right"/>
                    <div id="action-options-div" class="item right">
                        @ActionOptions
                    </div>
@@ -256,7 +255,9 @@
         return @<text>
                     <Div id="profile-actions" 
                          Class="dropdown">
-                        <Icon Name="@("fa-ellipsis-v")"/>
+                        <Icon Name="@("fa-ellipsis-v")" 
+                              Class="fa-xl" 
+                              Style="margin-top: 18px; margin-left: 10px; margin-right: 5px;"/>
                         <Div id="profile-actions-dropdown"
                              Background="Background.Primary" 
                              Border="Border.Dark"
