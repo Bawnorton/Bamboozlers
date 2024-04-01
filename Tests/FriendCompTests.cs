@@ -1,6 +1,6 @@
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
-using Bamboozlers.Classes.Services.Authentication;
+using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Components;
 using Tests.Provider;
 using Microsoft.EntityFrameworkCore;
@@ -115,7 +115,7 @@ public class FriendCompTests : AuthenticatedBlazoriseTestBase
     {
         // await SetUser((await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync())
         //     .Users.First(u => u.Id == 0));
-        await SetUser(MockDatabaseProvider.GetMockUser(userId));
+        await SetUser(MockUserManager.CreateMockUser(userId));
         
         var component = Ctx.RenderComponent<PendingFriendRequests>();
         

@@ -67,9 +67,7 @@
             return;
         }
 
-         FriendRequest newRequest = new FriendRequest();
-            newRequest.SenderID = self.Id;
-            newRequest.ReceiverID = prospect.Id;
+         FriendRequest newRequest = new FriendRequest(self.Id, prospect.Id);
          newRequest.Status = RequestStatus.Pending;
                     
          db.FriendRequests.Add(newRequest);
