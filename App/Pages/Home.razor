@@ -5,16 +5,9 @@
 @inherits LayoutComponentBase
 
 @using Microsoft.AspNetCore.Authorization
-@using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Interop
 @using Bamboozlers.Components.Chat
 @using Bamboozlers.Components.Settings
-@using IMessageService = Bamboozlers.Classes.Services.IMessageService
-
-@inject IDbContextFactory<AppDbContext> Db
-@inject IMessageService MessageService;
-@inject IJSRuntime JsRuntime;
 
 @attribute [Authorize]
 
@@ -64,6 +57,7 @@
 
 @code {
     private NavLayout? _navLayout;
+    private CompSettings? _settingsComponent;
 
     private EventCallback<PopupCallbackArgs> _openPopupCallback;
     private EventCallback _closePopupCallback;
@@ -75,9 +69,6 @@
     {
         _openPopupCallback = EventCallback.Factory.Create<PopupCallbackArgs>(this, OpenPopup);
         _closePopupCallback = EventCallback.Factory.Create(this, ClosePopup);
-        
-        MessageService.Init(Db);
-        JsInteropHelper.Init(JsRuntime);
     }
     
     private async Task OpenPopup(PopupCallbackArgs args)

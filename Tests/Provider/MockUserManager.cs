@@ -2,10 +2,8 @@ using System.Security.Claims;
 using Bamboozlers.Classes.AppDbContext;
 using Bunit.Extensions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using MockQueryable.Moq;
 using Tests.Provider;
 
 namespace Tests;

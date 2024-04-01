@@ -7,15 +7,14 @@ namespace Tests.Provider;
 public class MockJsRuntimeProvider
 {
     private readonly Mock<IJSRuntime> _mockJsRuntime;
-    private readonly Mock<IJSObjectReference> _mockJsObjectReference;
 
     public MockJsRuntimeProvider(TestContext ctx)
     {
         _mockJsRuntime = new Mock<IJSRuntime>();
-        _mockJsObjectReference = new Mock<IJSObjectReference>();
+        Mock<IJSObjectReference> mockJsObjectReference = new();
 
         _mockJsRuntime.Setup(x => x.InvokeAsync<IJSObjectReference>("import", It.IsAny<object[]?>()))
-            .ReturnsAsync(_mockJsObjectReference.Object);
+            .ReturnsAsync(mockJsObjectReference.Object);
 
         _mockJsRuntime.Setup(x
             => x.InvokeAsync<IJSVoidResult>(It.IsAny<string>(), It.IsAny<object[]>())

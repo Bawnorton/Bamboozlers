@@ -1,5 +1,4 @@
 using AngleSharp.Dom;
-using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Components.Settings;
@@ -7,16 +6,12 @@ using Bamboozlers.Components.Settings.EditComponents.Bases;
 using Bamboozlers.Components.Settings.EditComponents.Fields;
 using Blazorise;
 using Blazorise.Modules;
-using HttpContextMoq;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using MockQueryable.Moq;
 using Tests.Provider;
-using Xunit.Abstractions;
 
 namespace Tests;
 
@@ -69,7 +64,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.False(component.Instance.Arguments.AlertVisible);
         Assert.Equal("",component.Instance.Arguments.AlertMessage);
         Assert.Equal("",component.Instance.Arguments.AlertDescription);
-        Assert.Equivalent(new AlertArguments() {}, component.Instance.Arguments);
+        Assert.Equivalent(new AlertArguments(), component.Instance.Arguments);
 
         // Assert: CompSettings does not have circular callback assigned
         var callback = component.Instance.AlertEventCallback;
@@ -104,8 +99,6 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async Task UserSettingsTest_DisplayUser()
     {
-        UserRecord data;
-        
         // Arrange: Set the user with some non-default variables
         var user = MockUserManager.CreateMockUser(0,
             true,
@@ -120,9 +113,9 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         component.SetParametersAndRender(parameters 
             => parameters.Add(p => p.Visible, true)
         );
-        
+
         // Act: Invoke Data Display Update
-        data = await UserService.GetUserDataAsync();
+        var data = await UserService.GetUserDataAsync();
 
         // Assert: Check if assigned values are as expected
         Assert.Equal("TestUser0",data.UserName);
@@ -657,11 +650,10 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         UserSettingsTests_TabToggle<CompEditDisplayName>();
         await UserSettingsTests_NoDataChangeFunction<CompEditDisplayName>();
 
-        UserUpdateResult? result = null;
         var parentComponent = Ctx.RenderComponent<CompSettings>();
         parentComponent.SetParametersAndRender(parameters 
             => parameters.Add(p => p.Visible, true)
-                .Add(p => p.UserUpdateCallback, record => result = record)
+                .Add(p => p.UserUpdateCallback, record => _ = record)
         );
         var component = parentComponent.FindComponent<CompEditDisplayName>();
         
@@ -691,12 +683,11 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         
         UserSettingsTests_TabToggle<CompEditBio>();
         await UserSettingsTests_NoDataChangeFunction<CompEditBio>();
-        
-        UserUpdateResult? result = null;
+
         var parentComponent = Ctx.RenderComponent<CompSettings>();
         parentComponent.SetParametersAndRender(parameters 
             => parameters.Add(p => p.Visible, true)
-                .Add(p => p.UserUpdateCallback, record => result = record)
+                .Add(p => p.UserUpdateCallback, record => _ = record)
         );
         var component = parentComponent.FindComponent<CompEditBio>();
         
@@ -727,18 +718,17 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         await SetUser(user);
         
         AlertArguments? resultArgs = null;
-        UserDataRecord? sentData = null;
         var component = Ctx.RenderComponent<CompEditAvatar>();
         component.SetParametersAndRender(parameters 
             =>
         {
             parameters.Add(p => p.AlertEventCallback, arguments => resultArgs = arguments);
             parameters.Add(p => p.DataChangeFunction, Value);
+            return;
 
-            async Task<bool> Value(UserDataRecord arg)
+            Task<bool> Value(UserDataRecord arg)
             {
-                sentData = arg;
-                return true;
+                return Task.FromResult(true);
             }
         });
 

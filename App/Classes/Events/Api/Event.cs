@@ -11,7 +11,7 @@ public abstract class Event<T>
         return invoker;
     }
 
-    public abstract void Register(T listener);
+    public abstract void Register(string id, T listener);
 
     public virtual void AddPhaseOrdering(string firstPhase, string secondPhase)
     {

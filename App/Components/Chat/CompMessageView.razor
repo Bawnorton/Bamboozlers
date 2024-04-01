@@ -10,6 +10,7 @@
 @using System.Diagnostics
 
 @inject IDbContextFactory<AppDbContext> Db
+@inject IKeyPressService KeyPressService
 
 @if(Loaded)
 {
@@ -30,7 +31,9 @@
             </Div>
         }
         <Div Class="message-content">
-            <CompMessageContentView Content=@Message.Content/>
+            <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
+                <CompMessageContentView Content=@Message.Content/>
+            </Div>
             <Div Class="message-actions">
                 @switch (ShowEdit)
                 {
@@ -60,12 +63,14 @@
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [Parameter] public Message Message { get; set; } = default!;
     [Parameter] public MessageState MessageState { get; set; }
-
+    
+    [Parameter] public bool EchoRecieved { get; set; }
+    
+    [CascadingParameter] private bool IsShiftHeld { get; set; }
+    
     private bool Loaded { get; set; }
 
     private User? Self { get; set; }
-
-    private bool IsShiftHeld { get; set; }
 
     private bool IsSelfMessage => Message.Sender!.Id == Self!.Id;
 
@@ -83,28 +88,7 @@
         }
 
         Loaded = true;
+        
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-
-        KeyboardEvents.Keydown.Register((key, _, _, _, _, _) =>
-        {
-            if (key != "Shift") return Task.CompletedTask;
-
-            IsShiftHeld = true;
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        });
-
-        KeyboardEvents.Keyup.Register((key, _, _, _, _, _) =>
-        {
-            if (key != "Shift") return Task.CompletedTask;
-
-            IsShiftHeld = false;
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        });
-    }
 }

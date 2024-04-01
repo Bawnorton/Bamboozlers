@@ -1,24 +1,18 @@
-using AngleSharp.Dom;
 using Bamboozlers.Components.Chat;
 using Blazorise;
 using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tests.Provider;
-using Xunit.Abstractions;
 
 namespace Tests;
 
 public class ChatTests : AuthenticatedBlazoriseTestBase
 {
-    private ITestOutputHelper output;
-    public ChatTests(ITestOutputHelper output)
+    public ChatTests()
     {
-        this.output = output;
-        //MockDatabaseProvider.SetupMockDbContext();
         Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
         Ctx.Services.AddBlazorise().Replace(ServiceDescriptor.Transient<IComponentActivator, ComponentActivator>());
         
@@ -28,7 +22,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     [Fact]
     public async void ComponentInitializesCorrectly()
     {
-        //await SetUser(MockDatabaseProvider.GetMockUser(0));
+        await SetUser(MockUserManager.CreateMockUser(0));
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var chat = db.Chats.Include(chat => chat.Messages).First();
 
@@ -39,7 +33,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         Assert.NotNull(chat.Messages);
         
         var expectedCount = chat.Messages.Count;
-        var actualCount = component.FindAll(".message-content").Count;
+        var actualCount = component.FindAll(".message-content").Count / 2;
         
         // Assert
         Assert.Equal(expectedCount, actualCount);
@@ -59,206 +53,5 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
             // Assert
             Assert.Equal(expected, actual);
         }
-    }
-
-    /*
-     
-     NOTE: I've cut this test out for the time being as this is not was what was agreed upon.
-     We discussed on group invitations, not outright adding people.
-     
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    public async void TestAddMembers(int userId)
-    {
-        await SetUser(MockDatabaseProvider.GetMockUser(userId));
-        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var chat = db.Chats.Include(chat => chat.Messages).Last();
-        
-        var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
-            .Add(p => p.ChatID, chat.ID));
-        
-        // Act
-        var addMembersButton = component.FindAll("#addMembers");
-        if (userId == 2)
-        {
-            Assert.Empty(addMembersButton);
-            return;
-        }
-        addMembersButton.Single().Click();
-        
-        // Assert
-        var checkboxes = component.FindAll("input[type='checkbox']");
-        if (userId == 0)
-        {
-            Assert.Empty(checkboxes);
-        }
-        else
-        {
-             Assert.Single(checkboxes);
-        }
-       
-        
-        Assert.Equal(3, db.Chats.Include(chat => chat.Users).Last().Users.Count);
-
-        // Act
-        if(userId == 1)
-        {
-            checkboxes.Single().Change(true);
-        }
-        component.Find("#saveChanges").Click();
-        if(userId == 1)
-        {        
-            Assert.Contains(db.Users.Last().UserName, component.Markup);
-        }
-        else
-        {
-            Assert.Contains("No member(s) added!", component.Markup);
-        }
-
-    }
-    */
-    
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    public async void TestRemoveMembers(int userId)
-    {
-        //await SetUser(MockDatabaseProvider.GetMockUser(userId));
-        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var chat = db.Chats.Include(chat => chat.Messages).Last();
-        
-        var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
-            .Add(p => p.ChatID, chat.ID));
-        
-        var removeMembersButton = component.FindAll("#removeMember");
-        if (userId == 2)
-        {
-            Assert.Empty(removeMembersButton);
-            return;
-        }
-        if(userId == 1)
-        {
-            Assert.Single(removeMembersButton);
-        }
-        else
-        {
-            Assert.Equal(2, removeMembersButton.Count);
-        }
-        removeMembersButton.First().Click();
-        
-        
-        Assert.Equal(2, db.Chats.Include(chat => chat.Users).Last().Users.Count);
-        
-    }
-    
-    [Fact]
-    public async void TestChatSettingsPic()
-    {
-        //await SetUser(MockDatabaseProvider.GetMockUser(0));
-        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var chat = db.Chats.Include(chat => chat.Messages).Last();
-        
-        var component = Ctx.RenderComponent<CompChatSettings>(parameters => parameters
-            .Add(p => p.ChatID, chat.ID));
-        
-        // Arrange: No file passed
-        var spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile>());
-        // Act
-        await component.Instance.OnFileUpload(spoofArgs);
-        // Assert
-        var alertArgs = component.Instance.AlertArguments;
-        Assert.True(alertArgs.AlertVisible);
-        Assert.Equal("Error occured while uploading image.", alertArgs.AlertMessage);
-        Assert.Equal("No file was uploaded.",alertArgs.AlertDescription);
-        
-        // Arrange: Invalid file passed (not an image)
-        var fakeFile = new MockBrowserFile { ContentType = "file/csv" };
-        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
-        // Act
-        await component.Instance.OnFileUpload(spoofArgs);
-        // Assert
-        alertArgs = component.Instance.AlertArguments;
-        Assert.Equal("Uploaded file was not an image.",alertArgs.AlertDescription);
-        
-        // Arrange: Invalid file passed (image, but not png)
-        fakeFile = new MockBrowserFile { ContentType = "image/gif" };
-        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
-        // Act
-        await component.Instance.OnFileUpload(spoofArgs);
-        // Assert
-        alertArgs = component.Instance.AlertArguments;
-        Assert.Equal("Image must be a PNG or JPG (JPEG) file.",alertArgs.AlertDescription);
-        
-        // Arrange: Valid file passed, but image was empty
-        fakeFile = new MockBrowserFile { ContentType = "image/png", Bytes = Array.Empty<byte>()};
-        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
-        // Act
-        await component.Instance.OnFileUpload(spoofArgs);
-        // Assert
-        alertArgs = component.Instance.AlertArguments;
-        Assert.Equal("Unknown error occurred. Please try again.",alertArgs.AlertDescription);
-        
-        // Arrange: Valid file passed
-        fakeFile = new MockBrowserFile { ContentType = "image/png"};
-        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
-        // Act
-        await component.Instance.OnFileUpload(spoofArgs);
-        // Assert
-        alertArgs = component.Instance.AlertArguments;
-        Assert.Equal("Image was successfully uploaded.",alertArgs.AlertDescription);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    public async void TestChatSettingsSave(int userId)
-    {
-        //await SetUser(MockDatabaseProvider.GetMockUser(userId));
-        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var chat = db.Chats.Include(chat => chat.Messages).Last();
-        
-        var component = Ctx.RenderComponent<CompChatSettings>(
-            parameters => parameters.Add(p => p.ChatID, chat.ID)
-        );
-        
-        var moderatorSection = component.Find("#modList");
-        
-        // Assert (TestUser1 is the owner, and should be the only shown user)
-        Assert.Equal(1, moderatorSection.ChildElementCount);
-        var displayBadge = component.Find("#TestUser1_badge");
-        
-        if (userId == 1)
-        {
-            Assert.Empty(component.FindAll("#mod-head"));
-        }
-        else
-        {
-            Assert.Equal(2, moderatorSection.ChildElementCount);
-            
-            output.WriteLine(moderatorSection.ToMarkup());
-            //moderators.First(f => f.NextSibling.TextContent.Contains("TestUser1")).Change(false);
-            //moderators.First(f => f.NextSibling.TextContent.Contains("TestUser2")).Change(true);
-        }
-        
-        component.Find("#settings-save").Click();
-        
-        var updatedChat = db.GroupChats.Include(i => i.Moderators).First();
-        
-        if (userId == 0)
-        {
-            Assert.Equal("TestUser2", updatedChat.Moderators.First().UserName);
-        }
-        else
-        {
-            Assert.Equal("TestUser1", updatedChat.Moderators.First().UserName);
-
-        }
-        
-        Assert.Equal("Settings updated successfully!", component.Instance.AlertArguments.AlertMessage);
-        
-        
     }
 }

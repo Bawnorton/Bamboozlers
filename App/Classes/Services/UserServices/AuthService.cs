@@ -52,6 +52,16 @@ public class AuthService : IAuthService
         UserClaims ??= (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
         return UserClaims;
     }
+    
+    public virtual async Task<string?> GetAccessToken()
+    {
+        var claims = await GetClaims();
+        if (!(claims.Identity?.IsAuthenticated ?? false)) return null;
+        
+        var token = claims.FindFirstValue("access_token");
+        Console.WriteLine($"Access token: {token}");
+        return token ?? null;
+    }
 
     public void Invalidate()
     {

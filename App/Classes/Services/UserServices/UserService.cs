@@ -5,19 +5,14 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Bamboozlers.Classes.Services.UserServices;
 
-public class UserService : IUserService
+public class UserService(IAuthService authService, ServiceProviderWrapper serviceProvider)
+    : IUserService
 {
-    private IAuthService AuthService { get; }
-    private ServiceProviderWrapper ServiceProvider { get; }
+    private IAuthService AuthService { get; } = authService;
+    private ServiceProviderWrapper ServiceProvider { get; } = serviceProvider;
 
     /* User (Data) Retrieval */
     private UserRecord? UserRecord { get; set; }
-
-    public UserService(IAuthService authService, ServiceProviderWrapper serviceProvider)
-    {
-        AuthService = authService;
-        ServiceProvider = serviceProvider;
-    }
 
     /// <summary>
     /// Builds a display record corresponding to the current user.
