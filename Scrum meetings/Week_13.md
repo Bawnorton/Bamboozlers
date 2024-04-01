@@ -32,13 +32,12 @@
   </tr>
   <tr>
     <th>Team Capacity</th>
-    <th>Individual Capacity</th>
     <td>
-      Bridgette Hunt - 5 issues<br> 
-      MacKenzie Richards - 4 issues<br> 
-      Zahra Kagda - 3 issues<br> 
-      Ben Norton - 5 issues<br> 
-      Ryan Osmond - 3 issues 
+      Bridgette Hunt - 4 issues<br>
+      MacKenzie Richards - 5 issues<br>
+      Zahra Kagda - 3 issues<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 3 issues
     </td>
   </tr>
   <tr>
