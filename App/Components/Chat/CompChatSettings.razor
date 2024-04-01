@@ -37,8 +37,7 @@
         </Div>
         <CompSimpleDivider/>
         <Div style="margin-left: 5dvw; margin-right: 5dvw;">
-            <Heading ElementId="mod-heading" Size="HeadingSize.Is4">Group Moderators</Heading>
-            <Paragraph TextSize="TextSize.Small" TextColor="TextColor.Warning">These users can add and remove members and change the chat settings.</Paragraph>
+            <Div ElementId = "mod-heading" Size="HeadingSize.Is4">Group Moderators</Div>
             @ModList
             <CompSimpleDivider/>
             <Heading ElementId="member-heading" Size="HeadingSize.Is4">Group Members</Heading>
@@ -53,23 +52,29 @@
                               Color="Color.Danger"
                               IconName="IconName.Running"
                               ColumnWrapped="@false"
-                              ActionCallback="@(async () => await UserGroupService.LeaveGroup(ChatID))"/>
+                              ActionCallback="@(async () => { await UserGroupService.LeaveGroup(ChatID); await ClosePopupCallback.InvokeAsync(); })"/>
         }
     </ModalFooter>
 </ModalContent>
 
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    
     [Parameter] public int? ChatID { get; set; }
+    
     public List<int?> WatchedIDs { get; set; } = [];
+    
     private GroupChat? Chat { get; set; }
+    private User? Self { get; set; }
+    
     public AlertArguments AlertArguments { get; set; } = new();
+    
     private RenderFragment? GroupDisplay { get; set; }
     private RenderFragment? ModList { get; set; }
     private RenderFragment? MemberList { get; set; }
-    private User? Self { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -127,18 +132,30 @@
                          }
                      </div>;
 
-        ModList = @<div id="modList">
-                      @foreach (var user in Chat.Moderators.Except(new[] { owner }).Where(u => u != null))
-                      {
-                          if (user is not null)
-                          {
-                              <div id="@($"{Chat.Name}_memberDisplay")">
-                                  @GetUserFragment(user)
-                                  <Divider/>
-                              </div>
-                          }
-                      }
-                  </div>;
+        ModList = @<text>
+                       @if (Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null || Self.Id == owner.Id)
+                       {
+                           <Paragraph TextSize="TextSize.Small" TextColor="TextColor.Warning">
+                               These users can add and remove members and change the chat settings.
+                           </Paragraph>
+                       }
+                       <div id="modList">
+                           @if (owner is not null)
+                           {
+                               <div id="@($"{Chat.Name}_memberDisplay")">
+                                   @GetUserFragment(owner)
+                                   <Divider/>
+                               </div>
+                           }
+                           @foreach (var user in Chat.Moderators)
+                           {
+                               <div id="@($"{Chat.Name}_memberDisplay")">
+                                   @GetUserFragment(user)
+                                   <Divider/>
+                               </div>
+                           }
+                       </div>
+                   </text>;
 
         if (Self.Id == Chat.OwnerID || Chat.Moderators.FirstOrDefault(m => m.Id == Self.Id) is not null)
         {
@@ -277,7 +294,7 @@
                    </div>
                    @if (!isOwner)
                    {
-                       @if ((Chat.Moderators.Contains(Self) && !isMod) || Chat.OwnerID == Self.Id)
+                       @if ((Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null && !isMod) || Chat.OwnerID == Self.Id)
                        {
                            @GetKickButton(user)
                        }

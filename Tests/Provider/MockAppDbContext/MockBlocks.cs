@@ -17,12 +17,10 @@ public class MockBlocks : AbstractMockDbSet<Block>
 
         mockBlocks = MockAppDbContext.SetupMockDbSet(new List<Block>
         {
-            new()
+            new(user2.Id,user3.Id)
             {
                 Blocked = user2,
-                BlockedID = user2.Id,
                 Blocker = user3,
-                BlockerID = user3.Id
             }
         });
 

@@ -40,19 +40,15 @@ public class GroupChatTests : AuthenticatedBlazoriseTestBase
 
         for (var i = 1; i <= 4; i++)
         {
-            var friendship1 = new Friendship
+            var friendship1 = new Friendship(testUsers[0].Id,testUsers[i].Id)
             {
                 User1 = testUsers[0],
-                User2 = testUsers[i],
-                User1ID = testUsers[0].Id,
-                User2ID = testUsers[i].Id,
+                User2 = testUsers[i]
             };
-            var friendship2 = new Friendship
+            var friendship2 = new Friendship(testUsers[8].Id,testUsers[8-i].Id)
             {
                 User1 = testUsers[8],
-                User2 = testUsers[8-i],
-                User1ID = testUsers[8].Id,
-                User2ID = testUsers[8-i].Id,
+                User2 = testUsers[8-i]
             };
             testFriendships.AddRange([friendship1,friendship2]);
             MockDatabaseProvider.GetMockAppDbContext().MockFriendships.AddMock(friendship1);
@@ -92,13 +88,10 @@ public class GroupChatTests : AuthenticatedBlazoriseTestBase
         MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(groupChat1);
         MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(groupChat2);
 
-        var invite = new GroupInvite
+        var invite = new GroupInvite(testUsers[0].Id,testUsers[4].Id, groupChat1.ID)
         {
-            RecipientID = testUsers[4].Id,
             Recipient = testUsers[4],
-            SenderID = testUsers[0].Id,
             Sender = testUsers[0],
-            GroupID = groupChat1.ID,
             Group = groupChat1
         };
         MockDatabaseProvider.GetMockAppDbContext().MockGroupInvites.AddMock(invite);

@@ -261,7 +261,7 @@
                              Background="Background.Primary" 
                              Border="Border.Dark"
                              Class="dropdown-content">
-                            @if (HasIncomingRequest)
+                            @if (HasIncomingRequest && !IsBlocked)
                             {
                                 <Button ElementId="decline-request-option" Class="dropdown-option" TextColor="TextColor.Danger"
                                         Clicked="@(async () => await UserInteractionService.DeclineFriendRequest(FocusUser.Id))">

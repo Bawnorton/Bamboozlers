@@ -16,12 +16,10 @@ public class MockFriendRequests : AbstractMockDbSet<FriendRequest>
 
         mockFriendRequests = MockAppDbContext.SetupMockDbSet(new List<FriendRequest>
         {
-            new()
+            new(user1.Id,user3.Id)
             {
                 Sender = user1,
-                SenderID = user1.Id,
-                Receiver = user3,
-                ReceiverID = user3.Id
+                Receiver = user3
             }
         });
         MockAppDbContext.MockDbContext.Setup(x => x.FriendRequests).Returns(mockFriendRequests.Object);

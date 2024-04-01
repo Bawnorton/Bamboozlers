@@ -18,19 +18,15 @@ public class MockFriendships : AbstractMockDbSet<Friendship>
 
         mockFriendships = MockAppDbContext.SetupMockDbSet(new List<Friendship>
         {
-            new()
+            new(user0.Id,user1.Id)
             {
                 User1 = user0,
-                User1ID = user0.Id,
-                User2 = user1,
-                User2ID = user1.Id
+                User2 = user1
             },
-            new()
+            new(user1.Id,user2.Id)
             {
                 User1 = user1,
-                User1ID = user1.Id,
-                User2 = user2,
-                User2ID = user2.Id
+                User2 = user2
             },
         });
         

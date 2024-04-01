@@ -113,13 +113,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
             if (incoming is not null) dbContext.FriendRequests.Remove(incoming);
             if (outgoing is not null) dbContext.FriendRequests.Remove(outgoing);
 
-            var block = new Block
-            {
-                Blocked = other,
-                BlockedID = other.Id,
-                Blocker = self,
-                BlockerID = self.Id
-            };
+            var block = new Block(other.Id, self.Id);
             await dbContext.BlockList.AddAsync(block);
             await dbContext.SaveChangesAsync();
             await NotifyAllAsync();
@@ -158,12 +152,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         
         if (outgoing is null && incoming is null)
         {
-            var friendRequest = new FriendRequest {
-                SenderID = self.Id,
-                Sender = self,
-                ReceiverID = other.Id,
-                Receiver = other
-            };
+            var friendRequest = new FriendRequest(self.Id, other.Id);
             await dbContext.FriendRequests.AddAsync(friendRequest);
             await dbContext.SaveChangesAsync();
             await NotifyAllAsync();
@@ -201,12 +190,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         if (requestEntry is not null)
         {
             dbContext.FriendRequests.Remove(requestEntry);
-            var friendship = new Friendship {
-                User1ID = self.Id,
-                User1 = self,
-                User2ID = other.Id,
-                User2 = other
-            };
+            var friendship = new Friendship(self.Id, other.Id);
             await dbContext.FriendShips.AddAsync(friendship);
             await dbContext.SaveChangesAsync();
             await NotifyAllAsync();

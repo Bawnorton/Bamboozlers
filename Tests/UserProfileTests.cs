@@ -49,46 +49,36 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
             MockDatabaseProvider.GetMockAppDbContext().MockUsers.AddMock(user);
         }
 
-        var friendship = new Friendship
+        var friendship = new Friendship(users[0].Id,users[1].Id)
         {
             User1 = users[0],
-            User2 = users[1],
-            User1ID = users[0].Id,
-            User2ID = users[1].Id
+            User2 = users[1]
         };
         MockDatabaseProvider.GetMockAppDbContext().MockFriendships.AddMock(friendship);
 
-        var request0 = new FriendRequest
+        var request0 = new FriendRequest(users[0].Id,users[3].Id)
         {
             Receiver = users[3],
-            ReceiverID = users[3].Id,
             Sender = users[0],
-            SenderID = users[0].Id
         };
-        var request1 = new FriendRequest
+        var request1 = new FriendRequest(users[2].Id,users[0].Id)
         {
             Receiver = users[0],
-            ReceiverID = users[0].Id,
             Sender = users[2],
-            SenderID = users[2].Id
         };
         
         MockDatabaseProvider.GetMockAppDbContext().MockFriendRequests.AddMock(request0);
         MockDatabaseProvider.GetMockAppDbContext().MockFriendRequests.AddMock(request1);
 
-        var block0 = new Block
+        var block0 = new Block(users[0].Id,users[4].Id)
         {
             Blocked = users[0],
-            BlockedID = users[0].Id,
             Blocker = users[4],
-            BlockerID = users[4].Id
         };
-        var block1 = new Block
+        var block1 = new Block(users[5].Id,users[0].Id)
         {
             Blocked = users[5],
-            BlockedID = users[5].Id,
             Blocker = users[0],
-            BlockerID = users[0].Id
         };
         MockDatabaseProvider.GetMockAppDbContext().MockBlocks.AddMock(block0);
         MockDatabaseProvider.GetMockAppDbContext().MockBlocks.AddMock(block1);

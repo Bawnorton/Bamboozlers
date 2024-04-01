@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Utility.Observer;
+using Blazorise;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.Services.UserServices;
@@ -125,7 +126,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         var skipChecks = other.Id == self.Id;
         if (!skipChecks)
         {
-            if (Outranks(self, other, group))
+            if (!Outranks(self, other, group))
                 return;
         }
         
@@ -203,16 +204,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         var invite = await FindGroupInvite(chatId);
         if (invite is null && (IsModerator(group, self) || IsOwner(group, self)))
         {
-            invite = new GroupInvite
-            {
-                Group = group,
-                GroupID = group.ID,
-                Recipient = other,
-                RecipientID = other.Id,
-                Sender = self,
-                SenderID = self.Id,
-                Status = RequestStatus.Pending
-            };
+            invite = new GroupInvite(self.Id, other.Id, group.ID);
             await dbContext.GroupInvites.AddAsync(invite);
             await dbContext.SaveChangesAsync();
             await NotifySubscribersOf(group.ID);

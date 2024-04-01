@@ -14,6 +14,7 @@
 @using Bamboozlers.Components.Settings
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Chat
 @using Blazorise.Extensions
 
@@ -21,6 +22,8 @@
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject AuthenticationStateProvider AuthStateProvider;
+@inject IUserGroupService UserGroupService;
+@inject IUserInteractionService UserInteractionService;
 
 <Layout Sider>
     <LayoutSider>
@@ -139,6 +142,8 @@
     
     protected override async Task OnInitializedAsync()
     {
+        UserGroupService.AddSubscriber(this);
+        UserInteractionService.AddSubscriber(this);
         await Refresh();
     }
     
@@ -174,10 +179,9 @@
             throw new InvalidOperationException("User and/or chats were not found.");
         
         GroupChats = User.Chats.OfType<GroupChat>().ToList();
+        WatchedIDs = GroupChats.Select(s => (int?) s.ID).ToList();
 
-        if (CurrentView == View.Group && GroupChats.FirstOrDefault(g => g.ID == CurrentChatId) is null) 
-            return;
-        
+        if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
         CurrentChatId = -1;
         CurrentView = View.Friends;
     }
@@ -236,6 +240,7 @@
     {
         await GetUserDataAsync();
         GetGroupData();
+        StateHasChanged();
     }
     
     public async Task OnInteractionUpdate()
@@ -243,6 +248,7 @@
         await GetUserDataAsync();
         GetDmData();
         await GetFriendData();
+        StateHasChanged();
     }
     
     private enum View
