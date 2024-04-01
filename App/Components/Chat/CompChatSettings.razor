@@ -11,6 +11,7 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore.ChangeTracking
 
 @inject IDbContextFactory<AppDbContext> Db
@@ -184,7 +185,7 @@
                                     </Row>
                                 </Div>
                                 <TextEdit Class="w-50"
-                                          Text="@(Chat is null ? "Chat" : Chat.Name)"
+                                          @bind-Text="Chat.Name"
                                           ElementId="chat-name"
                                           Placeholder="Chat Name">
                                 </TextEdit>
@@ -231,20 +232,18 @@
                 );
                 return;
             }
-            
-            await using var dbContext = await Db.CreateDbContextAsync();
-            await using var transaction = await dbContext.Database.BeginTransactionAsync();
-            await dbContext.Database.ExecuteSqlAsync(
-                $"UPDATE [dbo].[Chats] SET Name = {Chat.Name}, Avatar = {Chat.Avatar} WHERE ID = {ChatID};"
-            );
-            await transaction.CommitAsync();
-            
-            AlertArguments = new AlertArguments(
-                Color.Success,
-                true,
-                "Success!",
-                "Changes made were saved successfully."
-            );
+
+            var result = await UserGroupService.UpdateGroupDisplay(ChatID, Chat.Avatar, Chat.Name);
+            if (!result.Succeeded)
+            {
+                AlertArguments = new AlertArguments(
+                    Color.Danger,
+                    true,
+                    "Unsuccessful attempt to make changes.",
+                    $"{string.Join(",",result.Errors.Select(s => s.Description))}"
+                );
+                return;
+            }
             
             await LoadGroupData();
         }

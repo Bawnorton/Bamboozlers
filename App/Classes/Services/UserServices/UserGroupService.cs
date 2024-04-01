@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Utility.Observer;
 using Blazorise;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.Services.UserServices;
@@ -60,7 +61,61 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         
         return (self, group);
     }
-    
+
+    public async Task<IdentityResult> CreateGroup(byte[]? avatar = null, string? name = null)
+    {
+        var self = await AuthService.GetUser(
+            query => 
+                query.Include(u => u.OwnedChats)
+                    .Include(u => u.Chats)
+            );
+        if (self is null)
+            return IdentityResult.Failed([
+                new IdentityError { Description = "Could not create group. Database error occured." }
+            ]);
+        
+        var group = new GroupChat
+        {
+            Owner = self,
+            OwnerID = self.Id,
+            Name = name ?? $"{self.UserName}'s Group",
+            Avatar = avatar,
+            Users = [self],
+            Moderators = [],
+            Messages = []
+        };
+        self.OwnedChats.Add(group);
+        self.Chats.Add(group);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        dbContext.Attach(self);
+        dbContext.Attach(group);
+        await dbContext.SaveChangesAsync();
+        
+        return IdentityResult.Success;
+    }
+
+    public async Task<IdentityResult> UpdateGroupDisplay(int? chatId, byte[]? avatar = null, string? name = null)
+    {
+        var (self, group) = await GetUserAndGroup(chatId);
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        if (self is null || group is null)
+            return IdentityResult.Failed([new IdentityError{Description ="Could not save group changes. Database error occurred."}]);
+
+        if (!IsModerator(group, self) && !IsOwner(group, self))
+            return IdentityResult.Failed([new IdentityError{Description ="Could not save group changes. You do not have permissions to do so."}]);
+        
+        name ??= $"{group.Owner.UserName}'s Group";
+        
+        group.Avatar = avatar;
+        group.Name = name;
+        dbContext.Attach(group);
+        await dbContext.SaveChangesAsync();
+        
+        return IdentityResult.Success;
+    }
+
     public async Task<GroupInvite?> FindGroupInvite(int? chatId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
@@ -302,20 +357,16 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
 
 public interface IUserGroupService : IAsyncPublisher<IAsyncGroupSubscriber>
 {
+    Task<IdentityResult> CreateGroup(byte[]? avatar = null, string? name = null);
+    Task<IdentityResult> UpdateGroupDisplay(int? chatId, byte[]? avatar = null, string? name = null);
     Task<GroupInvite?> FindGroupInvite(int? chatId);
     Task AcceptGroupInvite(int? chatId);
     Task DeclineGroupInvite(int? chatId);
-    
     Task RemoveGroupMember(int? chatId, int? memberId);
-
     Task AssignPermissions(int? chatId, int? modId);
-    
     Task RevokePermissions(int? chatId, int? modId);
-    
     Task SendGroupInvite(int? chatId, int? recipientId);
-    
     Task RevokeGroupInvite(int? chatId, int? recipientId);
-
     Task LeaveGroup(int? chatId);
     Task<List<GroupChat>> GetAllModeratedGroups();
     Task<List<GroupInvite>> GetAllIncomingInvites();
