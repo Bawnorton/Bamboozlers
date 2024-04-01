@@ -1,8 +1,5 @@
-@inherits UserViewComponentBase;
-
 @using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes.Services
-
+@using Bamboozlers.Classes
 @inject IDbContextFactory<AppDbContext> Db
 
 <Layout>
@@ -11,31 +8,41 @@
                   TextSize="TextSize.Heading5"
                   TextColor="TextColor.Primary"
                   Background="Background.Dark">
-        <Text ElementId="header-text">Friends (@(Friends.Count))</Text>
+        <Text ElementId="header-text">Friends</Text>
     </LayoutHeader>
-    <LayoutContent>
+    <LayoutContent Padding="Padding.Is1"
+                   TextColor="TextColor.Primary">
+        <Tabs RenderMode="TabsRenderMode.LazyReload" SelectedTab="@selectedTab" SelectedTabChanged="@OnSelectedTabChanged">
+            <Items>
+                <Tab Name="All">All</Tab>
+                <Tab Name="Pending">Pending</Tab>
+                <Tab Name="Blocked">Blocked</Tab>
+                <Tab Name="Add Friend">Add Friend</Tab>
+            </Items>
+            <Content>
+                <TabPanel Name="All">
+                    <CurrentFriends/>
+                </TabPanel>
+                <TabPanel Name="Pending">
+                    <PendingFriendRequests/>
+                </TabPanel>
+                <TabPanel Name="Blocked">
+                    <BlockedUsers/>
+                </TabPanel>
+                <TabPanel Name="Add Friend">
+                    <AddFriend/>
+                </TabPanel>
+            </Content>
+        </Tabs>
     </LayoutContent>
 </Layout>
 
 @code {
-    private List<User> Friends = [];
+    private String selectedTab { get; set; } = "All";
 
-    protected override async Task OnInitializedAsync()
+    private Task OnSelectedTabChanged(string name)
     {
-        if (!await AuthService.IsAuthenticated()) return;
-
-        var self = await AuthService.GetUser();
-        await using var db = await Db.CreateDbContextAsync();
-        foreach (var friendship in db.FriendShips.Include(f => f.User1).Include(f => f.User2))
-        {
-            if (friendship.User1ID == self.Id)
-            {
-                Friends.Add(friendship.User2);
-            }
-            else if (friendship.User2ID == self.Id)
-            {
-                Friends.Add(friendship.User1);
-            }
-        }
+        selectedTab = name;
+        return Task.CompletedTask;
     }
 }

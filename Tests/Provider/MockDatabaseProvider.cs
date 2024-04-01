@@ -125,6 +125,17 @@ public class MockDatabaseProvider
                 UserName = "TestUser3",
                 Email = "test_user3@gmail.com",
                 EmailConfirmed = true
+            },
+            new()
+            {
+            Id = 4,
+            AccessFailedCount = 0,
+            Chats = [],
+            ModeratedChats = [],
+            OwnedChats = [],
+            UserName = "TestUser4",
+            Email = "test_user4@gmail.com",
+            EmailConfirmed = true
             }
         });
         _mockDbContext.Setup(x => x.Users).Returns(dbSet.Object);
@@ -273,8 +284,10 @@ public class MockDatabaseProvider
     {
         try
         {
+            var user1 = users.First();
             var user2 = users.Skip(1).First();
-            var user3 = users.Last();
+            var user3 = users.Skip(3).First();
+            var user5 = users.Last();
 
             var dbSet = SetupMockDbSet(new List<Block>
             {
@@ -284,6 +297,13 @@ public class MockDatabaseProvider
                     BlockedID = user2.Id,
                     Blocker = user3,
                     BlockerID = user3.Id
+                },
+                new()
+                {
+                    Blocked = user5,
+                    BlockedID = user5.Id,
+                    Blocker = user1,
+                    BlockerID = user1.Id
                 }
             });
             _mockDbContext.Setup(x => x.BlockList).Returns(dbSet.Object);
@@ -302,7 +322,8 @@ public class MockDatabaseProvider
         try
         {
             var user1 = users.First();
-            var user3 = users.Last();
+            var user3 = users.Skip(3).First();
+            var user5 = users.Last();
 
             var dbSet = SetupMockDbSet(new List<FriendRequest>
             {
@@ -312,6 +333,14 @@ public class MockDatabaseProvider
                     SenderID = user1.Id,
                     Receiver = user3,
                     ReceiverID = user3.Id
+                },
+                new()
+                {
+                    Sender = user5,
+                    SenderID = user5.Id,
+                    Receiver = user3,
+                    ReceiverID = user3.Id,
+                    Status = RequestStatus.Denied
                 }
             });
             _mockDbContext.Setup(x => x.FriendRequests).Returns(dbSet.Object);
@@ -331,7 +360,7 @@ public class MockDatabaseProvider
         {
             var user1 = users.First();
             var user2 = users.Skip(1).First();
-            var user4 = users.Last();
+            var user4 = users.Skip(3).First();
 
             var dbSet = SetupMockDbSet(new List<Friendship>
             {

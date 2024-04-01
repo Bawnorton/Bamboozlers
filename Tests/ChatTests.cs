@@ -103,7 +103,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         component.Find("#saveChanges").Click();
         if(userId == 1)
         {        
-            Assert.Contains(db.Users.Last().UserName!, component.Markup);
+            Assert.Contains(db.Users.Skip(2).First().UserName!, component.Markup);
         }
         else
         {

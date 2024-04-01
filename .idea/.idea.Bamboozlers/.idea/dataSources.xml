@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="tempdb@localhost" uuid="5d94cb57-b0cd-48a3-ac26-7ee732d61c7a">
+    <data-source source="LOCAL" name="tempdb" uuid="5135b0db-bb14-4457-9bef-deabd1f2569c">
       <driver-ref>sqlserver.jb</driver-ref>
       <synchronize>true</synchronize>
       <configured-by-url>true</configured-by-url>
