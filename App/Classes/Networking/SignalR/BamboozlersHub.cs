@@ -44,7 +44,7 @@ public class BamboozlersHub : Hub
                         response = new MessageEditedS2CPacket
                         {
                             MessageId = messageUpdatedC2SPacket.MessageId,
-                            NewContent = messageUpdatedC2SPacket.NewContent
+                            NewContent = messageUpdatedC2SPacket.NewContent!
                         };
                     }
                     await Clients.Groups(messageUpdatedC2SPacket.ChatId.ToString()).SendAsync("RecievePacketOnClient", response.Serialize());
