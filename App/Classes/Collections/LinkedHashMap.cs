@@ -1,3 +1,5 @@
+using Bamboozlers.Classes.AppDbContext;
+
 namespace Bamboozlers.Classes.Collections;
 
 public class LinkedHashMap<TKey, TValue> where TKey : notnull
@@ -37,4 +39,16 @@ public class LinkedHashMap<TKey, TValue> where TKey : notnull
     }
     
     public int Count => _dictionary.Count;
+
+    public TValue Remove(TKey key)
+    {
+        if (!_dictionary.TryGetValue(key, out var node))
+        {
+            throw new KeyNotFoundException("The key was not found in the dictionary");
+        }
+
+        _linkedList.Remove(node);
+        _dictionary.Remove(key);
+        return node.Value.Item1;
+    }
 }

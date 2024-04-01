@@ -11,6 +11,8 @@
 @using Bamboozlers.Classes
 @using Blazorise.Extensions
 @using AngleSharp.Diffing.Extensions
+@using System.Text.Json
+@using Bamboozlers.Classes.Collections
 @inherits UserViewComponentBase
 
 @inject IDbContextFactory<AppDbContext> Db
@@ -112,10 +114,13 @@
         <Layout>
             <LayoutContent>
                 <Div>
-                    <CascadingValue Value="IsShiftHeld">
+                    <CascadingValue Value="new ChatContextData(IsShiftHeld, IsMod, DeleteMessage, EditMessage)">
                         @foreach (var message in Messages)
                         {
-                            <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()" EchoRecieved="@message.OthersCanSee"/>
+                            <CompMessageView
+                                Message="message.DbMessage"
+                                PreviousMessage="@message.Previous?.DbMessage"
+                                EchoRecieved="@message.EchoRecieved"/>
                         }
                     </CascadingValue>
                 </Div>
@@ -193,8 +198,10 @@
     [Parameter] public int ChatID { get; set; }
     private Chat? Chat { get; set; }
     private string ChatName { get; set; }
-    
-    private List<LinkedMessage> Messages { get; set; } = [];
+
+    private List<MessageEntry> Messages { get; set; } = [];
+    private Dictionary<int, int> MessageIdToIndex { get; set; } = new();
+    private List<int> EphemeralMessages { get; set; } = [];
     private DateTime? _lastMessageSentAt;
     
     private string MessageInput { get; set; }
@@ -284,11 +291,15 @@
         {
             throw new InvalidOperationException("Chat is null");
         }
-
-        var messages = new List<Message>(Chat?.Messages ?? []);
-        messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
-        var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
-        Messages = linkedMessages;
+    }
+    
+    private void ReIndexMessages()
+    {
+        MessageIdToIndex.Clear();
+        for (var i = 0; i < Messages.Count; i++)
+        {
+            MessageIdToIndex[Messages[i].DbMessage.ID] = i;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -324,6 +335,17 @@
                             await UpdateMessages();
                         }
                         break;
+                    case MessageDeletedS2CPacket messageDeletedS2CPacket:
+                        await RemoveClientMessage(messageDeletedS2CPacket.MessageId);
+                        break;
+                    case MessageEditedS2CPacket messageEditedS2CPacket:
+                        var messageEntry = Messages[MessageIdToIndex[messageEditedS2CPacket.MessageId]];
+                        messageEntry.DbMessage.Content = messageEditedS2CPacket.NewContent;
+                        if(EphemeralMessages.Contains(messageEntry.DbMessage.ID)) return;
+                        
+                        messageEntry.EchoRecieved = true;
+                        await InvokeAsync(StateHasChanged);
+                        break;
                 }
             });
         });
@@ -348,43 +370,89 @@
         MessageInput = "";
     }
 
+    private async Task DeleteMessage(Message message)
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        db.Messages.Remove(message);
+        await db.SaveChangesAsync();
+
+        var messageUpdated = new MessageUpdatedC2SPacket
+        {
+            ChatId = ChatID,
+            MessageId = message.ID,
+            Deleted = true,
+            UpdaterId = Self.Id
+        };
+        
+        await SendToServer(messageUpdated);
+    }
+
+    private async Task RemoveClientMessage(int messageId)
+    {
+        var target = Messages[MessageIdToIndex[messageId]];
+        if (target.Previous != null)
+        {
+            target.Previous.Next = target.Next;
+        }
+        if (target.Next != null)
+        {
+            target.Next.Previous = target.Previous;
+        }
+        Messages.Remove(target);
+        ReIndexMessages();
+                
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task EditMessage(Message message, string newContent)
+    {
+        if (string.IsNullOrWhiteSpace(newContent)) return;
+
+        while (newContent.EndsWith("\n")) newContent = newContent[..^1];
+        while (newContent.StartsWith("\n")) newContent = newContent[1..];
+
+        message.Content = newContent;
+        Messages[MessageIdToIndex[message.ID]].EchoRecieved = false;
+        
+        await using var db = await Db.CreateDbContextAsync();
+        db.Messages.Update(message);
+        await db.SaveChangesAsync();
+        
+        var messageUpdated = new MessageUpdatedC2SPacket
+        {
+            ChatId = ChatID,
+            MessageId = message.ID,
+            NewContent = newContent,
+            UpdaterId = Self.Id
+        };
+        
+        await SendToServer(messageUpdated);
+    }
+
     private async Task UpdateMessages()
     {
         var newMessages = await (await Db.CreateDbContextAsync()).Messages
             .Where(m => m.ChatID == Chat!.ID && (_lastMessageSentAt == null || m.SentAt > _lastMessageSentAt))
             .ToListAsync();
         if (newMessages.Count == 0) return;
-
-        newMessages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
-        Dictionary<int, int> clientOnlyMessages = new();
-        for (var index = 0; index < Messages.Count; index++)
+        
+        foreach (var message in newMessages)
         {
-            var message = Messages[index];
-            if (message.OthersCanSee) continue;
-
-            clientOnlyMessages[message.Message.ID] = index;
-        }
-
-        var previousLastMessage = Messages.Count == 0 ? null : Messages[^1].Message;
-        for (var i = 0; i < newMessages.Count; i++)
-        {
-            var previous = i == 0 ? previousLastMessage : newMessages[i - 1];
-            var newMessage = newMessages[i];
-            if (clientOnlyMessages.TryGetValue(newMessage.ID, value: out var existingMessageIndex))
+            if (EphemeralMessages.Contains(message.ID))
             {
-                var clientMessage = Messages[existingMessageIndex];
-                clientMessage.OthersCanSee = true;
-                clientMessage.Previous = previous;
-                continue;
+                EphemeralMessages.Remove(message.ID);
+                Messages[MessageIdToIndex[message.ID]].EchoRecieved = true;
             }
-
-            Messages.Add(new LinkedMessage(newMessage, previous));
+            else
+            {
+                CreateMessageEntry(message);
+            }
         }
-
-        _lastMessageSentAt = newMessages[^1].SentAt;
+        
+        _lastMessageSentAt = Messages[^1].DbMessage.SentAt;
         await InvokeAsync(StateHasChanged);
     }
-
+    
     private async Task SendMessage(string messageText)
     {
         if (string.IsNullOrWhiteSpace(messageText)) return;
@@ -413,8 +481,31 @@
             DbEntry = DbEntry.ChatMessage
         };
         await SendToServer(readDatabaseRequest);
+        
+        CreateMessageEntry(message, ephemeral: true);
+    }
 
-        Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message, othersCanSee: false));
+    private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false)
+    {
+        var lastMessage = Messages.Count == 0 ? null : Messages[^1];
+        var messageEntry = new MessageEntry
+        {
+            DbMessage = message,
+            Previous = lastMessage,
+            Next = null,
+            EchoRecieved = !ephemeral
+        };
+        if (lastMessage != null)
+        {
+            lastMessage.Next = messageEntry;
+        }
+        Messages.Add(messageEntry);
+        MessageIdToIndex[message.ID] = Messages.Count - 1;
+        if (ephemeral)
+        {
+            EphemeralMessages.Add(message.ID);
+        }
+        return messageEntry;
     }
 
     private void UpdateMembers(List<User> usersAdded)
@@ -519,24 +610,15 @@
         AlertColor = Color.Success;
         await GetData();
     }
-
-    public class LinkedMessage(Message message, Message? previous, bool othersCanSee = true)
+    
+    private class MessageEntry
     {
-        public MessageState GetMessageState()
-        {
-            // if (Previous is null)
-            // {
-            //     return MessageState.First;
-            // }
-            //
-            // return Previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
-            return MessageState.NewUser;
-        }
-
-        public Message Message { get; } = message;
-
-        public Message? Previous { get; set; } = previous;
-
-        public bool OthersCanSee { get; set; } = othersCanSee;
+        public MessageEntry? Next { get; set; }
+        public MessageEntry? Previous { get; set; }
+        public Message DbMessage { get; set; }
+        public bool EchoRecieved { get; set; }
+        
+        public bool HasNext => Next != null;
+        public bool HasPrevious => Previous != null;
     }
 }

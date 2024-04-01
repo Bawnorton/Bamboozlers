@@ -4,17 +4,18 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Services
 
 @inject IDbContextFactory<AppDbContext> Db
-@inject IKeyPressService KeyPressService
 
 @if(Loaded)
 {
     <Div ElementId="@("message_" + Message.ID)">
-        @if (MessageState != MessageState.SameUser)
+        @if (PreviousMessage == null || PreviousMessage.SenderID != Message.SenderID)
         {
-            <Div Class="message-header" Style="@(MessageState == MessageState.First ? "" : "margin-top: 15px;")">
+            <Div Class="message-header" Style="@(PreviousMessage == null ? "" : "margin-top: 15px;")">
                 <Div Class="message-info">
                     @if (Message.Sender!.Avatar != null)
                     {
@@ -37,7 +38,7 @@
                 @switch (ShowEdit)
                 {
                     case true:
-                        <Button onclick="alert('Not Implemented')">
+                        <Button Clicked="@(async () => await ChatContext.OnEdit(Message, Message.Content + " (edited)"))">
                             <Icon Class="fa-pencil-alt"></Icon>
                         </Button>
                         break;
@@ -50,9 +51,18 @@
                 <Button onclick="alert('Not Implemented')">
                     <Icon Name="Icons.MapPin"></Icon>
                 </Button>
-                <Button onclick="alert('Not Implemented')">
-                    <Icon Name="Icons.Trash"></Icon>
-                </Button>
+                @if (ShowDelete)
+                {
+                    <Button Clicked="@(async () => await ChatContext.OnDelete(Message))">
+                        <Icon Name="Icons.Trash"></Icon>
+                    </Button>
+                }
+                else
+                {
+                    <Button Outline=false>
+                        <Icon Name="Icons.Ellipsis"></Icon>
+                    </Button>
+                }
             </Div>
         </Div>
     </Div>
@@ -61,11 +71,11 @@
 @code {
     [Parameter] public Message Message { get; set; }
 
-    [Parameter] public MessageState MessageState { get; set; }
+    [Parameter] public Message? PreviousMessage { get; set; }
     
     [Parameter] public bool EchoRecieved { get; set; }
     
-    [CascadingParameter] private bool IsShiftHeld { get; set; }
+    [CascadingParameter] private ChatContextData ChatContext { get; set; }
     
     private bool Loaded { get; set; }
 
@@ -73,7 +83,9 @@
 
     private bool IsSelfMessage => Message.Sender!.Id == Self!.Id;
 
-    private bool ShowEdit => IsSelfMessage && IsShiftHeld;
+    private bool ShowEdit => IsSelfMessage && ChatContext.IsShiftHelf;
+
+    private bool ShowDelete => ChatContext.IsShiftHelf && (IsSelfMessage || ChatContext.IsMod);
 
     protected override async Task OnInitializedAsync()
     {

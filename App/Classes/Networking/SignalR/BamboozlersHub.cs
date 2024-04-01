@@ -30,6 +30,25 @@ public class BamboozlersHub : Hub
                     };
                     await Clients.Groups(tellOthersToReadDatabaseC2SPacket.ChatId.ToString()).SendAsync("RecievePacketOnClient", ((IPacket)readDatabaseS2CPacket).Serialize());
                     break;
+                case MessageUpdatedC2SPacket messageUpdatedC2SPacket:
+                    IPacket response;
+                    if (messageUpdatedC2SPacket.Deleted)
+                    {
+                        response = new MessageDeletedS2CPacket
+                        {
+                            MessageId = messageUpdatedC2SPacket.MessageId
+                        };
+                    }
+                    else
+                    {
+                        response = new MessageEditedS2CPacket
+                        {
+                            MessageId = messageUpdatedC2SPacket.MessageId,
+                            NewContent = messageUpdatedC2SPacket.NewContent
+                        };
+                    }
+                    await Clients.Groups(messageUpdatedC2SPacket.ChatId.ToString()).SendAsync("RecievePacketOnClient", response.Serialize());
+                    break;
             }
         });
     }

@@ -9,5 +9,6 @@ public class ServerNetworkHandler : AbstractNetworkHandler
     private ServerNetworkHandler()
     {
         PacketRegistry.RegisterPacket(TellOthersToReadDatabaseC2SPacket.Type);
+        PacketRegistry.RegisterPacket(MessageUpdatedC2SPacket.Type);
     }
 }
