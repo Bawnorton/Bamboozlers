@@ -2,6 +2,11 @@ using System.Linq.Expressions;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Func;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using MockQueryable.Moq;
 using Tests.Provider.MockAppDbContext;
@@ -15,17 +20,23 @@ public class MockDatabaseProvider
     public MockDatabaseProvider(TestContextBase ctx)
     {
         _mockDbContextFactory = new Mock<IDbContextFactory<AppDbContext>>();
-
+        
         var options = new DbContextOptions<AppDbContext>();
         var mockContext = new Mock<AppDbContext>(options);
+        var mockFacade = new Mock<DatabaseFacade>(mockContext.Object);
+        
         _mockAppDbContext = new MockAppDbContext.MockAppDbContext(mockContext);
+        
+        mockContext.Setup(x => x.Database).Returns(mockFacade.Object);
+        mockFacade.Setup(x => x.BeginTransactionAsync(default))
+            .ReturnsAsync(() => new Mock<IDbContextTransaction>().Object);
         
         _mockDbContextFactory.Setup(x => x.CreateDbContext()).Returns(_mockAppDbContext.MockDbContext.Object);
         _mockDbContextFactory.Setup(x => x.CreateDbContextAsync(default)).ReturnsAsync(_mockAppDbContext.MockDbContext.Object);
         
         ctx.Services.AddSingleton(GetDbContextFactory());
     }
-
+    
     public MockAppDbContext.MockAppDbContext GetMockAppDbContext()
     {
         return _mockAppDbContext;

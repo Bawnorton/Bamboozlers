@@ -17,7 +17,7 @@
 
 <ModalContent Centered Size="ModalSize.Large">
     <ModalHeader>
-        <ModalTitle>@(Chat is null ? "Chat" : Chat.Name) Settings</ModalTitle>
+        <ModalTitle>@(Chat is null ? "Group Chat" : Chat.Name) Settings</ModalTitle>
         <CloseButton/>
     </ModalHeader>
     <ModalBody>
@@ -60,24 +60,15 @@
 
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
-
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
-
     [Parameter] public int? ChatID { get; set; }
     public List<int?> WatchedIDs { get; set; } = [];
-    
     private GroupChat? Chat { get; set; }
-
     public AlertArguments AlertArguments { get; set; } = new();
-
     private RenderFragment? GroupDisplay { get; set; }
     private RenderFragment? ModList { get; set; }
     private RenderFragment? MemberList { get; set; }
-    
-    private List<UserVisualRecord> Moderators { get; set; } = [];
-    private List<UserVisualRecord> Members { get; set; } = [];
-    
     private User? Self { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -93,25 +84,19 @@
         await LoadGroupData();
     }
     
-    private void DeleteAvatar()
+    public void DeleteAvatar()
     {
-        if (Chat is null)
-            return;
-        
         AlertArguments = new AlertArguments();
-        Chat.Avatar = null;
+        Chat!.Avatar = null;
     }
     
     public async Task OnFileUpload(InputFileChangeEventArgs args)
     {
-        if (Chat is null)
-            return;
-        
-        AlertArguments = await ((ICompImageUploader)this).OnFileUpload(args, async bytes =>
+        AlertArguments = await ((ICompImageUploader) this).OnFileUpload(args, async bytes =>
         {
             return await Task.Run(() =>
                 {
-                    Chat.Avatar = bytes;
+                    Chat!.Avatar = bytes;
                     return true;
                 }
             );
@@ -158,7 +143,7 @@
         if (Self.Id == Chat.OwnerID || Chat.Moderators.FirstOrDefault(m => m.Id == Self.Id) is not null)
         {
             GroupDisplay = @<text>
-                                <Div>
+                                <Div id="@($"{Chat.Name}_displayDiv")">
                                     <Row ElementId="@($"{Chat.Name}_avatarEdit")">
                                         <Label Width="@Width.Px(128)" Height="@Height.Px(128)" Class="overlay-wrapper" Style="margin-left: 20px" for="input-file">
                                             <Image ElementId="avatar-display"
@@ -196,7 +181,7 @@
         else
         {
             GroupDisplay = @<text>
-                                <Div ElementId=@($"{Chat.Name}_display")>
+                                <Div ElementId=@($"{Chat.Name}_displayDiv")>
                                     <Row>
                                         <Div Style="margin-left: 20px">
                                             <Image Width="@Width.Px(128)" Height="@Height.Px(128)" ElementId="avatar-display"
@@ -217,34 +202,33 @@
     
     private async Task SaveChanges()
     {
-        if (Chat is null)
-            return;
-        
-        if (Chat.Name.IsNullOrEmpty())
-        {
-            AlertArguments = new AlertArguments(
-                Color.Danger,
-                true,
-                "Chat name cannot be empty."
-            );
-            return;
-        }
-        
         try
         {
+            if (Chat is null)
+            {
+                AlertArguments = new AlertArguments(
+                    Color.Success,
+                    true,
+                    "An error occurred while saving changes.",
+                    "An unknown error occurred. Please try again."
+                );
+                return;
+            }
+            
             await using var dbContext = await Db.CreateDbContextAsync();
-            var chat = await dbContext.GroupChats.Where(gc => gc.ID == ChatID).FirstOrDefaultAsync();
-            if (chat is null)
-                throw new Exception();
-            var entry = dbContext.Entry(chat);
-            entry.CurrentValues.SetValues(Chat);
-            await dbContext.SaveChangesAsync();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+            await dbContext.Database.ExecuteSqlAsync(
+                $"UPDATE [dbo].[Chats] SET Name = {Chat.Name}, Avatar = {Chat.Avatar} WHERE ID = {ChatID};"
+            );
+            await transaction.CommitAsync();
+            
             AlertArguments = new AlertArguments(
                 Color.Success,
                 true,
                 "Success!",
                 "Changes made were saved successfully."
             );
+            
             await LoadGroupData();
         }
         catch (Exception ex)
@@ -261,13 +245,13 @@
 
     private RenderFragment? GetUserFragment(User user)
     {
-        if (Chat is null || Self is null)
+        if (Self is null)
             return null;
 
-        var isOwner = Chat.OwnerID == user.Id;
+        var isOwner = Chat!.OwnerID == user.Id;
         var isMod = Chat.Moderators.Contains(user);
         
-        return @<div style="display: block" ElementId="@($"{user.UserName}_section")">
+        return @<div style="display: block" id="@($"{user.UserName}_section")">
                    <div style="display: inline-block">
                        <Image ElementId="@($"{user.UserName}_avatar")"
                               Class="_32x32 message-avatar"
@@ -321,7 +305,7 @@
                </div>;
     }
     
-    private RenderFragment? GetKickButton(User user)
+    private RenderFragment GetKickButton(User user)
     {
         return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
                    <CompActionButton ButtonId="@($"{user.UserName}_kickButton")"
