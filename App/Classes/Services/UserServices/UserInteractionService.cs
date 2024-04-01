@@ -107,17 +107,21 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         if (blockEntry is null)
         {
             await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            await using var transaction = await dbContext.Database.BeginTransactionAsync();
             
             var (incoming,outgoing) = await FindFriendRequests(otherId);
             
             if (incoming is not null) dbContext.FriendRequests.Remove(incoming);
             if (outgoing is not null) dbContext.FriendRequests.Remove(outgoing);
-            
-            await dbContext.Database.ExecuteSqlAsync($"INSERT INTO [dbo].[BlockList] VALUES ({self.Id},{other.Id});");
-            
+
+            var block = new Block
+            {
+                Blocked = other,
+                BlockedID = other.Id,
+                Blocker = self,
+                BlockerID = self.Id
+            };
+            await dbContext.BlockList.AddAsync(block);
             await dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
             await NotifyAllAsync();
         }
     }
@@ -134,7 +138,9 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         if (blockEntry is not null)
         {
             await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+           
             dbContext.BlockList.Remove(blockEntry);
+            
             await dbContext.SaveChangesAsync();
             await NotifyAllAsync();
         }
@@ -152,9 +158,14 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         
         if (outgoing is null && incoming is null)
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync();
-            await dbContext.Database.ExecuteSqlAsync($"INSERT INTO [dbo].[FriendRequests] VALUES ({self.Id},{other.Id},0);");
-            await transaction.CommitAsync();
+            var friendRequest = new FriendRequest {
+                SenderID = self.Id,
+                Sender = self,
+                ReceiverID = other.Id,
+                Receiver = other
+            };
+            await dbContext.FriendRequests.AddAsync(friendRequest);
+            await dbContext.SaveChangesAsync();
             await NotifyAllAsync();
         }
     }
@@ -189,13 +200,15 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         
         if (requestEntry is not null)
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync();
             dbContext.FriendRequests.Remove(requestEntry);
-            await dbContext.Database.ExecuteSqlAsync(
-                $"INSERT INTO [dbo].[FriendShips] VALUES ({self.Id},{other.Id});"
-            );
+            var friendship = new Friendship {
+                User1ID = self.Id,
+                User1 = self,
+                User2ID = other.Id,
+                User2 = other
+            };
+            await dbContext.FriendShips.AddAsync(friendship);
             await dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
             await NotifyAllAsync();
         }
     }

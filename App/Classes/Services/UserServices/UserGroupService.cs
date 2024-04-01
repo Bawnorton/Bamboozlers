@@ -85,22 +85,14 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         if (self is null || group is null)
             return;
         
-        dbContext.Remove(invite);
-        
-        var friendship = await UserInteractionService.FindFriendship(invite.SenderID);
-        if (friendship is not null)
-        {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync();
-            await dbContext.Database.ExecuteSqlAsync(
-                $"DELETE FROM [dbo].[GroupInvites] WHERE RecipientID = {self.Id} AND SenderID = {invite.SenderID} AND GroupID = {group.ID};"
-            );
-            await dbContext.Database.ExecuteSqlAsync(
-                $"INSERT INTO [dbo].[ChatUser] VALUES ({group.ID},{self.Id});"
-            );
-            await transaction.CommitAsync();
-        }
-        
+        dbContext.GroupInvites.Remove(invite);
+
+        dbContext.Attach(group);
+        dbContext.Attach(self);
+        self.Chats.Add(group);
+        group.Users.Add(self);
         await dbContext.SaveChangesAsync();
+        
         await NotifySubscribersOf(group.ID);
     }
 
@@ -115,38 +107,40 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             return;
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-        await dbContext.Database.ExecuteSqlAsync(
-            $"DELETE FROM [dbo].[GroupInvites] WHERE RecipientID = {self.Id} AND SenderID = {invite.SenderID} AND GroupID = {group.ID};"
-        );
-        await transaction.CommitAsync();
+        dbContext.GroupInvites.Remove(invite);
+        await dbContext.SaveChangesAsync();
         await NotifySubscribersOf(invite.GroupID);
     }
 
     public async Task RemoveGroupMember(int? chatId, int? memberId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
-        if (self is null || group is null) return;
-        
-        var other = group.Users.FirstOrDefault(u => u.Id == memberId);
-        if (other is null) return;
-
-        var outranksSelf = Outranks(self, other, group);
-        if (outranksSelf)
+        if (self is null || group is null)
             return;
         
+        var other = group.Users.FirstOrDefault(u => u.Id == memberId);
+        if (other is null)
+            return;
+
+        var skipChecks = other.Id == self.Id;
+        if (!skipChecks)
+        {
+            if (Outranks(self, other, group))
+                return;
+        }
+        
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        dbContext.Attach(group);
+        dbContext.Attach(other);
         if (IsModerator(group, other))
         {
-            await dbContext.Database.ExecuteSqlAsync(
-                $"DELETE FROM [dbo].[GroupChatUser] WHERE ModeratedChatsID = {group.ID} AND ModeratorsId = {other.Id};"
-            );
+            other.ModeratedChats.Remove(group);
+            group.Moderators.Remove(other);
         }
-        await dbContext.Database.ExecuteSqlAsync(
-            $"DELETE FROM [dbo].[ChatUser] WHERE ChatsID = {group.ID} AND UsersId = {other.Id};"
-        );
-        await transaction.CommitAsync();
+        other.Chats.Remove(group);
+        group.Users.Remove(other);
+        await dbContext.SaveChangesAsync();
         await NotifySubscribersOf(group.ID);
     }
 
@@ -164,11 +158,11 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             return;
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-        await dbContext.Database.ExecuteSqlAsync(
-            $"INSERT INTO [dbo].[GroupChatUser] VALUES ({group.ID},{mod.Id});"
-        );
-        await transaction.CommitAsync();
+        dbContext.Attach(group);
+        dbContext.Attach(mod);
+        group.Moderators.Add(mod);
+        mod.ModeratedChats.Add(group);
+        await dbContext.SaveChangesAsync();
         await NotifySubscribersOf(group.ID);
     }
 
@@ -185,11 +179,11 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             return;
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-        await dbContext.Database.ExecuteSqlAsync(
-            $"DELETE FROM [dbo].[GroupChatUser] WHERE ModeratedChatsID = {group.ID} AND ModeratorsId = {mod.Id};"
-        );
-        await transaction.CommitAsync();
+        dbContext.Attach(group);
+        dbContext.Attach(mod);
+        group.Moderators.Remove(mod);
+        mod.ModeratedChats.Remove(group);
+        await dbContext.SaveChangesAsync();
         await NotifySubscribersOf(group.ID);
     }
 
@@ -199,17 +193,28 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var friendship = await UserInteractionService.FindFriendship(recipientId);
         
-        if (self is null || group is null || recipientId is null || friendship is null)
+        if (self is null || group is null || friendship is null)
+            return;
+
+        var other = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == recipientId);
+        if (other is null)
             return;
         
         var invite = await FindGroupInvite(chatId);
         if (invite is null && (IsModerator(group, self) || IsOwner(group, self)))
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync();
-            await dbContext.Database.ExecuteSqlAsync(
-                $"INSERT INTO [dbo].[GroupInvites] VALUES ({self.Id},{recipientId},{group.ID},0);"
-            );
-            await transaction.CommitAsync();
+            invite = new GroupInvite
+            {
+                Group = group,
+                GroupID = group.ID,
+                Recipient = other,
+                RecipientID = other.Id,
+                Sender = self,
+                SenderID = self.Id,
+                Status = RequestStatus.Pending
+            };
+            await dbContext.GroupInvites.AddAsync(invite);
+            await dbContext.SaveChangesAsync();
             await NotifySubscribersOf(group.ID);
         }
     }
@@ -228,11 +233,8 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         
         if (invite is not null)
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync();
-            await dbContext.Database.ExecuteSqlAsync(
-                $"DELETE FROM [dbo].[GroupInvites] WHERE RecipientID = {recipientId} AND SenderID = {self.Id} AND GroupID = {group.ID};"
-            );
-            await transaction.CommitAsync();
+            dbContext.Remove(invite);
+            await dbContext.SaveChangesAsync();
             await NotifySubscribersOf(group.ID);
         }
     }
@@ -243,33 +245,10 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         if (self is null || group is null) return;
 
-        Debug.WriteLine("Group and user are found");
-
-        foreach (var user in group.Users)
-        {
-            Debug.WriteLine($"User in chat: {user.UserName}");
-        }
-        if (!IsMemberOf(group, self) || IsOwner(group, self))
-            return;
-        
-        Debug.WriteLine("Is member and not owner");
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-        if (IsModerator(group, self))
-        {
-            Debug.WriteLine("Is moderator");
-            await dbContext.Database.ExecuteSqlAsync(
-                $"DELETE FROM [dbo].[GroupChatUser] WHERE ModeratedChatsID = {group.ID} AND ModeratorsId = {self.Id};"
-            );
-        }
-        await dbContext.Database.ExecuteSqlAsync(
-            $"DELETE FROM [dbo].[ChatUser] WHERE ChatsID = {group.ID} AND UsersId = {self.Id};"
-        );
-        await transaction.CommitAsync();
-        Debug.WriteLine("Transaction ended");
-        await NotifySubscribersOf(group.ID);
+        await RemoveGroupMember(chatId, self.Id);
     }
 
-    public async Task<List<GroupChat>?> GetAllModeratedGroups()
+    public async Task<List<GroupChat>> GetAllModeratedGroups()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser(
@@ -278,26 +257,28 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
                         .Include(u => u.OwnedChats).ThenInclude(c => c.Users)
         );
         
-        if (self is null) return null;
+        if (self is null) return [];
         var list = self.ModeratedChats.ToList();
         list.AddRange(self.OwnedChats.ToList());
         return list;
     }
     
-    public async Task<List<GroupInvite>?> GetAllIncomingInvites()
+    public async Task<List<GroupInvite>> GetAllIncomingInvites()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
         return self is not null ? 
             dbContext.GroupInvites.AsNoTracking().Where(i => i.RecipientID == self.Id).ToList() 
-            : null;
+            : [];
     }
     
-    public async Task<List<GroupInvite>?> GetAllOutgoingInvites()
+    public async Task<List<GroupInvite>> GetAllOutgoingInvites()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
-        return self is not null ? dbContext.GroupInvites.AsNoTracking().Where(i => i.SenderID == self.Id).ToList() : null;
+        return self is not null 
+            ? dbContext.GroupInvites.AsNoTracking().Where(i => i.SenderID == self.Id).ToList() 
+            : [];
     }
 
     public List<IAsyncGroupSubscriber> Subscribers { get; } = [];
@@ -344,7 +325,7 @@ public interface IUserGroupService : IAsyncPublisher<IAsyncGroupSubscriber>
     Task RevokeGroupInvite(int? chatId, int? recipientId);
 
     Task LeaveGroup(int? chatId);
-    Task<List<GroupChat>?> GetAllModeratedGroups();
-    Task<List<GroupInvite>?> GetAllIncomingInvites();
-    Task<List<GroupInvite>?> GetAllOutgoingInvites();
+    Task<List<GroupChat>> GetAllModeratedGroups();
+    Task<List<GroupInvite>> GetAllIncomingInvites();
+    Task<List<GroupInvite>> GetAllOutgoingInvites();
 }

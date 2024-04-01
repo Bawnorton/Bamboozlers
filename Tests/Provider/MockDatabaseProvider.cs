@@ -34,6 +34,7 @@ public class MockDatabaseProvider
     {
         return _mockAppDbContext;
     }
+    
     public IDbContextFactory<AppDbContext> GetDbContextFactory()
     {
         return _mockDbContextFactory.Object;

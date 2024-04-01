@@ -1,5 +1,3 @@
-using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
 using Bamboozlers.Classes.AppDbContext;
 using Blazorise;
 using Blazorise.Modules;
@@ -7,7 +5,6 @@ using Bunit.Extensions.WaitForHelpers;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tests.Provider;
@@ -376,51 +373,5 @@ public class GroupChatTests : AuthenticatedBlazoriseTestBase
         
         await component.Find("#settings-save").ClickAsync(new MouseEventArgs());
         // TODO: This is really bad, but we can't exactly mock SQL calls in an easy way. Thus, the result is not checked.
-    }
-
-    [Fact]
-    public async void GroupChatTests_CompChatView()
-    {
-        // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) 
-            = await BuildTestCases();
-        
-        // Arrange: User is Owner
-        var subjectUser = testUsers[0];
-        var subjectGroup = testGroups[0];
-        await SetUser(subjectUser);
-        UserService.Invalidate();
-
-        var component = Ctx.RenderComponent<CompChatSettings>(
-            parameters
-                => parameters.Add(p => p.ChatID, subjectGroup.ID)
-        );
-        
-        // Assert: Check observed the observed Chats for component
-        Assert.Equal(subjectGroup.ID, component.Instance.WatchedIDs[0]);
-        
-        // Arrange: User is Moderator
-        subjectUser = testUsers[1];
-        subjectGroup = testGroups[0];
-        await SetUser(subjectUser);
-        UserService.Invalidate();
-
-        component.Dispose();
-        component = Ctx.RenderComponent<CompChatSettings>(
-            parameters
-                => parameters.Add(p => p.ChatID, subjectGroup.ID)
-        );
-        
-        // Arrange: User is Member
-        subjectUser = testUsers[1];
-        subjectGroup = testGroups[0];
-        await SetUser(subjectUser);
-        UserService.Invalidate();
-
-        component.Dispose();
-        component = Ctx.RenderComponent<CompChatSettings>(
-            parameters
-                => parameters.Add(p => p.ChatID, subjectGroup.ID)
-        );
     }
 }

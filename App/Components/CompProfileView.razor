@@ -261,7 +261,7 @@
                              Background="Background.Primary" 
                              Border="Border.Dark"
                              Class="dropdown-content">
-                            @if (HasIncomingRequest && !IsBlocked)
+                            @if (HasIncomingRequest)
                             {
                                 <Button ElementId="decline-request-option" Class="dropdown-option" TextColor="TextColor.Danger"
                                         Clicked="@(async () => await UserInteractionService.DeclineFriendRequest(FocusUser.Id))">
@@ -289,7 +289,8 @@
                                              Border="Border.Dark">
                                             @foreach (var chat in viableChats)
                                             {
-                                                <Button Class="dropdown-option"
+                                                <Button ElementId="@($"{chat.Name}-invite-option")"
+                                                        Class="dropdown-option"
                                                         Clicked="@(async () => { 
                                                                    await ClosePopupCallback.InvokeAsync();
                                                                    await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.ChatAddMember, ChatId = chat.ID});
