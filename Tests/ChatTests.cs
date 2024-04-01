@@ -2,6 +2,7 @@ using Bamboozlers.Components.Chat;
 using Blazorise;
 using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
