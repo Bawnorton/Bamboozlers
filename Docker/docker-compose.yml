@@ -4,8 +4,18 @@ services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2019-latest
     container_name: bamboozlers-mssql-server
+    build: 
+      dockerfile: Dockerfile
     environment:
-      SA_PASSWORD: "Password_123"
+      SA_PASSWORD: "B@mB00ZlErS_"
       ACCEPT_EULA: "Y"
+    networks:
+          network-bamboozlers:
     ports:
       - "1433:1433"
+    volumes:
+      - container_volume:/var/opt/mssql
+volumes:
+    container_volume:
+networks:
+    network-bamboozlers:
