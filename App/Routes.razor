@@ -1,4 +1,5 @@
 ﻿@using Blazorise
+
 <Blazorise.ThemeProvider Theme="@theme">
     <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
@@ -7,6 +8,7 @@
         </Found>
     </Router>
 </Blazorise.ThemeProvider>
+<ModalProvider/>
 
 @code{
     private Theme theme = new()

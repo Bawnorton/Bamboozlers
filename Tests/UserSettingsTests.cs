@@ -1,6 +1,6 @@
 using AngleSharp.Dom;
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Services.Authentication;
+using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Components.Settings;
 using Bamboozlers.Components.Settings.EditComponents.Bases;
 using Bamboozlers.Components.Settings.EditComponents.Fields;
@@ -47,7 +47,6 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         MockUserManager.ClearMockUsers();
         var user = MockUserManager.CreateMockUser(0);
         await SetUser(user);
-        UserService.Invalidate();
         
         var component = Ctx.RenderComponent<CompSettings>();
         
@@ -738,7 +737,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         // Act
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
-        Assert.Equal("Unable to change avatar.",resultArgs!.AlertMessage);
+        Assert.Equal("Error occured while uploading image.",resultArgs!.AlertMessage);
         Assert.Equal("No file was uploaded.",resultArgs!.AlertDescription);
         
         // Arrange: Invalid file passed (not an image)
@@ -755,7 +754,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         // Act
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
-        Assert.Equal("Avatar must be a PNG, or JPG file.",resultArgs!.AlertDescription);
+        Assert.Equal("Image must be a PNG or JPG (JPEG) file.",resultArgs!.AlertDescription);
         
         // Arrange: Valid file passed, but image was empty
         fakeFile = new MockBrowserFile { ContentType = "image/png", Bytes = Array.Empty<byte>()};
@@ -763,7 +762,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         // Act
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
-        Assert.Equal("An error was encountered while processing uploaded avatar.",resultArgs!.AlertDescription);
+        Assert.Equal("Unknown error occurred. Please try again.",resultArgs!.AlertDescription);
 
         // Arrange: Valid file passed
         fakeFile = new MockBrowserFile { ContentType = "image/png"};
@@ -772,7 +771,7 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         await component.Instance.OnFileUpload(spoofArgs);
         // Assert
         Assert.Equal("Success!", resultArgs!.AlertMessage);
-        Assert.Equal("Your avatar has been changed.",resultArgs!.AlertDescription);
+        Assert.Equal("Image was successfully uploaded.",resultArgs!.AlertDescription);
     }
     
     /// <summary>

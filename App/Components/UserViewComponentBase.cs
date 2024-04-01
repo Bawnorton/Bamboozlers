@@ -1,11 +1,11 @@
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Services.Authentication;
+using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components;
 
-public class UserViewComponentBase : ComponentBase, IAsyncSubscriber
+public class UserViewComponentBase : ComponentBase, IAsyncUserSubscriber
 {
     [Inject] protected IUserService UserService { get; set; }
     [Inject] protected IAuthService AuthService { get; set; } = default!;
@@ -17,9 +17,15 @@ public class UserViewComponentBase : ComponentBase, IAsyncSubscriber
         UserService.AddSubscriber(this);
     }
     
-    public virtual async Task OnUpdate()
+    public virtual async Task OnUserUpdate()
     {
         UserData = await UserService.GetUserDataAsync();
         StateHasChanged();
+    }
+
+    public Task OnUpdate()
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 }

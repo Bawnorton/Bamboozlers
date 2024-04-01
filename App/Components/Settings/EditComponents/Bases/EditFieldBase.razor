@@ -1,5 +1,5 @@
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Components.Settings.VisualUtility
+@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Components.Settings.EditComponents.VisualUtility
 @inherits SettingsComponentBase
 
 <Tabs @bind-SelectedTab="InteractionMode">
@@ -18,7 +18,6 @@
 @code {
     protected RenderFragment ViewPanelContent { get; set; }
     protected RenderFragment EditPanelContent { get; set; }
-
     protected RenderFragment ToggleEditButton { get; set; }
     protected RenderFragment EditPanelButtons { get; set; }
 
@@ -35,11 +34,11 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        ToggleEditButton = @<CompSettingsActionButton ActionCallback="Toggle"
-                                                ButtonId="toggle-edit"
-                                                IconName="IconName.Pen"
-                                                Color="Color.Light"
-                                                ButtonCaption="Edit"/>;
+        ToggleEditButton = @<CompActionButton ActionCallback="Toggle"
+                                              ButtonId="toggle-edit"
+                                              IconName="IconName.Pen"
+                                              Color="Color.Light"
+                                              ButtonCaption="Edit"/>;
         EditPanelButtons = @<CompEditButtons Toggle="Toggle"/>;
         SetViewContext();
     }

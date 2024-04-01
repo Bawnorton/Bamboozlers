@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="tempdb@localhost" uuid="8afe863c-025b-46a1-b303-c83f7994f349">
+    <data-source source="LOCAL" name="bamboozlers@localhost" uuid="8afe863c-025b-46a1-b303-c83f7994f349">
       <driver-ref>sqlserver.jb</driver-ref>
       <synchronize>true</synchronize>
       <configured-by-url>true</configured-by-url>
       <jdbc-driver>com.jetbrains.jdbc.sqlserver.SqlServerDriver</jdbc-driver>
-      <jdbc-url>Server=localhost,1433;Database=tempdb;User Id=sa;Password=B@mB00ZlErS_;TrustServerCertificate=True</jdbc-url>
+      <jdbc-url>Server=localhost,1433;Database=bamboozlers;User Id=sa;Password=B@mB00ZlErS_;TrustServerCertificate=True</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>

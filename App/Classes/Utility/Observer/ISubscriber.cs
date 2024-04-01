@@ -13,5 +13,32 @@ public interface IAsyncSubscriber
     /// <summary>
     /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
-    new Task OnUpdate();
+    Task OnUpdate();
 }
+
+public interface IAsyncUserSubscriber : IAsyncSubscriber
+{
+    /// <summary>
+    /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
+    /// </summary>
+    Task OnUserUpdate();
+}
+
+public interface IAsyncInteractionSubscriber : IAsyncSubscriber
+{
+    /// <summary>
+    /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
+    /// </summary>
+    Task OnInteractionUpdate();
+}
+
+public interface IAsyncGroupSubscriber : IAsyncSubscriber
+{
+    List<int?> WatchedIDs { get; }
+
+    /// <summary>
+    /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
+    /// </summary>
+    Task OnGroupUpdate();
+}
+

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Bamboozlers.Classes.AppDbContext;
 
 public class GroupChat:Chat
@@ -6,7 +8,5 @@ public class GroupChat:Chat
     public int OwnerID { get; set; }
     public ICollection<User> Moderators { get; set; }
     public string Name { get; set; }
-    
-    //TODO: Migrate to cdn
     public byte[]? Avatar { get; set; }
 }

@@ -12,6 +12,7 @@
   
     <ItemGroup>
       <PackageReference Include="Blazorise" Version="1.5.0-preview1" />
+      <PackageReference Include="Blazorise.Components" Version="1.5.0-preview1" />
       <PackageReference Include="Blazorise.Bootstrap5" Version="1.5.0-preview1" />
       <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.5.0-preview1" />
       <PackageReference Include="Blazorise.Tests.bUnit" Version="1.5.0-preview1" />
@@ -58,6 +59,14 @@
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </Content>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Components\Settings\VisualUtility\CompEditButtons.razor" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <AdditionalFiles Include="Components\Settings\EditComponents\VisualUtility\CompEditButtons.razor" />
     </ItemGroup>
 
 </Project>
