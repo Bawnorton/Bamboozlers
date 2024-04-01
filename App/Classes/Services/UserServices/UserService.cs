@@ -3,7 +3,7 @@ using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Identity;
 
-namespace Bamboozlers.Classes.Services.Authentication;
+namespace Bamboozlers.Classes.Services.UserServices;
 
 public class UserService(IAuthService authService, ServiceProviderWrapper serviceProvider)
     : IUserService
@@ -146,7 +146,7 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
         if (invalidate)
             Invalidate();
         await BuildUserDataAsync();
-        await NotifyAllAsync();
+        await ((IAsyncPublisher<IAsyncUserSubscriber>) this).NotifyAllAsync();
     }
     
     public virtual void Invalidate()
@@ -155,32 +155,28 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
         UserRecord = null;
     }
     
-    public List<IAsyncSubscriber> Subscribers { get; } = [];
-    public bool AddSubscriber(IAsyncSubscriber subscriber)
+    public List<IAsyncUserSubscriber> Subscribers { get; } = [];
+    
+    public bool AddSubscriber(IAsyncUserSubscriber subscriber) 
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
         
-        subscriber.OnUpdate();
+        subscriber.OnUserUpdate();
         
         return true;
     }
-
-    public bool RemoveSubscriber(IAsyncSubscriber subscriber)
-    {
-        return Subscribers.Remove(subscriber);
-    }
-
+    
     public async Task NotifyAllAsync()
     {
         foreach (var sub in Subscribers)
         {
-            await sub.OnUpdate();
+            await sub.OnUserUpdate();
         }
     }
 }
 
-public interface IUserService : IAsyncPublisher
+public interface IUserService : IAsyncPublisher<IAsyncUserSubscriber>
 {
     /// <summary>
     /// Retrieval method for the User's display variables for classes utilizing this service.
@@ -240,7 +236,7 @@ public interface IUserService : IAsyncPublisher
     /// <returns>
     /// An IdentityResult, indicating either success, or an error with a description of the issue.
     /// </returns>
-    public Task<IdentityResult> DeleteAccountAsync(string password);
+    Task<IdentityResult> DeleteAccountAsync(string password);
     
     /// <summary>
     /// Calls to initialize the User Record for retrieval by subscribers

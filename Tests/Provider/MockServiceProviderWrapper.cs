@@ -3,7 +3,7 @@ using Bamboozlers.Classes.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Tests;
+namespace Tests.Provider;
 
 public class MockServiceProviderWrapper
 {

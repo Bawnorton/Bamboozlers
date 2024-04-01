@@ -1,4 +1,6 @@
 @inherits UserViewComponentBase;
+@implements IAsyncGroupSubscriber
+@implements IAsyncInteractionSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
@@ -10,7 +12,9 @@
 @using Bamboozlers.Classes.Networking
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Components.Settings
+@using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Chat
 @using Blazorise.Extensions
 
@@ -18,6 +22,8 @@
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject AuthenticationStateProvider AuthStateProvider;
+@inject IUserGroupService UserGroupService;
+@inject IUserInteractionService UserInteractionService;
 
 <Layout Sider>
     <LayoutSider>
@@ -25,7 +31,7 @@
             <Div Background="Background.Secondary"
                  Padding="Padding.Is3"
                  TextSize="TextSize.Heading5">
-                <Icon Name="Icons.UserTimes"></Icon>
+                <Icon Name="Icons.User"></Icon>
                 <Text>Bamboozlers</Text>
             </Div>
             <Bar Mode="BarMode.VerticalInline"
@@ -49,7 +55,7 @@
                                 @foreach (var chat in DmChats)
                                 {
                                     <BarItem>
-                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => { CurrentView = View.Dm; CurrentChatId = chat.ID; }">
+                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => OpenDm(chat.ID)">
                                             @if (chat.Avatar is not null)
                                             {
                                                 <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
@@ -97,17 +103,17 @@
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
                  id="profile-button"
-                 @onclick="ProfileButtonCallback">
+                 @onclick="async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs(RecognizedPopupType.Settings))">
                 <Text>
                     @(User is null ? UserRecord.Default.UserName : User.DisplayName.IsNullOrEmpty() ? User.UserName : User.DisplayName)
                 </Text>
-                @if (User is not null && User.Avatar is not null)
+                @if (User?.Avatar is not null)
                 {
                     <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(User.Avatar)}") Class="message-avatar" alt=""/>
                 }
                 else
                 {
-                    <Icon Name="Icons.UserTie" IconSize="IconSize.Large"></Icon>
+                    <Icon Name="Icons.User" IconSize="IconSize.Large"></Icon>
                 }
             </Div>
         </LayoutSiderContent>
@@ -123,7 +129,8 @@
 </Layout>
 
 @code {
-    [Parameter] public EventCallback ProfileButtonCallback { get; set; }
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     private User? User { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
 
@@ -131,11 +138,12 @@
 
     private View CurrentView { get; set; } = View.Friends;
     private int CurrentChatId { get; set; } = -1;
-
     private int FriendCount { get; set; } = 0;
     
     protected override async Task OnInitializedAsync()
     {
+        UserGroupService.AddSubscriber(this);
+        UserInteractionService.AddSubscriber(this);
         await Refresh();
     }
     
@@ -143,27 +151,60 @@
     {
         await GetDataAsync();
     }
-
+    
     private async Task GetDataAsync()
     {
-        User = await AuthService.GetUser(query => 
-            query
-                .Include(u => u.Chats)
-                    .ThenInclude(c => c.Users)
-        );
+        await GetUserDataAsync();
 
         if (User is null)
             return;
+
+        GetGroupData();
+        GetDmData();
+        await GetFriendData();
+    }
+
+    private async Task GetUserDataAsync()
+    {
+        User = await AuthService.GetUser(query =>
+            query
+                .Include(u => u.Chats)
+                .ThenInclude(c => c.Users)
+        );
+    }
+
+    private void GetGroupData()
+    {
+        if (User?.Chats is null)
+            throw new InvalidOperationException("User and/or chats were not found.");
+        
+        GroupChats = User.Chats.OfType<GroupChat>().ToList();
+        WatchedIDs = GroupChats.Select(s => (int?) s.ID).ToList();
+
+        if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
+        CurrentChatId = -1;
+        CurrentView = View.Friends;
+    }
+
+    private void GetDmData()
+    {
+        if (User is null)
+            throw new InvalidOperationException("User and/or chats were not found.");
+        
+        DmChats = User.Chats.Except(GroupChats)
+            .Select(chat => new DmChat(
+                chat.ID, 
+                chat.Users.First(u => u.Id != User.Id), 
+                chat.Users.First(u => u.Id != User.Id).Avatar)
+            ).ToList();
+    }
+    
+    private async Task GetFriendData()
+    {
+        if (User is null)
+            throw new InvalidOperationException("User and/or chats were not found.");
         
         await using var db = await Db.CreateDbContextAsync();
-
-        var chats = User.Chats;
-        if (chats is not null)
-        {
-            GroupChats = User.Chats.OfType<GroupChat>().ToList();
-            DmChats = User.Chats.Except(GroupChats).Select(chat => new DmChat(chat.ID, chat.Users.First(u => u.Id != User.Id), chat.Users.First(u => u.Id != User.Id).Avatar)).ToList();
-        }
-
         FriendCount = 0;
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
         foreach (var friendship in friendships)
@@ -174,6 +215,41 @@
             }
         }
     }
+
+    private void OpenDm(int chatId)
+    {
+        if (DmChats.FirstOrDefault(d => d.ID == chatId) is null)
+            return;
+        
+        CurrentView = View.Dm; 
+        CurrentChatId = chatId; 
+    }
+    
+    private void OpenGroup(int chatId)
+    {
+        if (GroupChats.FirstOrDefault(g => g.ID == chatId) is null)
+            return;
+        
+        CurrentView = View.Group; 
+        CurrentChatId = chatId; 
+    }
+    
+    public List<int?> WatchedIDs { get; set; } = [];
+    
+    public async Task OnGroupUpdate()
+    {
+        await GetUserDataAsync();
+        GetGroupData();
+        StateHasChanged();
+    }
+    
+    public async Task OnInteractionUpdate()
+    {
+        await GetUserDataAsync();
+        GetDmData();
+        await GetFriendData();
+        StateHasChanged();
+    }
     
     private enum View
     {
@@ -183,5 +259,4 @@
     }
     
     private record DmChat(int ID, User User, byte[]? Avatar);
-
 }

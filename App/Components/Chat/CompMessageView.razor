@@ -4,7 +4,10 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
 @using Bamboozlers.Classes
+@using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services
+@using Bamboozlers.Components.VisualUtility
+@using System.Diagnostics
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IKeyPressService KeyPressService
@@ -20,9 +23,7 @@
                     {
                         <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Message.Sender.Avatar)}") Class="message-avatar" alt=""/>
                     }
-                    <Div Class="message-username" onclick="alert('Not Implemented')">
-                        @(Message.Sender.DisplayName ?? Message.Sender.UserName)
-                    </Div>
+                    <CompInteractUsername User="@Message.Sender"/>
                     <Div Class="message-timestamp">
                         @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
                     </Div>
@@ -59,8 +60,8 @@
 }
 
 @code {
-    [Parameter] public Message Message { get; set; }
-
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    [Parameter] public Message Message { get; set; } = default!;
     [Parameter] public MessageState MessageState { get; set; }
     
     [Parameter] public bool EchoRecieved { get; set; }

@@ -1,4 +1,7 @@
+@inherits UserViewComponentBase
+@implements IAsyncGroupSubscriber
 @implements IAsyncDisposable
+
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Networking
@@ -11,7 +14,11 @@
 @using Bamboozlers.Classes
 @using Blazorise.Extensions
 @using AngleSharp.Diffing.Extensions
-@inherits UserViewComponentBase
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Microsoft.IdentityModel.Tokens
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Components.VisualUtility
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject NavigationManager NavigationManager
@@ -95,19 +102,18 @@
             }
             <Text ElementId="header-text">@ChatName</Text>
         </Div>
-
-        @if (IsMod)
+        @if (Chat is GroupChat)
         {
-            <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="() => CompChatSettings.ShowModal()"/>
+            <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs{ PopupType = RecognizedPopupType.GroupChatSettings, ChatId = ChatID })"/>
         }
-
     </LayoutHeader>
     <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
-        <Alert Color="@AlertColor" @bind-Visible="@AlertVisible">
+        <Alert Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
             <AlertMessage>
-                @AlertMessage
+                @AlertArguments.AlertMessage
                 <CloseButton Style="--bs-btn-close-white-filter: black;" VerticalAlignment="VerticalAlignment.Middle" Float="Float.End" TextColor="TextColor.Warning"/>
             </AlertMessage>
+            <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
         </Alert>
         <Layout>
             <LayoutContent>
@@ -148,32 +154,24 @@
                             <Text Class="me-4">Members - @Chat.Users.Count</Text>
                             @if (IsMod)
                             {
-                                <Icon ElementId="addMembers" role="button" Name="IconName.Add" @onclick="() => CompAddMember.ShowModal()"/>
+                                <Icon ElementId="addMembers" 
+                                      role="button" 
+                                      Name="IconName.Add" 
+                                      onclick="@(() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs{ PopupType = RecognizedPopupType.ChatAddMember, ChatId = ChatID }))"/>
                             }
                         </Div>
                     </BarItem>
-                    @foreach (var friend in Chat.Users)
+                    @foreach (var user in Chat.Users)
                     {
                         <BarItem>
                             <BarLink Flex="Flex.JustifyContent.Between" class="align-items-center rounded" Display="Display.Flex">
                                 <Div>
-                                    @if (friend.Avatar != null)
+                                    @if (user.Avatar != null)
                                     {
-                                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(friend.Avatar)}") Class="message-avatar" alt=""/>
+                                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") Class="message-avatar" alt=""/>
                                     }
-
-                                    @(friend.DisplayName ?? friend.UserName)
+                                    <CompInteractUsername User="@user"/>
                                 </Div>
-
-                                @if (IsMod && friend.Id != Self.Id && friend.Id != ((Chat as GroupChat)!).OwnerID)
-                                {
-                                    <Paragraph TextSize="TextSize.Small" Display="Display.Inline"
-                                               role="button" Class="text-decoration-underline mb-0 text-danger-emphasis"
-                                               ElementId="removeMember"
-                                               @onclick="() => RemoveMember(friend.Id)">
-                                        Remove
-                                    </Paragraph>
-                                }
                             </BarLink>
                         </BarItem>
                     }
@@ -183,32 +181,28 @@
     </LayoutSider>
 }
 
-@if (IsMod)
-{
-    <CompAddMember @ref="CompAddMember" OnAdd="@(usersAdded => UpdateMembers(usersAdded))" Chat="@(Chat as GroupChat)"/>
-    <CompChatSettings @ref="CompChatSettings" Chat="@(Chat as GroupChat)" OnChange="SettingsChanged"/>
-}
 
 @code {
-    [Parameter] public int ChatID { get; set; }
+    [Inject] IUserGroupService UserGroupService { get; set; } = default!;
+    
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+
+    [Parameter] public int? ChatID { get; set; }
+    public List<int?> WatchedIDs { get; set; } = [];
+    
     private Chat? Chat { get; set; }
+    private User? Self { get; set; }
     private string ChatName { get; set; }
+    private bool IsMod { get; set; }
     
     private List<LinkedMessage> Messages { get; set; } = [];
+
+    public AlertArguments AlertArguments { get; set; } = new();
+    
     private DateTime? _lastMessageSentAt;
     
     private string MessageInput { get; set; }
-    
-    private User Self { get; set; }
-    
-    private bool IsMod { get; set; }
-
-    private CompAddMember CompAddMember { get; set; }
-    private CompChatSettings CompChatSettings { get; set; }
-    
-    private Color AlertColor { get; set; }
-    private bool AlertVisible { get; set; }
-    public string AlertMessage { get; private set; }
     
     private string _hubUrl;
     private HubConnection? _hubConnection;
@@ -217,6 +211,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        UserGroupService.AddSubscriber(this);
         Self = (await AuthService.GetUser())!;
         
         await KeyPressService.StartListeningAsync();
@@ -226,8 +221,8 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        await GetData();
-        
+        WatchedIDs = [ChatID];
+        await GetChatData();   
         IsMod = IsModerator();
         
         await using var db = await Db.CreateDbContextAsync();
@@ -264,13 +259,17 @@
         var gc = db.GroupChats.Include(i => i.Moderators).First(f => f.ID == ChatID);
         return gc.OwnerID == Self.Id || gc.Moderators.Any(m => m.Id == Self.Id);
     }
-    
-    private async Task GetData()
+
+    private async Task GetChatData()
     {
         await using var db = await Db.CreateDbContextAsync();
         Chat = await db.Chats.Include(i => i.Users)
             .Include(i => i.Messages)
             .FirstOrDefaultAsync(c => c.ID == ChatID);
+        
+        if (Self is null || Chat is null)
+            return;
+        
         if (Chat is GroupChat groupChat)
         {
             ChatName = groupChat.Name;
@@ -289,6 +288,8 @@
         messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
         Messages = linkedMessages;
+        
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -395,7 +396,7 @@
         var self = await AuthService.GetUser();
         var message = new Message
         {
-            ChatID = ChatID,
+            ChatID = (int) ChatID!,
             SenderID = self!.Id,
             Content = messageText,
             SentAt = DateTime.Now,
@@ -409,71 +410,12 @@
         var readDatabaseRequest = new TellOthersToReadDatabaseC2SPacket
         {
             SenderId = self.Id,
-            ChatId = ChatID,
+            ChatId = (int) ChatID!,
             DbEntry = DbEntry.ChatMessage
         };
         await SendToServer(readDatabaseRequest);
 
         Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message, othersCanSee: false));
-    }
-
-    private void UpdateMembers(List<User> usersAdded)
-    {
-        if (!usersAdded.IsNullOrEmpty())
-        {
-            Chat!.Users.AddRange(usersAdded);
-            AlertVisible = true;
-            AlertMessage = "Member(s) added successfully!";
-            AlertColor = Color.Success;
-        }
-        else
-        {
-            AlertVisible = true;
-            AlertMessage = "No member(s) added!";
-            AlertColor = Color.Warning;
-        }
-    }
-
-    private async Task RemoveMember(int userID)
-    {
-        try
-        {
-            await using var db = await Db.CreateDbContextAsync();
-            var user = db.Users.Include(i => i.Chats).FirstOrDefault(f => f.Id == userID);
-            if (user is null)
-            {
-                AlertVisible = true;
-                AlertMessage = "User not found";
-                AlertColor = Color.Warning;
-                return;
-            }
-            var confirmed = await JsRuntime.InvokeAsync<bool>("showConfirmDialog", $"Are you sure you want to remove {user.DisplayName ?? user.UserName}?");
-
-            if (confirmed)
-            {
-                db.Chats.Include(i => i.Users).First(f => f.ID == Chat!.ID).Users.Remove(user);
-                db.Users.Include(i => i.Chats).First(f => f.Id == userID).Chats.Remove(Chat!);
-                db.Chats.OfType<GroupChat>().Include(i => i.Moderators).First(f => f.ID == Chat!.ID).Moderators.Remove(user);
-                db.Users.Include(i => i.ModeratedChats).First(f => f.Id == userID).Chats.Remove(Chat!);
-                await db.SaveChangesAsync();
-                Chat!.Users.Remove(Chat.Users.FirstOrDefault(r => r.Id == userID)!);
-                AlertVisible = true;
-                AlertMessage = "Member removed successfully!";
-                AlertColor = Color.Success;
-            }
-            else
-            {
-                AlertVisible = true;
-                AlertMessage = "Member not removed";
-                AlertColor = Color.Warning;
-            }
-        }
-        catch (Exception)
-        {
-            AlertVisible = true;
-            AlertMessage = "Sorry we failed to remove that member :( Please try again";
-            AlertColor = Color.Danger;
-        }
     }
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)
@@ -512,14 +454,11 @@
         GC.SuppressFinalize(this);
     }
 
-    private async Task SettingsChanged()
+    public async Task OnGroupUpdate()
     {
-        AlertVisible = true;
-        AlertMessage = "Settings updated successfully!";
-        AlertColor = Color.Success;
-        await GetData();
+        await GetChatData();
     }
-
+    
     public class LinkedMessage(Message message, Message? previous, bool othersCanSee = true)
     {
         public MessageState GetMessageState()
@@ -534,7 +473,7 @@
         }
 
         public Message Message { get; } = message;
-
+        
         public Message? Previous { get; set; } = previous;
 
         public bool OthersCanSee { get; set; } = othersCanSee;

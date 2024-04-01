@@ -78,18 +78,16 @@
         
         if(accepted) 
         {
-            Friendship newFriend = new Friendship();
-                newFriend.User1ID = prospect.Id;
-                newFriend.User2ID = self.Id;
+            Friendship newFriend = new Friendship(self.Id, prospect.Id);
 
-                var oldIncomingRequest = db.FriendRequests.Find(prospect.Id, self.Id);
-                var oldOutgoingRequest = db.FriendRequests.Find(self.Id, prospect.Id);
+            var oldIncomingRequest = db.FriendRequests.Find(prospect.Id, self.Id);
+            var oldOutgoingRequest = db.FriendRequests.Find(self.Id, prospect.Id);
 
-                if (oldIncomingRequest != null)
-                    db.FriendRequests.Remove(oldIncomingRequest);
-                if (oldOutgoingRequest != null)
-                    db.FriendRequests.Remove(oldOutgoingRequest);
-                db.FriendShips.Add(newFriend);
+            if (oldIncomingRequest != null)
+                db.FriendRequests.Remove(oldIncomingRequest);
+            if (oldOutgoingRequest != null)
+                db.FriendRequests.Remove(oldOutgoingRequest);
+            db.FriendShips.Add(newFriend);
             
             OutgoingFriendReqs.RemoveAll(user => user.Id == prospect.Id);
             DeniedFriendReqs.RemoveAll(user => user.Id == prospect.Id);

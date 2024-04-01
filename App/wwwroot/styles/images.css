@@ -11,6 +11,31 @@
     overflow: hidden;
 }
 
+._32x32 {
+    width: 32px;
+    height: 32px;
+}
+
+._64x64 {
+    width: 64px;
+    height: 64px;
+}
+
+._128x128 {
+    width: 128px;
+    height: 128px;
+}
+
+._256x256 {
+    width: 256px;
+    height: 256px;
+}
+
+._512x512 {
+    width: 512px;
+    height: 512px;
+}
+
 .overlay-wrapper { /* Container for image, overlay */
     position: relative;
     width: 256px;

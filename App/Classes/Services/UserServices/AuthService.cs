@@ -5,7 +5,7 @@ using Bamboozlers.Classes.Func;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bamboozlers.Classes.Services.Authentication;
+namespace Bamboozlers.Classes.Services.UserServices;
 
 public class AuthService : IAuthService
 {
@@ -90,7 +90,7 @@ public interface IAuthService
     /// If <see cref="IsAuthenticated"/> returns false.
     /// </exception>
     Task<User?> GetUser(Unary<IQueryable<User>>? inclusionCallback = null);
-
+    
     /// <returns>
     /// The identity of the current user, or null if the user is not authenticated.
     /// </returns>
