@@ -1,3 +1,5 @@
+using Bamboozlers.Classes.AppDbContext;
+
 namespace Bamboozlers.Classes.Data;
 
 /// <summary>

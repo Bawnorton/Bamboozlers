@@ -19,7 +19,6 @@
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.VisualUtility
-@using IMessageService = Bamboozlers.Classes.Services.IMessageService
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject NavigationManager NavigationManager
@@ -397,7 +396,7 @@
         var self = await AuthService.GetUser();
         var message = new Message
         {
-            ChatID = ChatID,
+            ChatID = (int) ChatID!,
             SenderID = self!.Id,
             Content = messageText,
             SentAt = DateTime.Now,
@@ -411,7 +410,7 @@
         var readDatabaseRequest = new TellOthersToReadDatabaseC2SPacket
         {
             SenderId = self.Id,
-            ChatId = ChatID,
+            ChatId = (int) ChatID!,
             DbEntry = DbEntry.ChatMessage
         };
         await SendToServer(readDatabaseRequest);

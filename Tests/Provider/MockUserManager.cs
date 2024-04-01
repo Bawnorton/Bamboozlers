@@ -4,9 +4,8 @@ using Bunit.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Tests.Provider;
 
-namespace Tests;
+namespace Tests.Provider;
 
 public class MockUserManager
 {
@@ -23,12 +22,12 @@ public class MockUserManager
             Mock.Of<IUserStore<User>>(), 
             Mock.Of<IOptions<IdentityOptions>>(), 
             Mock.Of<IPasswordHasher<User>>(), 
-            null, // No need for user validator
-            null, // No need for password validator
+            null!, // No need for user validator
+            null!, // No need for password validator
             Mock.Of<ILookupNormalizer>(), 
             Mock.Of<IdentityErrorDescriber>(), 
             Mock.Of<IServiceProvider>(), 
-            null
+            null!
         );
         
         ctx.Services.AddSingleton(_mockUserManager.Object);

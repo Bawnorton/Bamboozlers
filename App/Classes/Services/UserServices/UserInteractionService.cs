@@ -50,7 +50,6 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         return await dbContext.FriendRequests.FirstOrDefaultAsync(r =>
             r.ReceiverID == self.Id 
             && r.SenderID == other.Id 
-            && r.Status == RequestStatus.Pending
         );
     }
 
@@ -65,7 +64,6 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         return await dbContext.FriendRequests.FirstOrDefaultAsync(r =>
             r.ReceiverID == other.Id 
             && r.SenderID == self.Id 
-            && r.Status == RequestStatus.Pending
         );
     }
     

@@ -1,4 +1,5 @@
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.UserServices;
 using Microsoft.Extensions.DependencyInjection;
 using Tests.Provider;
