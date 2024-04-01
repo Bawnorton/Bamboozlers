@@ -71,7 +71,8 @@ builder.Services.AddSignalR(e =>
 });
 builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
 
-builder.WebHost.UseUrls("http://192.168.1.199:5152", "http://localhost:5152");
+string[] urls = builder.Environment.IsDevelopment() ? ["http://localhost:5152"] : ["http://192.168.1.199:5152", "http://localhost:5152"];
+builder.WebHost.UseUrls(urls);
 
 var app = builder.Build();
 
