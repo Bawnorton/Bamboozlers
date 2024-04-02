@@ -7,8 +7,8 @@
 @using Bamboozlers.Components.Interaction
 
 @inherits UserViewComponentBase
-@implements IAsyncInteractionSubscriber
-@implements IAsyncGroupSubscriber
+@implements IInteractionSubscriber
+@implements IGroupSubscriber
 
 <Layout>
     <LayoutHeader Fixed
@@ -116,11 +116,15 @@
         await base.OnInitializedAsync();
         Self = (await AuthService.GetUser())!;
         headerLabel = $"Hello, {Self.UserName}!";
+
+        UserInteractionService.AddSubscriber(this);
+        UserGroupService.AddSubscriber(this);
+        
         await GetGroupsData();
         await GetFriendsData();
     }
     
-    public async Task GetFriendsData()
+    private async Task GetFriendsData()
     {
         Friends = await UserInteractionService.GetAllFriends();
         IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
@@ -129,21 +133,37 @@
         BlockedBy = await UserInteractionService.GetAllBlockedBy();
     }
     
-    public async Task GetGroupsData()
+    private async Task GetGroupsData()
     {
         IncomingGroupInvites = await UserGroupService.GetAllIncomingInvites();
         OutgoingGroupInvites = await UserGroupService.GetAllOutgoingInvites();
     }
-    
-    public async Task OnGroupUpdate()
+
+    public List<GroupEvent> WatchedGroupEvents { get; set; } =
+    [
+        GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.ReceivedInviteDeclined,
+        GroupEvent.SentInviteRevoked,
+        GroupEvent.SentInvite
+    ];
+    public async Task OnGroupUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetGroupsData();
         StateHasChanged();
     }
 
-    public async Task OnInteractionUpdate()
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
+    [
+        InteractionEvent.Block,
+        InteractionEvent.Unblock,
+        InteractionEvent.RequestAccepted,
+        InteractionEvent.RequestDeclined,
+        InteractionEvent.RequestRevoked
+    ];
+    public async Task OnInteractionUpdate(InteractionEvent evt)
     {
         await GetFriendsData();
         StateHasChanged();
     }
+
 }

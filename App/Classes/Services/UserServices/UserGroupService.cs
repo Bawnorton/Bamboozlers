@@ -88,8 +88,6 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         self.Chats.Add(group);
 
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        dbContext.Attach(self);
-        dbContext.Attach(group);
         await dbContext.SaveChangesAsync();
         
         return IdentityResult.Success;
@@ -110,9 +108,9 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         
         group.Avatar = avatar;
         group.Name = name;
-        dbContext.Attach(group);
         await dbContext.SaveChangesAsync();
         
+        await NotifySubscribersOf(group.ID, GroupEvent.GroupDisplayChange);
         return IdentityResult.Success;
     }
 
@@ -155,14 +153,12 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             return;
         
         dbContext.GroupInvites.Remove(invite);
-
-        dbContext.Attach(group);
-        dbContext.Attach(self);
+        
         self.Chats.Add(group);
         group.Users.Add(self);
         await dbContext.SaveChangesAsync();
         
-        await NotifySubscribersOf(group.ID);
+        await NotifySubscribersOf(group.ID, GroupEvent.ReceivedInviteAccepted);
     }
 
     public async Task DeclineGroupInvite(int? chatId, int? senderId)
@@ -178,7 +174,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         dbContext.GroupInvites.Remove(invite);
         await dbContext.SaveChangesAsync();
-        await NotifySubscribersOf(invite.GroupID);
+        await NotifySubscribersOf(group.ID, GroupEvent.ReceivedInviteDeclined);
     }
 
     public async Task RemoveGroupMember(int? chatId, int? memberId)
@@ -187,9 +183,13 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         if (self is null || group is null)
             return;
         
-        var other = group.Users.FirstOrDefault(u => u.Id == memberId);
-        if (other is null)
-            return;
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var other = await dbContext.Users.Where(u => u.Id == memberId)
+            .Include(u => u.Chats)
+            .Include(u => u.ModeratedChats)
+            .FirstOrDefaultAsync();
+        
+        if (other is null || !IsMemberOf(group, other)) return;
 
         var skipChecks = other.Id == self.Id;
         if (!skipChecks)
@@ -198,10 +198,6 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
                 return;
         }
         
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-
-        dbContext.Attach(group);
-        dbContext.Attach(other);
         if (IsModerator(group, other))
         {
             other.ModeratedChats.Remove(group);
@@ -210,7 +206,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         other.Chats.Remove(group);
         group.Users.Remove(other);
         await dbContext.SaveChangesAsync();
-        await NotifySubscribersOf(group.ID);
+        await NotifySubscribersOf(group.ID, GroupEvent.RemoveMember);
     }
 
     public async Task AssignPermissions(int? chatId, int? modId)
@@ -218,21 +214,22 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         var (self, group) = await GetUserAndGroup(chatId);
         if (self is null || group is null) return;
         
-        var mod = group.Users.FirstOrDefault(u => u.Id == modId);
-        if (mod is null) return;
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var mod = await dbContext.Users.Where(u => u.Id == modId)
+            .Include(u => u.Chats)
+            .Include(u => u.ModeratedChats)
+            .FirstOrDefaultAsync();
+        if (mod is null || !IsMemberOf(group, mod)) return;
         
         var selfOutranks = Outranks(self, mod, group);
         
         if (!selfOutranks || IsModerator(group, mod))
             return;
         
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        dbContext.Attach(group);
-        dbContext.Attach(mod);
         group.Moderators.Add(mod);
         mod.ModeratedChats.Add(group);
         await dbContext.SaveChangesAsync();
-        await NotifySubscribersOf(group.ID);
+        await NotifySubscribersOf(group.ID, GroupEvent.GrantedPermissions);
     }
 
     public async Task RevokePermissions(int? chatId, int? modId)
@@ -240,20 +237,21 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         var (self, group) = await GetUserAndGroup(chatId);
         if (self is null || group is null) return;
         
-        var mod = group.Users.FirstOrDefault(u => u.Id == modId);
-        if (mod is null) return;
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var mod = await dbContext.Users.Where(u => u.Id == modId)
+            .Include(u => u.Chats)
+            .Include(u => u.ModeratedChats)
+            .FirstOrDefaultAsync();
+        if (mod is null || !IsMemberOf(group, mod)) return;
 
         var selfOutranks = Outranks(self, mod, group);
         if (!selfOutranks || !IsModerator(group, mod))
             return;
         
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        dbContext.Attach(group);
-        dbContext.Attach(mod);
         group.Moderators.Remove(mod);
         mod.ModeratedChats.Remove(group);
         await dbContext.SaveChangesAsync();
-        await NotifySubscribersOf(group.ID);
+        await NotifySubscribersOf(group.ID, GroupEvent.RevokedPermissions);
     }
 
     public async Task SendGroupInvite(int? chatId, int? recipientId)
@@ -275,7 +273,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             invite = new GroupInvite(self.Id, other.Id, group.ID);
             await dbContext.GroupInvites.AddAsync(invite);
             await dbContext.SaveChangesAsync();
-            await NotifySubscribersOf(group.ID);
+            await NotifySubscribersOf(group.ID, GroupEvent.SentInvite);
         }
     }
     
@@ -295,7 +293,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         {
             dbContext.Remove(invite);
             await dbContext.SaveChangesAsync();
-            await NotifySubscribersOf(group.ID);
+            await NotifySubscribersOf(group.ID,GroupEvent.SentInviteRevoked);
         }
     }
 
@@ -306,6 +304,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         if (self is null || group is null) return;
 
         await RemoveGroupMember(chatId, self.Id);
+        await NotifySubscribersOf(group.ID, GroupEvent.SelfLeftGroup);
     }
 
     public async Task<List<GroupChat>> GetAllModeratedGroups()
@@ -351,21 +350,29 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             : [];
     }
 
-    public List<IAsyncGroupSubscriber> Subscribers { get; } = [];
+    public List<IGroupSubscriber> Subscribers { get; } = [];
     
-    public bool AddSubscriber(IAsyncGroupSubscriber subscriber) 
+    public bool AddSubscriber(IGroupSubscriber subscriber) 
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
         return true;
     }
 
-    private async Task NotifySubscribersOf(int groupId)
+    private async Task NotifySubscribersOf(int groupId, GroupEvent evt)
     {
-        var subset = Subscribers.Where(s => s.WatchedIDs.Contains(groupId));
+        var listenersToEvent = evt is GroupEvent.General
+            ? Subscribers
+            : Subscribers.Where(s => s.WatchedGroupEvents.Contains(evt) 
+                                     || (s.WatchedGroupEvents.Contains(GroupEvent.General) && s.WatchedGroupEvents.Count == 1));
+        
+        var subset = groupId == -1 
+            ? listenersToEvent
+            : listenersToEvent.Where(s => s.WatchedIDs.Contains(groupId) || s.WatchedIDs.Count == 0);
+        
         foreach (var sub in subset)
         {
-            await sub.OnGroupUpdate();
+            await sub.OnGroupUpdate(evt);
         }
     }
     
@@ -373,12 +380,12 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
     {
         foreach (var sub in Subscribers)
         {
-            await sub.OnGroupUpdate();
+            await sub.OnGroupUpdate(GroupEvent.General);
         }
     }
 }
 
-public interface IUserGroupService : IAsyncPublisher<IAsyncGroupSubscriber>
+public interface IUserGroupService : IAsyncPublisher<IGroupSubscriber>
 {
     Task<IdentityResult> CreateGroup(byte[]? avatar = null, string? name = null);
     Task<IdentityResult> UpdateGroupDisplay(int? chatId, byte[]? avatar = null, string? name = null);

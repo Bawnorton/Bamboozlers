@@ -1,5 +1,5 @@
 @inherits UserViewComponentBase
-@implements IAsyncGroupSubscriber
+@implements IGroupSubscriber
 @implements IAsyncDisposable
 
 @using Bamboozlers.Classes.AppDbContext
@@ -453,11 +453,6 @@
 
         GC.SuppressFinalize(this);
     }
-
-    public async Task OnGroupUpdate()
-    {
-        await GetChatData();
-    }
     
     public class LinkedMessage(Message message, Message? previous, bool othersCanSee = true)
     {
@@ -477,5 +472,15 @@
         public Message? Previous { get; set; } = previous;
 
         public bool OthersCanSee { get; set; } = othersCanSee;
+    }
+
+    public List<GroupEvent> WatchedGroupEvents { get; } = 
+    [
+        GroupEvent.GroupDisplayChange
+    ];
+    
+    public async Task OnGroupUpdate(GroupEvent evt, int? specifiedGroup = null)
+    {
+        await GetChatData();
     }
 }

@@ -61,7 +61,7 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("test_user1@gmail.com",userData.Email);
         
         var notified = false;
-        var subscriber = new Mock<IAsyncUserSubscriber>();
+        var subscriber = new Mock<IUserSubscriber>();
         subscriber.Setup(x => x.OnUserUpdate()).Callback(() => notified = true);
         
         var result = UserService.AddSubscriber(subscriber.Object);
@@ -83,12 +83,12 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("TestUser2",userData.UserName);
         Assert.Equal("test_user2@gmail.com",userData.Email);
 
-        result = ((IAsyncPublisher<IAsyncUserSubscriber>) UserService).RemoveSubscriber(subscriber.Object);
+        result = ((IAsyncPublisher<IUserSubscriber>) UserService).RemoveSubscriber(subscriber.Object);
         Assert.True(result);
         Assert.DoesNotContain(subscriber.Object,UserService.Subscribers);
         
-        subscriber = new Mock<IAsyncUserSubscriber>();
-        result = ((IAsyncPublisher<IAsyncUserSubscriber>) UserService).RemoveSubscriber(subscriber.Object);
+        subscriber = new Mock<IUserSubscriber>();
+        result = ((IAsyncPublisher<IUserSubscriber>) UserService).RemoveSubscriber(subscriber.Object);
         Assert.False(result);
         
         await SetUser(null);

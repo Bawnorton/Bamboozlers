@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components;
 
-public class UserViewComponentBase : ComponentBase, IAsyncUserSubscriber
+public class UserViewComponentBase : ComponentBase, IUserSubscriber
 {
     [Inject] protected IUserService UserService { get; set; }
     [Inject] protected IAuthService AuthService { get; set; } = default!;

@@ -294,14 +294,24 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
             : [];
     }
 
-    public List<IAsyncInteractionSubscriber> Subscribers { get; } = [];
+    public List<IInteractionSubscriber> Subscribers { get; } = [];
     
-    public bool AddSubscriber(IAsyncInteractionSubscriber subscriber) 
+    private async Task NotifySubscribersOf(InteractionEvent evt)
+    {
+        var subset = evt is InteractionEvent.General
+            ? Subscribers
+            : Subscribers.Where(s => s.WatchedInteractionEvents.Contains(evt) 
+                                     || (s.WatchedInteractionEvents.Contains(InteractionEvent.General) && s.WatchedInteractionEvents.Count == 1));
+        
+        foreach (var sub in subset)
+        {
+            await sub.OnInteractionUpdate(evt);
+        }
+    }
+    public bool AddSubscriber(IInteractionSubscriber subscriber) 
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
-        
-        subscriber.OnInteractionUpdate();
         
         return true;
     }
@@ -310,12 +320,12 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     {
         foreach (var sub in Subscribers)
         {
-            await sub.OnInteractionUpdate();
+            await sub.OnInteractionUpdate(InteractionEvent.General);
         }
     }
 }
 
-public interface IUserInteractionService : IAsyncPublisher<IAsyncInteractionSubscriber>
+public interface IUserInteractionService : IAsyncPublisher<IInteractionSubscriber>
 {
     Task<Friendship?> FindFriendship(int? otherId);
     Task<FriendRequest?> FindIncomingRequest(int? otherId);

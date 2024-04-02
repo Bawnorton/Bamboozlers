@@ -1,6 +1,6 @@
 @inherits UserViewComponentBase;
-@implements IAsyncGroupSubscriber
-@implements IAsyncInteractionSubscriber
+@implements IGroupSubscriber
+@implements IInteractionSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Events
@@ -56,7 +56,7 @@
                                 @foreach (var chat in DmChats)
                                 {
                                     <BarItem>
-                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => OpenDm(chat.ID)">
+                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
                                             @if (chat.Avatar is not null)
                                             {
                                                 <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
@@ -132,6 +132,7 @@
 @code {
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    
     private User? User { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
 
@@ -155,7 +156,7 @@
     
     private async Task GetDataAsync()
     {
-        await GetUserDataAsync();
+        await GetUserData();
 
         if (User is null)
             return;
@@ -165,7 +166,7 @@
         await GetFriendData();
     }
 
-    private async Task GetUserDataAsync()
+    private async Task GetUserData()
     {
         User = await AuthService.GetUser(query =>
             query
@@ -217,36 +218,105 @@
         }
     }
 
-    private void OpenDm(int chatId)
+    private async Task OpenDm(int otherId, bool reload = false)
     {
-        if (DmChats.FirstOrDefault(d => d.ID == chatId) is null)
+        if (reload)
+        {
+            await GetUserData();
+            GetDmData();   
+        }
+        
+        if (DmChats.FirstOrDefault(d => d.User.Id == otherId) is null)
             return;
         
         CurrentView = View.Dm; 
-        CurrentChatId = chatId; 
+        CurrentChatId = otherId; 
+        StateHasChanged();
     }
     
-    private void OpenGroup(int chatId)
+    private async Task OpenGroup(int chatId, bool reload = false)
     {
+        if (reload)
+        {
+            await GetUserData();
+            GetGroupData();
+        }
+
         if (GroupChats.FirstOrDefault(g => g.ID == chatId) is null)
             return;
         
         CurrentView = View.Group; 
         CurrentChatId = chatId; 
-    }
-    
-    public List<int?> WatchedIDs { get; set; } = [];
-    
-    public async Task OnGroupUpdate()
-    {
-        await GetUserDataAsync();
-        GetGroupData();
         StateHasChanged();
     }
     
-    public async Task OnInteractionUpdate()
+    public List<int?> WatchedIDs { get; set; } = [];
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
+    [
+        InteractionEvent.CreateDm,
+        InteractionEvent.Block,
+        InteractionEvent.Unblock,
+        InteractionEvent.Unfriend,
+        InteractionEvent.RequestAccepted
+    ];
+
+    public List<GroupEvent> WatchedGroupEvents { get; set; } = 
+    [
+        GroupEvent.CreateGroup,
+        GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.SelfLeftGroup,
+        GroupEvent.GroupDisplayChange
+    ];
+
+    public async Task OnGroupUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
-        await GetUserDataAsync();
+        await GetUserData();
+        
+        var listMatch = GroupChats.FirstOrDefault(gc => gc.ID == specifiedGroup);
+        var userMatch = User!.Chats.OfType<GroupChat>().FirstOrDefault(u => u.ID == specifiedGroup);
+        
+        switch (evt)
+        {
+            case GroupEvent.SelfLeftGroup:
+                if (listMatch is not null)
+                    GroupChats.Remove(listMatch);
+                if (specifiedGroup is null) 
+                    break;
+                if (CurrentView != View.Group || CurrentChatId != specifiedGroup)
+                    break;
+                CurrentChatId = -1;
+                CurrentView = View.Home;
+                break;
+            case GroupEvent.ReceivedInviteAccepted: 
+            case GroupEvent.CreateGroup:
+                if (userMatch is not null && listMatch is null)
+                {
+                    GroupChats.Add(userMatch);
+                }
+                break;
+            case GroupEvent.GroupDisplayChange:
+                if (userMatch is not null)
+                {
+                    if (listMatch is not null)
+                    {
+                        GroupChats.Remove(listMatch);
+                        GroupChats.Add(userMatch);
+                        break;
+                    }
+                    GroupChats.Add(userMatch);
+                }
+                break;
+            default:
+                GetGroupData();
+                break;
+        }
+        StateHasChanged();
+    }
+    
+    public async Task OnInteractionUpdate(InteractionEvent evt)
+    {
+        await GetUserData();
         GetDmData();
         await GetFriendData();
         StateHasChanged();

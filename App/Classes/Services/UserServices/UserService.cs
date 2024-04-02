@@ -146,7 +146,7 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
         if (invalidate)
             Invalidate();
         await BuildUserDataAsync();
-        await ((IAsyncPublisher<IAsyncUserSubscriber>) this).NotifyAllAsync();
+        await ((IAsyncPublisher<IUserSubscriber>) this).NotifyAllAsync();
     }
     
     public virtual void Invalidate()
@@ -155,9 +155,9 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
         UserRecord = null;
     }
     
-    public List<IAsyncUserSubscriber> Subscribers { get; } = [];
+    public List<IUserSubscriber> Subscribers { get; } = [];
     
-    public bool AddSubscriber(IAsyncUserSubscriber subscriber) 
+    public bool AddSubscriber(IUserSubscriber subscriber) 
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
@@ -176,7 +176,7 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
     }
 }
 
-public interface IUserService : IAsyncPublisher<IAsyncUserSubscriber>
+public interface IUserService : IAsyncPublisher<IUserSubscriber>
 {
     /// <summary>
     /// Retrieval method for the User's display variables for classes utilizing this service.

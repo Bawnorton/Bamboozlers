@@ -1,5 +1,5 @@
 @inherits UserViewComponentBase
-@implements IAsyncInteractionSubscriber
+@implements IInteractionSubscriber
 
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.AppDbContext
@@ -57,8 +57,8 @@
         return @<text>
                     <div style="display: block; padding-top: 5px; padding-bottom: 5px;" 
                          id="@($"blocked-user-{user.UserName}")">
-                        <div style="display: inline-flex; padding-right: 20px">
-                            <img style="padding-left: 5px; padding-right: 5px;" class="_32x32 border-mask" src="@imgSrc" alt=""/>
+                        <div style="display: inline-flex; margin-right: 20px">
+                            <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@imgSrc" alt=""/>
                             <CompInteractUsername User="@user"/>                            
                         </div>
                         <div style="display: inline-flex;">
