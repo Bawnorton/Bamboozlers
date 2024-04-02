@@ -1,4 +1,5 @@
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Components.Group;
 using Blazorise;
 using Blazorise.Modules;
 using Bunit.Extensions.WaitForHelpers;
@@ -259,7 +260,7 @@ public class GroupChatTests : AuthenticatedBlazoriseTestBase
         await SetUser(subjectUser);
         UserService.Invalidate();
 
-        var component = Ctx.RenderComponent<CompChatSettings>(
+        var component = Ctx.RenderComponent<CompGroupSettings>(
             parameters
                 => parameters.Add(p => p.ChatID, subjectGroup.ID)
         );
@@ -283,7 +284,7 @@ public class GroupChatTests : AuthenticatedBlazoriseTestBase
         UserService.Invalidate();
 
         component.Dispose();
-        component = Ctx.RenderComponent<CompChatSettings>(
+        component = Ctx.RenderComponent<CompGroupSettings>(
             parameters
                 => parameters.Add(p => p.ChatID, subjectGroup.ID)
         );
@@ -294,7 +295,7 @@ public class GroupChatTests : AuthenticatedBlazoriseTestBase
         UserService.Invalidate();
 
         component.Dispose();
-        component = Ctx.RenderComponent<CompChatSettings>(
+        component = Ctx.RenderComponent<CompGroupSettings>(
             parameters
                 => parameters.Add(p => p.ChatID, subjectGroup.ID)
         );
@@ -313,7 +314,7 @@ public class GroupChatTests : AuthenticatedBlazoriseTestBase
         await SetUser(subjectUser);
         UserService.Invalidate();
         
-        var component = Ctx.RenderComponent<CompChatSettings>(
+        var component = Ctx.RenderComponent<CompGroupSettings>(
             parameters
                 => parameters.Add(p => p.ChatID, subjectGroup.ID)
         );

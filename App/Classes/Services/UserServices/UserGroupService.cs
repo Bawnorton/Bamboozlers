@@ -116,7 +116,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         return IdentityResult.Success;
     }
 
-    public async Task<GroupInvite?> FindGroupInvite(int? chatId)
+    public async Task<GroupInvite?> FindIncomingGroupInvite(int? chatId, int? senderId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
@@ -125,13 +125,26 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             return null;
         
         return await dbContext.GroupInvites.AsNoTracking().FirstOrDefaultAsync(
-            i => i.GroupID == group.ID && i.RecipientID == self.Id
+            i => i.GroupID == group.ID && i.RecipientID == self.Id && i.SenderID == senderId
+        );
+    }
+    
+    public async Task<GroupInvite?> FindOutgoingGroupInvite(int? chatId, int? recipientId)
+    {
+        var (self, group) = await GetUserAndGroup(chatId);
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        if (self is null || group is null)
+            return null;
+        
+        return await dbContext.GroupInvites.AsNoTracking().FirstOrDefaultAsync(
+            i => i.GroupID == group.ID && i.RecipientID == recipientId && i.SenderID == self.Id
         );
     }
 
-    public async Task AcceptGroupInvite(int? chatId)
+    public async Task AcceptGroupInvite(int? chatId, int? senderId)
     {
-        var invite = await FindGroupInvite(chatId);
+        var invite = await FindIncomingGroupInvite(chatId, senderId);
         if (invite is null) 
             return;
         
@@ -152,13 +165,13 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         await NotifySubscribersOf(group.ID);
     }
 
-    public async Task DeclineGroupInvite(int? chatId)
+    public async Task DeclineGroupInvite(int? chatId, int? senderId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
         if (self is null || group is null)
             return;
         
-        var invite = await FindGroupInvite(chatId);
+        var invite = await FindIncomingGroupInvite(chatId, senderId);
         if (invite is null) 
             return;
         
@@ -256,7 +269,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         if (other is null)
             return;
         
-        var invite = await FindGroupInvite(chatId);
+        var invite = await FindOutgoingGroupInvite(chatId,recipientId);
         if (invite is null && (IsModerator(group, self) || IsOwner(group, self)))
         {
             invite = new GroupInvite(self.Id, other.Id, group.ID);
@@ -359,9 +372,10 @@ public interface IUserGroupService : IAsyncPublisher<IAsyncGroupSubscriber>
 {
     Task<IdentityResult> CreateGroup(byte[]? avatar = null, string? name = null);
     Task<IdentityResult> UpdateGroupDisplay(int? chatId, byte[]? avatar = null, string? name = null);
-    Task<GroupInvite?> FindGroupInvite(int? chatId);
-    Task AcceptGroupInvite(int? chatId);
-    Task DeclineGroupInvite(int? chatId);
+    Task<GroupInvite?> FindIncomingGroupInvite(int? chatId, int? senderId);
+    Task<GroupInvite?> FindOutgoingGroupInvite(int? chatId, int? senderId);
+    Task AcceptGroupInvite(int? chatId, int? senderId);
+    Task DeclineGroupInvite(int? chatId, int? senderId);
     Task RemoveGroupMember(int? chatId, int? memberId);
     Task AssignPermissions(int? chatId, int? modId);
     Task RevokePermissions(int? chatId, int? modId);

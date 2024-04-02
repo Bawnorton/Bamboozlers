@@ -1,0 +1,174 @@
+@inherits UserViewComponentBase
+@implements IAsyncGroupSubscriber
+
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Classes.Utility.Observer
+@using Blazorise.Extensions
+
+<div style="margin-top: 5px">
+    <Tabs @bind-SelectedTab="SelectedTab">
+        <Items>
+            <Tab Name="Incoming">
+                @if (IncomingGroupInvites.Count > 0)
+                {
+                    <Badge Color="Color.Dark">
+                        @IncomingGroupInvites.Count
+                    </Badge>  
+                } 
+                Received Group Invites
+            </Tab>
+            <Tab Name="Outgoing">
+                @if (OutgoingGroupInvites.Count > 0)
+                {
+                    <Badge Color="Color.Dark">
+                        @OutgoingGroupInvites.Count
+                    </Badge>  
+                } 
+                Sent Group Invites
+            </Tab>
+        </Items>
+        <Content>
+            <TabPanel Name="Incoming">
+                <Divider/>
+                <div style="display: inline-block; margin-left: 10px; margin-right: 10px;">
+                    @if (IncomingGroupInvites.Count > 0)
+                    {
+                        foreach (var invite in IncomingGroupInvites)
+                        {
+                            @GetIncomingGroupInviteFragment(invite);
+                        }
+                    }
+                    else
+                    {
+                        <p>Nothing to see here...</p>
+                        <p>You haven't received any group invites from your friends.</p>
+                    }
+                </div>
+            </TabPanel>
+            <TabPanel Name="Outgoing">
+                <Divider/>
+                <div style="display: inline-block; margin-left: 10px; margin-right: 10px;">
+                    @if (OutgoingGroupInvites.Count > 0)
+                    {
+                        foreach (var invite in OutgoingGroupInvites)
+                        {
+                            @GetOutgoingGroupInviteFragment(invite)
+                            ;
+                        }
+                    }
+                    else
+                    {
+                        <p>Nothing to see here...</p>
+                        <p>You haven't sent any group invites to your friends.</p>
+                    }
+                </div>
+            </TabPanel>
+        </Content>
+    </Tabs>
+</div>
+
+@code {
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    
+    [CascadingParameter] private EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    [CascadingParameter] private EventCallback ClosePopupCallback { get; set; }
+
+    private string SelectedTab { get; set; } = "Incoming";
+    
+    private List<GroupInvite> IncomingGroupInvites { get; set; } = [];
+    private List<GroupInvite> OutgoingGroupInvites { get; set; } = [];
+
+    public List<int?> WatchedIDs { get; set; } = [];
+    
+    private User Self { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        UserGroupService.AddSubscriber(this);
+        await GetGroupsData();
+    }
+
+    public RenderFragment GetOutgoingGroupInviteFragment(GroupInvite groupInvite)
+    {
+        var receiverRecord = UserRecord.From(groupInvite.Recipient);
+        return @<text>
+                    <div id="group-invite" style="display: inline">
+                        <div id="@($"for-group-{groupInvite.Group.Name}")" 
+                             style="display:inline">
+                            Invite to 
+                            @if (groupInvite.Group.Avatar is not null)
+                            {
+                                <img class="message-avatar" src="@($"data:image/png;base64,{Convert.ToBase64String(groupInvite.Group.Avatar)}")" alt=""/>   
+                            }
+                            @groupInvite.Group.Name
+                        </div>
+                        <div id="@($"to-user-{receiverRecord.UserName}")" 
+                             style="display:inline">
+                            for
+                            <img class="message-avatar" src="@receiverRecord.Avatar" alt=""/>
+                            <CompInteractUsername User="@groupInvite.Recipient"/>
+                        </div>
+                        <div id="action-buttons" 
+                             style="display: inline; float: right;">
+                            <CompActionButton ButtonId="revoke-button"
+                                              ButtonCaption="Revoke Request"
+                                              ActionCallback="@(async () => await UserGroupService.RevokeGroupInvite(groupInvite.GroupID, groupInvite.RecipientID))"
+                                              IconName="@IconName.Ban"
+                                              ColumnWrapped="@false"/>
+                        </div>
+                    </div>
+                </text>;
+    }
+    
+    public RenderFragment GetIncomingGroupInviteFragment(GroupInvite groupInvite)
+    {
+        var senderRecord = UserRecord.From(groupInvite.Sender);
+        return @<text>
+                    <div id="group-invite" style="display: inline">
+                        <div id="@($"forgroup-{groupInvite.Group.Name}")" 
+                             style="display:inline">
+                            Invite to 
+                            @if (groupInvite.Group.Avatar is not null)
+                            {
+                                <img class="message-avatar" src="@($"data:image/png;base64,{Convert.ToBase64String(groupInvite.Group.Avatar)}")" alt=""/>   
+                            }
+                            @groupInvite.Group.Name
+                        </div>
+                        <div id="@($"fromuser-{senderRecord.UserName}")" 
+                             style="display:inline">
+                            from 
+                            <img class="message-avatar" src="@senderRecord.Avatar" alt=""/>
+                            <CompInteractUsername User="@groupInvite.Sender"/>
+                        </div>
+                        <div id="action-buttons" 
+                             style="display: inline; float: right;">
+                            <CompActionButton ButtonId="accept-button"
+                                              IconName="@IconName.Check"
+                                              ActionCallback="@(async () => await UserGroupService.AcceptGroupInvite(groupInvite.GroupID, groupInvite.SenderID))"
+                                              ColumnWrapped="@false"/>
+                            <CompActionButton ButtonId="decline-button"
+                                              IconName="@IconName.Ban"
+                                              ActionCallback="@(async () => await UserGroupService.DeclineGroupInvite(groupInvite.GroupID, groupInvite.SenderID))"
+                                              ColumnWrapped="@false"/>
+                        </div>
+                    </div>
+                </text>;
+    }
+    
+    private async Task GetGroupsData()
+    {
+        IncomingGroupInvites = await UserGroupService.GetAllIncomingInvites();
+        OutgoingGroupInvites = await UserGroupService.GetAllOutgoingInvites();
+    }
+    
+    public async Task OnGroupUpdate()
+    {
+        await GetGroupsData();
+        StateHasChanged();
+    }
+}

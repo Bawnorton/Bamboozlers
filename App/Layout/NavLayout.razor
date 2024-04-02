@@ -16,6 +16,7 @@
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Chat
+@using Bamboozlers.Components.MainVisual
 @using Blazorise.Extensions
 
 @rendermode InteractiveServer
@@ -40,9 +41,9 @@
                  Class="scrollbar-container">
                 <BarMenu>
                     <BarItem>
-                        <BarLink ElementId="friends" @onclick="() => {CurrentView = View.Friends; CurrentChatId = -1; }">
-                            <BarIcon Class="fa-user-circle"></BarIcon>
-                            Friends
+                        <BarLink ElementId="home" @onclick="() => {CurrentView = View.Home; CurrentChatId = -1; }">
+                            <BarIcon Class="fa-home"></BarIcon>
+                            Home
                         </BarLink>
                     </BarItem>
                     <BarItem>
@@ -118,9 +119,9 @@
             </Div>
         </LayoutSiderContent>
     </LayoutSider>
-        @if(CurrentView == View.Friends)
+        @if(CurrentView == View.Home)
         {
-            <CompFriendsView />
+            <CompMainView/>
         }
         else
         {
@@ -136,7 +137,7 @@
 
     private List<GroupChat> GroupChats { get; set; } = [];
 
-    private View CurrentView { get; set; } = View.Friends;
+    private View CurrentView { get; set; } = View.Home;
     private int CurrentChatId { get; set; } = -1;
     private int FriendCount { get; set; } = 0;
     
@@ -183,7 +184,7 @@
 
         if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
         CurrentChatId = -1;
-        CurrentView = View.Friends;
+        CurrentView = View.Home;
     }
 
     private void GetDmData()
@@ -255,7 +256,7 @@
     {
         Dm,
         Group,
-        Friends
+        Home
     }
     
     private record DmChat(int ID, User User, byte[]? Avatar);

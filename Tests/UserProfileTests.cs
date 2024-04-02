@@ -3,6 +3,7 @@ using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Components;
+using Bamboozlers.Components.MainVisual;
 using Bamboozlers.Components.VisualUtility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;

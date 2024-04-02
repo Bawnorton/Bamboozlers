@@ -21,5 +21,5 @@ public enum RecognizedPopupType
     Profile,
     GroupChatSettings,
     ChatAddMember,
-    
+    AddFriends
 }

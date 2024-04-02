@@ -6,7 +6,9 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.Data
-@using Bamboozlers.Components.Chat
+@using Bamboozlers.Components.Interaction
+@using Bamboozlers.Components.MainVisual
+@using Bamboozlers.Components.Group
 @using Bamboozlers.Components.Settings
 
 @attribute [Authorize]
@@ -85,11 +87,14 @@
                                                 <CompProfileView FocusUser="UserRecord.From(args.FocusUser!)"/>
                                             </text>,
             RecognizedPopupType.GroupChatSettings => @<text>
-                                                     <CompChatSettings ChatID="@args.ChatId"/>
+                                                     <CompGroupSettings ChatID="@args.ChatId"/>
                                                  </text>,
             RecognizedPopupType.ChatAddMember => @<text>
                                                       <CompAddMember ChatID="@args.ChatId"/>
                                                   </text>,
+            RecognizedPopupType.AddFriends => @<text>
+                                                   <CompAddFriend/>
+                                               </text>,
             _ => @<text>
                       <ModalContent Size="args.Size" Centered>
                           <ModalHeader>

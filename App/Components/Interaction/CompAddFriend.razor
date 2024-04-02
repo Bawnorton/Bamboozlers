@@ -1,0 +1,125 @@
+@inherits UserViewComponentBase
+@implements IAsyncInteractionSubscriber
+
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Components.VisualUtility
+
+<ModalContent Size="ModalSize.Large" Centered>
+    <ModalHeader>
+        <ModalTitle>Add Friends</ModalTitle>
+        <CloseButton/>
+    </ModalHeader>
+    <ModalBody>
+        <Heading>Find users by their username or display name.</Heading>
+        <Divider/>
+        <Div Style="display: block">
+            <TextEdit Text="@SearchQuery"
+                      TextChanged="@OnQueryChanged"
+                      ElementId="search-bar" 
+                      MaskType="MaskType.RegEx"
+                      EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
+                      Placeholder="Find users by their username or display name"/>
+            <div style="display: block; margin-left:  5px; margin-right: 5px;" class="scrollbar-container">
+                <Divider/>
+                @if (SearchList.Count > 0)
+                {
+                    foreach (var fragment in SearchList)
+                    {
+                        @fragment
+                    }
+                    <Divider/>
+                }
+                else if (SearchQuery.Length > 0)
+                {
+                    <p>No users matching the supplied search query were found.</p>
+                }
+            </div>
+        </Div>
+    </ModalBody>
+</ModalContent>
+
+@code {
+    [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    [Inject] private IKeyPressService KeyPressService { get; set; } = default!;
+
+    private List<RenderFragment> SearchList { get; set; } = [];
+    private List<User> CurrentSearchResults { get; set; } = [];
+
+    private string SearchQuery { get; set; } = "";
+
+    private User Self { get; set; } = default!;
+    private List<User> Friends { get; set; } = [];
+    private List<User> Blocked { get; set; } = [];
+    private List<User> BlockedBy { get; set; } = [];
+    private List<FriendRequest> IncomingFriendRequests { get; set; } = [];
+    private List<FriendRequest> OutgoingFriendRequests { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Self = (await AuthService.GetUser())!;
+        UserInteractionService.AddSubscriber(this);
+        await GetInteractionData();
+    }
+    
+    public RenderFragment GetUserFragment(User user)
+    {
+        var record = UserRecord.From(user);
+        return @<text>
+                    <div style="display: inline-block;" id="@($"user-{user.UserName}")">
+                        <div style="display: inline;">
+                            <img src="@record.Avatar" alt=""/>
+                            <CompInteractUsername User="@user"/>                            
+                        </div>
+                        <div style="display: inline; float: right">
+                            <CompActionButton ButtonCaption="Send Friend Request"
+                                              IconName="@IconName.UserPlus"
+                                              ActionCallback="@(async () => await UserInteractionService.SendFriendRequest(user.Id))"
+                                              ColumnWrapped="@false"/>
+                        </div>
+                    </div>
+                </text>;
+    }
+
+    public async Task OnQueryChanged(string value)
+    {
+        SearchQuery = value;
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        CurrentSearchResults = dbContext.Users
+            .Where(u => (u.UserName != null && !u.UserName.StartsWith(SearchQuery))
+                        || (u.DisplayName != null && u.DisplayName.StartsWith(SearchQuery)))
+            .Where(u => u.Id != Self.Id)
+            .Where(u => Blocked.FirstOrDefault(b => u.Id == b.Id) == null)
+            .Where(u => BlockedBy.FirstOrDefault(b => u.Id == b.Id) == null)
+            .Where(u => Friends.FirstOrDefault(f => f.Id == u.Id) == null)
+            .Where(u => IncomingFriendRequests.FirstOrDefault(f => f.SenderID == u.Id) == null)
+            .Where(u => OutgoingFriendRequests.FirstOrDefault(f => f.ReceiverID == u.Id) == null)
+            .Take(20)
+            .ToList();
+        
+        SearchList = CurrentSearchResults.Select(GetUserFragment).ToList();
+        StateHasChanged();
+    }
+
+    public async Task GetInteractionData()
+    {
+        Friends = await UserInteractionService.GetAllFriends();
+        Blocked = await UserInteractionService.GetAllBlocked();
+        BlockedBy = await UserInteractionService.GetAllBlockedBy();
+        IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
+        OutgoingFriendRequests = await UserInteractionService.GetAllOutgoingRequests();
+    }
+
+    public async Task OnInteractionUpdate()
+    {
+        await GetInteractionData();
+        StateHasChanged();
+    }
+}
+

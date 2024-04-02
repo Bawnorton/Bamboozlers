@@ -20,7 +20,12 @@ var configuration = builder.Configuration;
 
 // Add services to the container.
 builder.Services
-    .AddBlazorise( options => options.Immediate = true )
+    .AddBlazorise( options =>
+    {
+        options.Immediate = true;
+        options.Debounce = true;
+        options.DebounceInterval = 300;
+    })
     .AddBootstrap5Providers()
     .AddFontAwesomeIcons();
 

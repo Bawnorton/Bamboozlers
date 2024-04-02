@@ -263,6 +263,28 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
                 .Select(s => s.User1ID != self.Id ? s.User1 : s.User2).ToList()
             : [];
     }
+    
+    public async Task<List<User>> GetAllBlocked()
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var self = await AuthService.GetUser();
+        return self is not null
+            ? dbContext.BlockList.AsNoTracking()
+                .Where(f => f.BlockerID == self.Id)
+                .Select(s => s.Blocked).ToList()
+            : [];
+    }
+    
+    public async Task<List<User>> GetAllBlockedBy()
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var self = await AuthService.GetUser();
+        return self is not null
+            ? dbContext.BlockList.AsNoTracking()
+                .Where(f => f.BlockedID == self.Id)
+                .Select(s => s.Blocker).ToList()
+            : [];
+    }
 
     public List<IAsyncInteractionSubscriber> Subscribers { get; } = [];
     
@@ -302,4 +324,6 @@ public interface IUserInteractionService : IAsyncPublisher<IAsyncInteractionSubs
     Task<List<FriendRequest>> GetAllIncomingRequests();
     Task<List<FriendRequest>> GetAllOutgoingRequests();
     Task<List<User>> GetAllFriends();
+    Task<List<User>> GetAllBlockedBy();
+    Task<List<User>> GetAllBlocked();
 }
