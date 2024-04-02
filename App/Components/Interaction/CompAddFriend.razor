@@ -7,6 +7,7 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.VisualUtility
+@using System.Diagnostics
 
 <ModalContent Size="ModalSize.Large" Centered>
     <ModalHeader>
@@ -17,12 +18,16 @@
         <Heading>Find users by their username or display name.</Heading>
         <Divider/>
         <Div Style="display: block">
-            <TextEdit Text="@SearchQuery"
-                      TextChanged="@OnQueryChanged"
-                      ElementId="search-bar" 
-                      MaskType="MaskType.RegEx"
-                      EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
-                      Placeholder="Find users by their username or display name"/>
+            <div style="display: inline-block; width: max-content;">
+                <TextEdit @bind-Text="SearchQuery"
+                          ElementId="search-bar"
+                          MaskType="MaskType.RegEx"
+                          EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
+                          Placeholder="Find users by their username or display name"/>
+                <CompActionButton ActionCallback="@(async () => await Search())"
+                                  IconName="@IconName.Search"
+                                  ColumnWrapped="@false"/>
+            </div>
             <div style="display: block; margin-left:  5px; margin-right: 5px;" class="scrollbar-container">
                 <Divider/>
                 @if (SearchList.Count > 0)
@@ -31,6 +36,7 @@
                     {
                         @fragment
                     }
+
                     <Divider/>
                 }
                 else if (SearchQuery.Length > 0)
@@ -49,16 +55,12 @@
     [Inject] private IKeyPressService KeyPressService { get; set; } = default!;
 
     private List<RenderFragment> SearchList { get; set; } = [];
-    private List<User> CurrentSearchResults { get; set; } = [];
+    private List<User?> CurrentSearchResults { get; set; } = [];
 
     private string SearchQuery { get; set; } = "";
 
     private User Self { get; set; } = default!;
-    private List<User> Friends { get; set; } = [];
-    private List<User> Blocked { get; set; } = [];
-    private List<User> BlockedBy { get; set; } = [];
-    private List<FriendRequest> IncomingFriendRequests { get; set; } = [];
-    private List<FriendRequest> OutgoingFriendRequests { get; set; } = [];
+    private List<User> Ignore { get; set;} = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,7 +75,7 @@
         return @<text>
                     <div style="display: inline-block;" id="@($"user-{user.UserName}")">
                         <div style="display: inline;">
-                            <img src="@record.Avatar" alt=""/>
+                            <img class="_32x32 border-mask" src="@record.Avatar" alt=""/>
                             <CompInteractUsername User="@user"/>                            
                         </div>
                         <div style="display: inline; float: right">
@@ -86,34 +88,38 @@
                 </text>;
     }
 
-    public async Task OnQueryChanged(string value)
+    public async Task Search()
     {
-        SearchQuery = value;
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
-        CurrentSearchResults = dbContext.Users
-            .Where(u => (u.UserName != null && !u.UserName.StartsWith(SearchQuery))
-                        || (u.DisplayName != null && u.DisplayName.StartsWith(SearchQuery)))
-            .Where(u => u.Id != Self.Id)
-            .Where(u => Blocked.FirstOrDefault(b => u.Id == b.Id) == null)
-            .Where(u => BlockedBy.FirstOrDefault(b => u.Id == b.Id) == null)
-            .Where(u => Friends.FirstOrDefault(f => f.Id == u.Id) == null)
-            .Where(u => IncomingFriendRequests.FirstOrDefault(f => f.SenderID == u.Id) == null)
-            .Where(u => OutgoingFriendRequests.FirstOrDefault(f => f.ReceiverID == u.Id) == null)
-            .Take(20)
-            .ToList();
+        var matches = dbContext.Users.Where(
+            u => (u.UserName != null && !u.UserName.StartsWith(SearchQuery))
+                 || (u.DisplayName != null && u.DisplayName.StartsWith(SearchQuery))).ToList();
         
-        SearchList = CurrentSearchResults.Select(GetUserFragment).ToList();
-        StateHasChanged();
+        CurrentSearchResults = []; 
+        foreach (var user in matches)
+        {
+            if (Ignore.FirstOrDefault(u => u.Id == user.Id) is null)
+            {
+                CurrentSearchResults.Add(user);
+            }
+        }
+        
+        SearchList = CurrentSearchResults
+            .Where(u => u != null)
+                .Select(u => u!)
+                    .Select(u => GetUserFragment(u))
+                        .ToList();
     }
 
     public async Task GetInteractionData()
     {
-        Friends = await UserInteractionService.GetAllFriends();
-        Blocked = await UserInteractionService.GetAllBlocked();
-        BlockedBy = await UserInteractionService.GetAllBlockedBy();
-        IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
-        OutgoingFriendRequests = await UserInteractionService.GetAllOutgoingRequests();
+        Ignore = [Self];
+        Ignore.AddRange(await UserInteractionService.GetAllFriends());
+        Ignore.AddRange(await UserInteractionService.GetAllBlocked());
+        Ignore.AddRange(await UserInteractionService.GetAllBlockedBy());
+        Ignore.AddRange((await UserInteractionService.GetAllIncomingRequests()).Select(f => f.Sender));
+        Ignore.AddRange((await UserInteractionService.GetAllOutgoingRequests()).Select(f => f.Receiver));
     }
 
     public async Task OnInteractionUpdate()

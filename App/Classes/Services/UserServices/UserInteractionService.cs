@@ -240,7 +240,11 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
         return self is not null 
-            ? dbContext.FriendRequests.AsNoTracking().Where(r => r.ReceiverID == self.Id).ToList() 
+            ? dbContext.FriendRequests.AsNoTracking()
+                .Where(r => r.ReceiverID == self.Id)
+                    .Include(r => r.Sender)
+                        .Include(r => r.Receiver)
+                            .ToList() 
             : [];
     }
 
@@ -249,7 +253,11 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
         return self is not null
-            ? dbContext.FriendRequests.AsNoTracking().Where(r => r.SenderID == self.Id).ToList() 
+            ? dbContext.FriendRequests.AsNoTracking()
+                .Where(r => r.SenderID == self.Id)
+                    .Include(r => r.Sender)
+                        .Include(r => r.Receiver)
+                            .ToList() 
             : [];
     }
 

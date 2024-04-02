@@ -55,12 +55,13 @@
         var isAlsoBlocker = BlockedBy.FirstOrDefault(u => u.Id == user.Id) is not null;
         var imgSrc = isAlsoBlocker ? "images/default_profile.png" : blockedRecord.Avatar; 
         return @<text>
-                    <div style="display: inline-block;" id="@($"blocked-user-{user.UserName}")">
-                        <div style="display: inline;">
-                            <img src="@imgSrc" alt=""/>
+                    <div style="display: block; padding-top: 5px; padding-bottom: 5px;" 
+                         id="@($"blocked-user-{user.UserName}")">
+                        <div style="display: inline-flex; padding-right: 20px">
+                            <img style="padding-left: 5px; padding-right: 5px;" class="_32x32 border-mask" src="@imgSrc" alt=""/>
                             <CompInteractUsername User="@user"/>                            
                         </div>
-                        <div style="display: inline; float: right">
+                        <div style="display: inline-flex;">
                             <CompActionButton Color="Color.Danger" 
                                               ButtonCaption="Unblock User"
                                               IconName="@IconName.Shield"

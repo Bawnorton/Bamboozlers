@@ -9,12 +9,12 @@
 @using Blazorise.Extensions
 
 <div style="margin-top: 5px">
-    <Tabs @bind-SelectedTab="SelectedTab">
+    <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SelectedTab">
         <Items>
             <Tab Name="Incoming">
                 @if (IncomingFriendRequests.Count > 0)
                 {
-                    <Badge Color="Color.Dark">
+                    <Badge Color="Color.Danger">
                         @IncomingFriendRequests.Count
                     </Badge>  
                 } 
@@ -33,12 +33,12 @@
         <Content>
             <TabPanel Name="Incoming">
                 <Divider/>
-                <div style="display: inline-block; margin-left: 10px; margin-right: 10px;">
-                    @if (OutgoingFriendRequests.Count > 0)
+                <div style="display: inline-block; margin-left: 10px; margin-right: 10px; width: 50%;">
+                    @if (IncomingFriendRequests.Count > 0)
                     {
                         foreach (var request in IncomingFriendRequests)
                         {
-                            @GetIncomingFriendRequestFragment(request);
+                            @GetIncomingFriendRequestFragment(request)
                         }
                     }
                     else
@@ -50,13 +50,12 @@
             </TabPanel>
             <TabPanel Name="Outgoing">
                 <Divider/>
-                <div style="display: inline-block; margin-left: 10px; margin-right: 10px;">
+                <div style="display: inline-block; margin-left: 10px; margin-right: 10px; width: 50%;">
                     @if (OutgoingFriendRequests.Count > 0)
                     {
-                        foreach (var request in IncomingFriendRequests)
+                        foreach (var request in OutgoingFriendRequests)
                         {
                             @GetOutgoingFriendRequestFragment(request)
-                            ;
                         }
                     }
                     else
@@ -82,7 +81,10 @@
     private List<FriendRequest> IncomingFriendRequests { get; set; } = [];
     private List<FriendRequest> OutgoingFriendRequests { get; set; } = [];
 
-    public List<int?> WatchedIDs { get; }
+    private List<RenderFragment> IncomingFragments { get; set; } = [];
+    private List<RenderFragment> OutgoingFragments { get; set; } = [];
+
+    public List<int?> WatchedIDs { get; } = [];
     
     private User Self { get; set; } = default!;
 
@@ -91,21 +93,22 @@
         await base.OnInitializedAsync();
         UserInteractionService.AddSubscriber(this);
         await GetFriendsData();
+        StateHasChanged();
     }
 
     public RenderFragment GetIncomingFriendRequestFragment(FriendRequest friendRequest)
     {
         var senderRecord = UserRecord.From(friendRequest.Sender);
         return @<text>
-                    <div id="friend-request" style="display: inline">
+                    <div id="friend-request" style="display: block; padding-top: 5px; padding-bottom: 5px;">
                         <div id="@($"for-user-{senderRecord.UserName}")"
-                             style="display:inline">
+                             style="display: inline-flex;">
                             Friend request from
-                            <img class="message-avatar" src="@senderRecord.Avatar" alt=""/>
+                            <img style="padding-left: 5px; padding-right: 5px;" class="_32x32 border-mask" src="@senderRecord.Avatar" alt=""/>
                             <CompInteractUsername User="@friendRequest.Sender"/>
                         </div>
-                        <div id="action-buttons"
-                             style="display: inline; float: right;">
+                        <div id="action-buttons1"
+                             style="display: inline-flex; float: right;">
                             <CompActionButton ButtonId="accept-button"
                                               IconName="@IconName.UserPlus"
                                               ActionCallback="@(async () => await UserInteractionService.AcceptFriendRequest(friendRequest.SenderID))"
@@ -113,9 +116,10 @@
                             <CompActionButton ButtonId="decline-button"
                                               Color="@Color.Danger"
                                               IconName="@IconName.Ban"
-                                              ActionCallback="@(async () => await UserInteractionService.DeclineFriendRequest(friendRequest.ReceiverID))"
+                                              ActionCallback="@(async () => await UserInteractionService.DeclineFriendRequest(friendRequest.SenderID))"
                                               ColumnWrapped="@false"/>
                         </div>
+                        <Divider/>
                     </div>
                 </text>;
     }
@@ -124,15 +128,15 @@
     {
         var receiverRecord = UserRecord.From(friendRequest.Sender);
         return @<text>
-                    <div id="friend-request" style="display: inline">
+                    <div id="friend-request" style="display: block">
                         <div id="@($"for-user-{receiverRecord.UserName}")" 
-                             style="display:inline">
+                             style="display:inline-flex">
                              Friend request sent to
-                             <img class="message-avatar" src="@receiverRecord.Avatar" alt=""/>   
+                             <img style="padding-left: 5px; padding-right: 5px;" class="_32x32 border-mask" src="@receiverRecord.Avatar" alt=""/>   
                              <CompInteractUsername User="@friendRequest.Receiver"/>
                         </div>
                         <div id="action-buttons" 
-                             style="display: inline; float: right;">
+                             style="display: inline-flex; float: right;">
                             <CompActionButton ButtonId="revoke-button"
                                               IconName="@IconName.Ban"
                                               Color="@Color.Danger"
@@ -140,6 +144,7 @@
                                               ActionCallback="@(async () => await UserInteractionService.RevokeFriendRequest(friendRequest.ReceiverID))"
                                               ColumnWrapped="@false"/>
                         </div>
+                        <Divider/>
                     </div>
                 </text>;
     }
@@ -148,6 +153,9 @@
     {
         IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
         OutgoingFriendRequests = await UserInteractionService.GetAllOutgoingRequests();
+        
+        IncomingFragments = IncomingFriendRequests.Select(GetIncomingFriendRequestFragment).ToList(); 
+        OutgoingFragments = OutgoingFriendRequests.Select(GetOutgoingFriendRequestFragment).ToList();
     }
     
     public async Task OnInteractionUpdate()

@@ -240,7 +240,7 @@
             {
                 var self = await AuthService.GetUser();
                 var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
-                ChatName = (other.DisplayName ?? other.UserName)!;
+                ChatName = (string.IsNullOrEmpty(other.DisplayName) ? other.UserName : other.DisplayName)!;
                 break;
             }
         }

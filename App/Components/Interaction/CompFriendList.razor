@@ -52,17 +52,19 @@
     {
         var friendRecord = UserRecord.From(user);
         return @<text>
-                    <div style="display: inline-block;" id="@($"blocked-user-{user.UserName}")">
-                        <div style="display: inline;">
-                            <img src="@friendRecord.Avatar" alt=""/>
+                    <div style="display: block; padding-top: 5px; padding-bottom: 5px;" 
+                         id="@($"user-{user.UserName}")">
+                        <div style="display: inline-flex; padding-right: 10px">
+                            <img style="padding-left: 5px; padding-right: 5px;" class="_32x32 border-mask" src="@friendRecord.Avatar" alt=""/>
                             <CompInteractUsername User="@user"/>                            
                         </div>
-                        <div style="display: inline; float: right">
+                        <div style="display: inline-flex;">
                             <CompActionButton ButtonCaption="Send Message"
                                               IconName="@IconName.Mail"
                                               ActionCallback="@(async () => {/*TODO: Open DM*/})"
                                               ColumnWrapped="@false"/>
                         </div>
+                        <Divider/>
                     </div>
                 </text>;
     }

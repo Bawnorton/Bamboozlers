@@ -328,7 +328,12 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
         return self is not null ? 
-            dbContext.GroupInvites.AsNoTracking().Where(i => i.RecipientID == self.Id).ToList() 
+            dbContext.GroupInvites.AsNoTracking()
+                .Where(i => i.RecipientID == self.Id)
+                    .Include(i => i.Sender)
+                        .Include(i => i.Recipient)
+                            .Include(i => i.Group)
+                                .ToList() 
             : [];
     }
     
@@ -337,7 +342,12 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
         return self is not null 
-            ? dbContext.GroupInvites.AsNoTracking().Where(i => i.SenderID == self.Id).ToList() 
+            ? dbContext.GroupInvites.AsNoTracking()
+                .Where(i => i.SenderID == self.Id)
+                    .Include(i => i.Sender)
+                        .Include(i => i.Recipient)
+                            .Include(i => i.Group)
+                                .ToList()
             : [];
     }
 

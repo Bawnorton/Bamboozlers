@@ -65,7 +65,7 @@
                                             {
                                                 <BarIcon IconName="Icons.User"></BarIcon>
                                             }
-                                            @(chat.User.DisplayName ?? chat.User.UserName)
+                                            @(chat.User.DisplayName.IsNullOrEmpty() ? chat.User.UserName : chat.User.DisplayName)
                                         </BarLink>
                                     </BarItem>
                                 }
@@ -192,7 +192,7 @@
         if (User is null)
             throw new InvalidOperationException("User and/or chats were not found.");
         
-        DmChats = User.Chats.Except(GroupChats)
+        DmChats = User.Chats.Except(User.Chats.OfType<GroupChat>())
             .Select(chat => new DmChat(
                 chat.ID, 
                 chat.Users.First(u => u.Id != User.Id), 

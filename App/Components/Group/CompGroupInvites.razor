@@ -9,7 +9,7 @@
 @using Blazorise.Extensions
 
 <div style="margin-top: 5px">
-    <Tabs @bind-SelectedTab="SelectedTab">
+    <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SelectedTab">
         <Items>
             <Tab Name="Incoming">
                 @if (IncomingGroupInvites.Count > 0)
@@ -97,20 +97,20 @@
     {
         var receiverRecord = UserRecord.From(groupInvite.Recipient);
         return @<text>
-                    <div id="group-invite" style="display: inline">
+                    <div id="group-invite" style="display: block; padding-top: 5px; padding-bottom: 5px;">
                         <div id="@($"for-group-{groupInvite.Group.Name}")" 
-                             style="display:inline">
+                             style="display: inline-flex">
                             Invite to 
                             @if (groupInvite.Group.Avatar is not null)
                             {
-                                <img class="message-avatar" src="@($"data:image/png;base64,{Convert.ToBase64String(groupInvite.Group.Avatar)}")" alt=""/>   
+                                <img style="padding-left: 5px" class="_32x32 border-mask" src="@($"data:image/png;base64,{Convert.ToBase64String(groupInvite.Group.Avatar)}")" alt=""/>   
                             }
                             @groupInvite.Group.Name
                         </div>
                         <div id="@($"to-user-{receiverRecord.UserName}")" 
-                             style="display:inline">
+                             style="display: inline-flex">
                             for
-                            <img class="message-avatar" src="@receiverRecord.Avatar" alt=""/>
+                            <img style="padding-left: 5px" class="_32x32 border-mask" src="@receiverRecord.Avatar" alt=""/>
                             <CompInteractUsername User="@groupInvite.Recipient"/>
                         </div>
                         <div id="action-buttons" 
@@ -129,33 +129,35 @@
     {
         var senderRecord = UserRecord.From(groupInvite.Sender);
         return @<text>
-                    <div id="group-invite" style="display: inline">
+                    <div id="group-invite" style="display: block">
                         <div id="@($"forgroup-{groupInvite.Group.Name}")" 
-                             style="display:inline">
+                             style="display:inline; padding-top: 5px; padding-bottom: 5px;">
                             Invite to 
                             @if (groupInvite.Group.Avatar is not null)
                             {
-                                <img class="message-avatar" src="@($"data:image/png;base64,{Convert.ToBase64String(groupInvite.Group.Avatar)}")" alt=""/>   
+                                <img style="padding-left: 5px; padding-right: 5px;" class="_32x32 border-mask" src="@($"data:image/png;base64,{Convert.ToBase64String(groupInvite.Group.Avatar)}")" alt=""/>   
                             }
                             @groupInvite.Group.Name
                         </div>
                         <div id="@($"fromuser-{senderRecord.UserName}")" 
-                             style="display:inline">
+                             style="display: inline-flex; padding-right: 20px">
                             from 
-                            <img class="message-avatar" src="@senderRecord.Avatar" alt=""/>
+                            <img style="padding-left: 5px; padding-right: 5px;" class="_32x32 border-mask" src="@senderRecord.Avatar" alt=""/>
                             <CompInteractUsername User="@groupInvite.Sender"/>
                         </div>
                         <div id="action-buttons" 
-                             style="display: inline; float: right;">
+                             style="display: inline-flex; float: right;">
                             <CompActionButton ButtonId="accept-button"
                                               IconName="@IconName.Check"
                                               ActionCallback="@(async () => await UserGroupService.AcceptGroupInvite(groupInvite.GroupID, groupInvite.SenderID))"
                                               ColumnWrapped="@false"/>
                             <CompActionButton ButtonId="decline-button"
+                                              Color = "@Color.Danger"
                                               IconName="@IconName.Ban"
                                               ActionCallback="@(async () => await UserGroupService.DeclineGroupInvite(groupInvite.GroupID, groupInvite.SenderID))"
                                               ColumnWrapped="@false"/>
                         </div>
+                        <Divider/>
                     </div>
                 </text>;
     }
