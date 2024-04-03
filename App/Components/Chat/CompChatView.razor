@@ -98,9 +98,9 @@
             {
                 <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}") Class="message-avatar" alt=""/>
             }
-            else if (Chat is not null && Chat is not GroupChat && Chat.Users.First(f => f.Id != Self.Id).Avatar != null)
+            else if (Chat is not null && Chat is not GroupChat && Chat.Users.First(f => f.Id != Self!.Id).Avatar != null)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.First(f => f.Id != Self.Id).Avatar!)}") Class="message-avatar" alt=""/>
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.First(f => f.Id != Self!.Id).Avatar!)}") Class="message-avatar" alt=""/>
             }
             <Text ElementId="header-text">@ChatName</Text>
         </Div>
@@ -264,7 +264,7 @@
 
         using var db = Db.CreateDbContext();
         var gc = db.GroupChats.Include(i => i.Moderators).First(f => f.ID == ChatID);
-        return gc.OwnerID == Self.Id || gc.Moderators.Any(m => m.Id == Self.Id);
+        return gc.OwnerID == Self!.Id || gc.Moderators.Any(m => m.Id == Self.Id);
     }
 
     private async Task GetChatData()
@@ -377,10 +377,10 @@
 
         var messageUpdated = new MessageUpdatedC2SPacket
         {
-            ChatId = ChatID,
+            ChatId = (int)ChatID!,
             MessageId = message.ID,
             Deleted = true,
-            UpdaterId = Self.Id
+            UpdaterId = Self!.Id
         };
         
         await SendToServer(messageUpdated);
@@ -419,10 +419,10 @@
         
         var messageUpdated = new MessageUpdatedC2SPacket
         {
-            ChatId = ChatID,
+            ChatId = (int)ChatID!,
             MessageId = message.ID,
             NewContent = newContent,
-            UpdaterId = Self.Id
+            UpdaterId = Self!.Id
         };
         
         await SendToServer(messageUpdated);
