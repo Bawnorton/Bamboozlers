@@ -1,35 +1,15 @@
 @inherits UserViewComponentBase;
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
-@using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes.Events
-@using Bamboozlers.Classes
 @using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Func
-@using Bamboozlers.Classes.Services
-@using Bamboozlers.Components.VisualUtility
-@using System.Diagnostics
+@using Bamboozlers.Classes.AppDbContext
 
 @inject IDbContextFactory<AppDbContext> Db
 
-@if(Loaded)
+@if (Loaded)
 {
     <Div ElementId="@("message_" + Message.ID)">
-        @if (PreviousMessage == null || PreviousMessage.SenderID != Message.SenderID)
-        {
-            <Div Class="message-header" Style="@(PreviousMessage == null ? "" : "margin-top: 15px;")">
-                <Div Class="message-info">
-                    @if (Message.Sender!.Avatar != null)
-                    {
-                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Message.Sender.Avatar)}") Class="message-avatar" alt=""/>
-                    }
-                    <CompInteractUsername User="@Message.Sender"/>
-                    <Div Class="message-timestamp">
-                        @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
-                    </Div>
-                </Div>
-            </Div>
-        }
+        <CompMessageHeaderView Message="Message" PreviousMessage="PreviousMessage"/>
         <Div Class="message-content">
             <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
                 <CompMessageContentView Content=@Message.Content/>
@@ -48,7 +28,7 @@
                         </Button>
                         break;
                 }
-                <Button onclick="alert('Not Implemented')">
+                <Button Clicked="async () => await ChatContext.OnPin(Message)">
                     <Icon Name="Icons.MapPin"></Icon>
                 </Button>
                 @if (ShowDelete)
@@ -70,15 +50,15 @@
 
 @code {
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
-    
+
     [Parameter] public Message Message { get; set; }
 
     [Parameter] public Message? PreviousMessage { get; set; }
-    
+
     [Parameter] public bool EchoRecieved { get; set; }
-    
+
     [CascadingParameter] private ChatContextData ChatContext { get; set; }
-    
+
     private bool Loaded { get; set; }
 
     private User? Self { get; set; }
@@ -101,7 +81,6 @@
         }
 
         Loaded = true;
-        
     }
 
 }

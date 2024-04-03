@@ -1,0 +1,12 @@
+@using Bamboozlers.Classes.AppDbContext
+
+<Div>
+    <CompMessageHeaderView Message="Message"/>
+    <CompMessageContentView Content="@Message.Content"/>
+</Div>
+
+@code {
+
+    [Parameter] public Message Message { get; set; }
+
+}
