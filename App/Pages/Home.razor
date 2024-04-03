@@ -8,6 +8,7 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Components.Chat
 @using Microsoft.AspNetCore.Authorization
+@using Bamboozlers.Classes.AppDbContext
 
 @attribute [Authorize]
 
@@ -24,10 +25,12 @@
             -->
             <CascadingValue Value="_openPopupCallback">
                 <CascadingValue Value="_closePopupCallback">
-                    <NavLayout @ref="_navLayout"/>
-                    <Modal @ref="_popupComponent" Closed="OnPopupClosed">
-                        @_popupContent
-                    </Modal>
+                    <CascadingValue Value="_openChatCallback">
+                        <NavLayout @ref="_navLayout"/>
+                        <Modal @ref="_popupComponent" Closed="OnPopupClosed">
+                            @_popupContent
+                        </Modal>
+                    </CascadingValue>
                 </CascadingValue>
             </CascadingValue>
         </AuthorizeView>
@@ -60,6 +63,7 @@
 
     private EventCallback<PopupCallbackArgs> _openPopupCallback;
     private EventCallback _closePopupCallback;
+    private EventCallback<Chat> _openChatCallback;
 
     private Modal? _popupComponent;
     private RenderFragment? _popupContent;
@@ -68,6 +72,7 @@
     {
         _openPopupCallback = EventCallback.Factory.Create<PopupCallbackArgs>(this, OpenPopup);
         _closePopupCallback = EventCallback.Factory.Create(this, ClosePopup);
+        _openChatCallback = EventCallback.Factory.Create<Chat>(this, OpenChat);
     }
 
     private async Task OpenPopup(PopupCallbackArgs args)
@@ -118,6 +123,12 @@
         };
 
         await _popupComponent.Show();
+    }
+    
+    private Task OpenChat(Chat arg)
+    {
+        _navLayout?.OpenChat(arg);
+        return Task.CompletedTask;
     }
 
     private async Task ClosePopup()

@@ -92,11 +92,18 @@
             {
                 <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}") Class="message-avatar" alt=""/>
             }
-            else if (Chat is not null && Chat is not GroupChat && Chat.Users.First(f => f.Id != Self!.Id).Avatar != null)
+            else if (Chat is not null && Chat is not GroupChat && OtherUser!.Avatar != null)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.First(f => f.Id != Self!.Id).Avatar!)}") Class="message-avatar" alt=""/>
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(OtherUser!.Avatar)}") Class="message-avatar" alt=""/>
             }
-            <Text ElementId="header-text">@ChatName</Text>
+            @if (Chat is GroupChat)
+            {
+                @ChatName
+            }
+            else
+            {
+                <CompInteractUsername User=@OtherUser/>
+            }
         </Div>
         <Div>
             <Icon ElementId="pin_button" Name="Icons.MapPin" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.Pins, ChatId = ChatID })"/>
@@ -194,6 +201,21 @@
     private Chat? Chat { get; set; }
     private string ChatName { get; set; }
 
+    private User? _otherUser;
+    /// <summary>
+    ///     Null if the chat is a group chat
+    /// </summary>
+    private User? OtherUser
+    {
+        get
+        {
+            if (Chat is GroupChat) return null;
+            
+            return _otherUser ??= Chat?.Users.FirstOrDefault(u => u.Id != Self!.Id);
+        }
+        set => _otherUser = value;
+    }
+
     public List<int?> WatchedIDs { get; set; } = [];
 
     private User? Self { get; set; }
@@ -233,21 +255,12 @@
         Chat = await db.Chats
             .Include(c => c.Users)
             .FirstOrDefaultAsync(c => c.ID == ChatID);
-        switch (Chat)
+        ChatName = Chat switch
         {
-            case null:
-                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
-            case GroupChat groupChat:
-                ChatName = groupChat.Name;
-                break;
-            default:
-            {
-                var self = await AuthService.GetUser();
-                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
-                ChatName = (other.DisplayName ?? other.UserName)!;
-                break;
-            }
-        }
+            null => throw new InvalidOperationException($"Chat from ID {ChatID} not found"),
+            GroupChat groupChat => groupChat.Name,
+            _ => (OtherUser!.DisplayName ?? OtherUser!.UserName)!
+        };
 
         await UpdateMessages();
     }
@@ -280,8 +293,7 @@
         }
         else if (Chat is not null)
         {
-            var other = Chat.Users.FirstOrDefault(u => u.Id != Self.Id) ?? Self;
-            ChatName = (other.DisplayName ?? other.UserName)!;
+            ChatName = (OtherUser!.DisplayName ?? OtherUser!.UserName)!;
         }
         else
         {

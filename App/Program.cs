@@ -96,7 +96,4 @@ app.MapRazorComponents<App>()
 app.MapAdditionalIdentityEndpoints();
 app.Run();
 
-namespace Bamboozlers
-{
-    public class Program;
-}
+internal partial class Program;

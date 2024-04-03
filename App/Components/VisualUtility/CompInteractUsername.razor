@@ -20,9 +20,12 @@
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
 
     [Parameter] public User? User { get; set; }
+    [Parameter] public bool? Clickable { get; set; }
 
     private async Task OpenProfilePopup()
     {
+        if (Clickable is false) return;
+        
         if (User is not null)
         {
             await ClosePopupCallback.InvokeAsync();

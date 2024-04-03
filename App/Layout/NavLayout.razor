@@ -216,6 +216,8 @@
 
         CurrentView = View.Dm;
         CurrentChatId = chatId;
+        
+        StateHasChanged();
     }
 
     private void OpenGroup(int chatId)
@@ -225,6 +227,24 @@
 
         CurrentView = View.Group;
         CurrentChatId = chatId;
+        
+        StateHasChanged();
+    }
+    
+    public void OpenChat(Chat chat)
+    {
+        if (chat is GroupChat groupChat)
+        {
+            CurrentView = View.Group;
+            CurrentChatId = groupChat.ID;
+        }
+        else
+        {
+            CurrentView = View.Dm;
+            CurrentChatId = chat.ID;
+        }
+        
+        StateHasChanged();
     }
 
     public List<int?> WatchedIDs { get; set; } = [];

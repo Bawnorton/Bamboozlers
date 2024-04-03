@@ -3,28 +3,63 @@
 @using Force.DeepCloner
 @using Microsoft.AspNetCore.Identity
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Components.VisualUtility
+@using Microsoft.AspNetCore.Components.Rendering
 
 @inject IDbContextFactory<AppDbContext> Db
+@inject IJSRuntime JsRuntime
 @inject UserManager<User> UserManager;
 
-<br/>
-<input class="search bg-secondary w-25 p-2 border-0 rounded" type="search" placeholder="Search" @oninput="OnSearch" />
-<br/><br/>
-<h4>Friends: @_displayedFriends.Count</h4>
-<hr/>
-<p>@_noFriends</p>
+<!--suppress CssUnusedSymbol -->
+<style>
+    .user-container {
+        display: flex;
+        flex-direction: row;
+        font-size: 20px;
+        background-color: #28292e;
+        padding: 0.5em 0.5em 0.5em 0.7em;
+        border-radius: 5px;
+    }
+    
+    .user-container:hover {
+        background-color: #2c2f33;
+        cursor: pointer;
+    }
+    
+    .user-container:hover > .message-username:hover {
+        text-decoration: none;
+    }
+</style>
+<Div style="margin-top: 1rem; margin-bottom: 1rem;">
+    <input class="search bg-secondary w-25 p-2 border-0 rounded" type="search" placeholder="Search" @oninput="OnSearch" />
+    <Div style="margin-top: 1rem">
+        <h4>Friends: @_displayedFriends.Count</h4>
+        <hr/>
+        <p>@_noFriends</p>
+    </Div>
+</Div>
 
 @foreach (var friend in _displayedFriends)
 {
-    <span id="user_@friend.Id" style="font-size:1.4em;">@friend.UserName</span>
-    <p></p>
+    <Div class="user-container" @onclick="() => OpenProfile(friend)">
+        <Div class="message-username">
+            @friend.DisplayName
+        </Div>
+        <Div style="margin-left: 0.5em">
+            (@friend.UserName)
+        </Div>
+    </Div>
 }
 
 @code {
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    
     private readonly List<User> _friends = [];
     private List<User> _displayedFriends = [];
     private string? _noFriends;
-
+    
     protected override async Task OnInitializedAsync()
     {
         if (!AuthService.IsAuthenticated().Result) return;
@@ -53,6 +88,7 @@
         }
     }
 
+
     private void OnSearch(ChangeEventArgs e)
     {
         var search = e.Value?.ToString() ?? string.Empty;
@@ -60,5 +96,19 @@
         temp.RemoveAll(user => !user.UserName!.Contains(search));
         _displayedFriends = temp;
         _noFriends = _displayedFriends.Count == 0 ? "No friends found from this search" : "";
+        
+        StateHasChanged();
     }
+
+    private async Task OpenProfile(User user)
+    {
+        await ClosePopupCallback.InvokeAsync();
+        await OpenPopupCallback.InvokeAsync(
+            new PopupCallbackArgs(
+                RecognizedPopupType.Profile,
+                FocusUser: user
+            )
+        );
+    }
+
 }

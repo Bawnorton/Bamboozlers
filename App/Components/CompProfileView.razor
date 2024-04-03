@@ -7,6 +7,7 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Components.VisualUtility
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 
 @inject IDbContextFactory<AppDbContext> DbContextFactory;
 @inject IUserInteractionService UserInteractionService
@@ -116,6 +117,7 @@
 @code {
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    [CascadingParameter] public EventCallback<Classes.AppDbContext.Chat> OpenChatCallback { get; set; }
 
     [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
     private RenderFragment? ActionButton { get; set; }
@@ -179,6 +181,15 @@
                               <Icon Name="IconName.UserFriends"/>
                               FRIEND
                           </Badge>;
+            ActionButton = GetActionButton(
+                EventCallback.Factory.Create(
+                    this,
+                    async () => await OpenOrCreatDm(FocusUser.Id)
+                ),
+                $"Message {FocusUser.DisplayName ?? FocusUser.UserName}", 
+                faIconName: Icons.CommentDots,
+                buttonColor: Color.Success
+            );
         }
         else if (!IsBlockedBy && !IsBlocked)
         {
@@ -199,8 +210,8 @@
                     EventCallback.Empty,
                     "Pending",
                     IconName.Send,
-                    Color.Light,
-                    true
+                    buttonColor: Color.Light,
+                    disabled: true
                 );
             }
             else
@@ -231,7 +242,7 @@
         StateHasChanged();
     }
 
-    private RenderFragment GetActionButton(EventCallback callback, string buttonCaption, IconName iconName, Color? buttonColor = null, bool disabled = false)
+    private RenderFragment GetActionButton(EventCallback callback, string buttonCaption, IconName? iconName = default, string? faIconName = default, Color? buttonColor = null, bool disabled = false)
     {
         return @<CompActionButton
                     ActionCallback="callback"
@@ -240,6 +251,7 @@
                     Color="@(buttonColor ?? Color.Success)"
                     ColumnWrapped="@false"
                     IconName="iconName"
+                    FaIconName="@faIconName"
                     Disabled="disabled"/>;
     }
 
@@ -325,4 +337,32 @@
         await UpdateContext();
     }
 
+}
+@code {
+    private async Task OpenOrCreatDm(int? focusUserId)
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        
+        var chat = await dbContext.Chats
+            .Include(c => c.Users)
+            .Where(c => !(c is GroupChat))
+            .FirstOrDefaultAsync(c => c.Users.Count == 2 && c.Users.Any(u => u.Id == focusUserId));
+        
+        var user = await dbContext.Users.FindAsync(focusUserId);
+        var self = await dbContext.Users.FindAsync(UserData!.Id);
+        if (chat is null) 
+        {
+            var newChat = new Classes.AppDbContext.Chat
+            {
+                Users = new List<User> { user!, self! },
+                Messages = []
+            };
+            await dbContext.Chats.AddAsync(newChat);
+            await dbContext.SaveChangesAsync();
+            chat = newChat;
+        }
+        
+        await ClosePopupCallback.InvokeAsync();
+        await OpenChatCallback.InvokeAsync(chat);
+    }
 }
