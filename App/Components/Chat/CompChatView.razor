@@ -90,11 +90,11 @@
         <Div>
             @if (Chat is GroupChat { Avatar: not null } groupChat)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}") Class="message-avatar" alt=""/>
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}")  Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
             }
             else if (Chat is not null && Chat is not GroupChat && OtherUser!.Avatar != null)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(OtherUser!.Avatar)}") Class="message-avatar" alt=""/>
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(OtherUser!.Avatar)}") Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
             }
             @if (Chat is GroupChat)
             {

@@ -51,7 +51,7 @@
                                         <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => OpenDm(chat.ID)">
                                             @if (chat.Avatar is not null)
                                             {
-                                                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
+                                                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
                                             }
                                             else
                                             {

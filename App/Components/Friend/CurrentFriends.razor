@@ -43,6 +43,10 @@
 @foreach (var friend in _displayedFriends)
 {
     <Div class="user-container" @onclick="() => OpenProfile(friend)">
+        @if (friend.Avatar != null)
+        {
+            <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(friend.Avatar)}") Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
+        }
         <Div class="message-username">
             @friend.DisplayName
         </Div>
