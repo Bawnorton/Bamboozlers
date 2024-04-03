@@ -1,9 +1,8 @@
 ﻿@page "/Account/ConfirmEmail"
-
-@using System.Text
+@using Bamboozlers.Classes.AppDbContext
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using Bamboozlers.Classes.AppDbContext
+@using System.Text
 
 @inject UserManager<User> UserManager
 @inject IdentityRedirectManagerWrapper RedirectManager
@@ -11,15 +10,16 @@
 <PageTitle>Confirm email</PageTitle>
 
 <h1>Confirm email</h1>
-<StatusMessage Message="@statusMessage" Link="@link" LinkText="@linkText"/>
+<StatusMessage Message="@_statusMessage" Link="@_link" LinkText="@_linkText"/>
 
 @code {
-    private string? statusMessage;
-    private string? link;
-    private string? linkText;
+    private string? _statusMessage;
+    private string? _link;
+    private string? _linkText;
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
+    // ReSharper disable UnusedAutoPropertyAccessor.Local - Used by SupplyParameterFromQuery
     [SupplyParameterFromQuery] private string? UserId { get; set; }
 
     [SupplyParameterFromQuery] private string? Code { get; set; }
@@ -35,7 +35,7 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = $"Error loading user with ID {UserId}";
+            _statusMessage = $"Error loading user with ID {UserId}";
         }
         else
         {
@@ -43,15 +43,15 @@
             var result = await UserManager.ConfirmEmailAsync(user, code);
             if (result.Succeeded)
             {
-                statusMessage = "Thank you for confirming your email. ";
-                link = "Account/Login";
-                linkText = "click here to login.";
+                _statusMessage = "Thank you for confirming your email. ";
+                _link = "Account/Login";
+                _linkText = "click here to login.";
             }
             else
             {
-                statusMessage = "Error confirming your email. ";
-                link = "Account/ResendEmailConfirmation";
-                linkText = "Resend Confirmation Email";
+                _statusMessage = "Error confirming your email. ";
+                _link = "Account/ResendEmailConfirmation";
+                _linkText = "Resend Confirmation Email";
             }
         }
     }

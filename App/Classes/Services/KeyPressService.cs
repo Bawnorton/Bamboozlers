@@ -5,10 +5,10 @@ namespace Bamboozlers.Classes.Services;
 
 public class KeyPressService : IKeyPressService
 {
-    private bool _listening;
-    
-    private readonly IJSRuntime _jsRuntime;
     private readonly DotNetObjectReference<KeyPressService> _dotNetObjectReference;
+
+    private readonly IJSRuntime _jsRuntime;
+    private bool _listening;
 
     public KeyPressService(IJSRuntime jsRuntime)
     {
@@ -42,7 +42,7 @@ public class KeyPressService : IKeyPressService
     {
         KeyPressed.Invoke(this, KeyEventArgs.FromKeyData(keyData));
     }
-    
+
     [JSInvokable("OnKeyReleased")]
     public void OnKeyReleased(KeyData keyData)
     {
@@ -58,7 +58,7 @@ public class KeyEventArgs(string key, string code, bool ctrlKey, bool shiftKey, 
     public bool ShiftKey { get; } = shiftKey;
     public bool AltKey { get; } = altKey;
     public bool MetaKey { get; } = metaKey;
-    
+
     public static KeyEventArgs FromKeyData(KeyData keyData)
     {
         return new KeyEventArgs(keyData.key, keyData.code, keyData.ctrl, keyData.shift, keyData.alt, keyData.meta);

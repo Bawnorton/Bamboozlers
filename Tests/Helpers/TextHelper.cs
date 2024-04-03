@@ -10,11 +10,8 @@ public class TextHelper
         var text = new StringBuilder();
         for (var i = 0; i < length; i++)
         {
-            text.Append((char) random.Next(32, 127));
-            if (random.Next(0, 100) < newLineChance)
-            {
-                text.Append('\n');
-            }
+            text.Append((char)random.Next(32, 127));
+            if (random.Next(0, 100) < newLineChance) text.Append('\n');
         }
 
         var textString = text.ToString();

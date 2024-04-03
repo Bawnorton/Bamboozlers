@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Web;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.UserServices;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -17,24 +16,25 @@ namespace Bamboozlers.Account;
 public static class IdentityComponentsEndpointRouteBuilderExtensions
 {
     // These endpoints are required by the Identity Razor components defined in the /Components/Account/Pages directory of this project.
+    // ReSharper disable once UnusedMethodReturnValue.Global
     public static IEndpointConventionBuilder MapAdditionalIdentityEndpoints(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
         var accountGroup = endpoints.MapGroup("/Account");
-        
+
         accountGroup.MapPost("/Logout", async (
-            ClaimsPrincipal user,
+            ClaimsPrincipal _,
             SignInManager<User> signInManager,
             [FromServices] IUserService userService) =>
         {
             userService.Invalidate();
             await signInManager.SignOutAsync();
-            return TypedResults.LocalRedirect($"~/Account/Login");
+            return TypedResults.LocalRedirect("~/Account/Login");
         });
-        
+
         accountGroup.MapPost("/DeAuth", async (
-            ClaimsPrincipal user,
+            ClaimsPrincipal _,
             SignInManager<User> signInManager,
             [FromServices] IUserService userService) =>
         {
@@ -43,12 +43,12 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             urlParams["errorMessage"] = "Your account has been deleted.";
             builder.Query = urlParams.ToString();
             var callbackUrl = "~/Account/Login" + builder.Query;
-            
+
             userService.Invalidate();
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect(callbackUrl);
         });
-        
+
         accountGroup.MapPost("/ReAuth", async (
             ClaimsPrincipal user,
             SignInManager<User> signInManager,
@@ -56,21 +56,22 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             [FromServices] IUserService userService) =>
         {
             await signInManager.SignOutAsync();
-            
+
             var u = await userManager.GetUserAsync(user);
-            
+
             if (u is null)
             {
                 var builder = new UriBuilder();
                 var urlParams = HttpUtility.ParseQueryString(string.Empty);
-                urlParams["errorMessage"] = "Could not automatically sign you in after changing account details. Please log back in.";
+                urlParams["errorMessage"] =
+                    "Could not automatically sign you in after changing account details. Please log back in.";
                 builder.Query = urlParams.ToString();
-                
+
                 var callbackUrl = "~/Account/Login" + builder.Query;
-                
+
                 return TypedResults.LocalRedirect(callbackUrl);
             }
-            
+
             userService.Invalidate();
             await signInManager.SignInAsync(u, false);
             return TypedResults.LocalRedirect("~/");
@@ -93,17 +94,17 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             var userId = parameters.Id.ToString();
             var user = await userManager.FindByIdAsync(userId!);
             if (user is null) return;
-            
+
             var code = await userManager.GenerateChangeEmailTokenAsync(user, parameters.Email);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
 
             // TODO: This is probably not the most stellar way to perform this action, but it works for now. Could be improved.
-            
+
             var urlParams = HttpUtility.ParseQueryString(string.Empty);
             urlParams["userId"] = parameters.Id.ToString();
             urlParams["email"] = parameters.Email;
             urlParams["code"] = code;
-            
+
             var request = context.Request;
             var builder = new UriBuilder
             {
@@ -115,17 +116,17 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             };
 
             var callbackUrl = builder.Uri.AbsoluteUri;
-            
+
             await emailSender.SendConfirmationLinkAsync(
-                user, 
-                parameters.Email, 
+                user,
+                parameters.Email,
                 HtmlEncoder.Default.Encode(callbackUrl)
             );
         });
-        
+
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
         var downloadLogger = loggerFactory.CreateLogger("DownloadPersonalData");
-        
+
         accountGroup.MapPost("/DownloadPersonalData", async (
             HttpContext context,
             [FromServices] UserManager<User> userManager,
@@ -133,26 +134,20 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
         {
             var user = await userManager.GetUserAsync(context.User);
             if (user is null)
-            {
                 return Results.NotFound($"Unable to load user with ID '{userManager.GetUserId(context.User)}'.");
-            }
 
             var userId = await userManager.GetUserIdAsync(user);
             downloadLogger.LogInformation("User with ID '{UserId}' asked for their personal data.", userId);
 
             // Only include personal data for download
-            var personalData = new Dictionary<string, string>();
             var personalDataProps = typeof(User).GetProperties().Where(
                 prop => Attribute.IsDefined(prop, typeof(PersonalDataAttribute)));
-            foreach (var p in personalDataProps)
-            {
-                personalData.Add(p.Name, p.GetValue(user)?.ToString() ?? "null");
-            }
+            var personalData = personalDataProps.ToDictionary(p => p.Name, p => p.GetValue(user)?.ToString() ?? "null");
 
             var fileBytes = JsonSerializer.SerializeToUtf8Bytes(personalData);
 
             context.Response.Headers.TryAdd("Content-Disposition", "attachment; filename=PersonalData.json");
-            return TypedResults.File(fileBytes, contentType: "application/json", fileDownloadName: "PersonalData.json");
+            return TypedResults.File(fileBytes, "application/json", "PersonalData.json");
         });
 
         return accountGroup;

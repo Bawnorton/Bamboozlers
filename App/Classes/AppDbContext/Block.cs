@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.AppDbContext;
@@ -11,7 +10,7 @@ public class Block
         this.BlockedID = BlockedID;
         this.BlockerID = BlockerID;
     }
-    
+
     public int BlockerID { get; set; }
     public User Blocker { get; set; }
     public int BlockedID { get; set; }

@@ -7,9 +7,7 @@ namespace Bamboozlers.Components.Settings;
 
 public class SettingsComponentBase : UserViewComponentBase
 {
-    [Parameter]
-    public EventCallback<AlertArguments> AlertEventCallback { get; init; }
+    [Parameter] public EventCallback<AlertArguments> AlertEventCallback { get; init; }
 
-    [Parameter]
-    public Func<UserDataRecord, Task<bool>>? DataChangeFunction { get; init; }
+    [Parameter] public Func<UserDataRecord, Task<bool>>? DataChangeFunction { get; init; }
 }

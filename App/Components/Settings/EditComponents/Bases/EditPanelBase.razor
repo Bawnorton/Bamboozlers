@@ -1,7 +1,6 @@
-@using Bamboozlers.Classes.Data
-@typeparam TInput where TInput : InputModel
+@typeparam TInput where TInput : Bamboozlers.Classes.Data.InputModel
 
-<EditForm Model="@Model" 
+<EditForm Model="@Model"
           FormName="@FormName"
           OnValidSubmit="SubmitCallback"
           method="post">

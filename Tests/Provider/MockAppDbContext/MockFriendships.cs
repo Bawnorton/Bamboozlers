@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,51 +5,53 @@ namespace Tests.Provider.MockAppDbContext;
 
 public class MockFriendships : AbstractMockDbSet<Friendship>
 {
-    public Mock<DbSet<Friendship>> mockFriendships;
-    private readonly Func<Friendship, Friendship, bool> matchFunction = (f0, f1) =>
-        (f0.User1ID == f1.User1ID && f0.User2ID == f1.User2ID) || (f0.User1ID == f1.User2ID && f0.User2ID == f1.User1ID);
+    private readonly Func<Friendship, Friendship, bool> _matchFunction = (f0, f1) =>
+        (f0.User1ID == f1.User1ID && f0.User2ID == f1.User2ID) ||
+        (f0.User1ID == f1.User2ID && f0.User2ID == f1.User1ID);
 
-    public MockFriendships(MockAppDbContext mockAppDbContext, DbSet<User> users) : base(mockAppDbContext)
+    private Mock<DbSet<Friendship>> _mockFriendships;
+
+    public MockFriendships(MockAppDbContext mockAppDbContext, IQueryable<User> users) : base(mockAppDbContext)
     {
         var user0 = users.First();
         var user1 = users.Skip(1).First();
         var user2 = users.Skip(2).First();
 
-        mockFriendships = MockAppDbContext.SetupMockDbSet(new List<Friendship>
+        _mockFriendships = MockAppDbContext.SetupMockDbSet(new List<Friendship>
         {
-            new(user0.Id,user1.Id)
+            new(user0.Id, user1.Id)
             {
                 User1 = user0,
                 User2 = user1
             },
-            new(user1.Id,user2.Id)
+            new(user1.Id, user2.Id)
             {
                 User1 = user1,
                 User2 = user2
-            },
+            }
         });
-        
-        MockAppDbContext.MockDbContext.Setup(x => x.FriendShips).Returns(mockFriendships.Object);
+
+        MockAppDbContext.MockDbContext.Setup(x => x.FriendShips).Returns(_mockFriendships.Object);
     }
-    
+
     public override void AddMock(Friendship friendship)
     {
-        mockFriendships = base.AddMock(
+        _mockFriendships = base.AddMock(
             friendship,
-            mockFriendships,
-            matchFunction
+            _mockFriendships,
+            _matchFunction
         );
-        MockAppDbContext.MockDbContext.Setup(x => x.FriendShips).Returns(mockFriendships.Object);
+        MockAppDbContext.MockDbContext.Setup(x => x.FriendShips).Returns(_mockFriendships.Object);
     }
-    
+
     public override void RemoveMock(Friendship friendship)
     {
-        mockFriendships = base.RemoveMock(
+        _mockFriendships = base.RemoveMock(
             friendship,
-            mockFriendships,
-            matchFunction
+            _mockFriendships,
+            _matchFunction
         );
-        MockAppDbContext.MockDbContext.Setup(x => x.FriendShips).Returns(mockFriendships.Object);
+        MockAppDbContext.MockDbContext.Setup(x => x.FriendShips).Returns(_mockFriendships.Object);
     }
 
     public override void UpdateMock(Friendship friendship)
@@ -58,15 +59,15 @@ public class MockFriendships : AbstractMockDbSet<Friendship>
         RemoveMock(friendship);
         AddMock(friendship);
     }
-    
+
     public override Friendship? FindMock(int idx)
     {
-        return mockFriendships.Object.Skip(idx - 1).FirstOrDefault();
+        return _mockFriendships.Object.Skip(idx - 1).FirstOrDefault();
     }
-    
+
     public override void ClearAll()
     {
-        var list = mockFriendships.Object.ToList();
+        var list = _mockFriendships.Object.ToList();
         foreach (var friendship in list)
         {
             RemoveMock(friendship);

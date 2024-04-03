@@ -4,10 +4,10 @@
 
 @inherits LayoutComponentBase
 
-@using Microsoft.AspNetCore.Authorization
+@using Bamboozlers.Components.Settings
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Components.Chat
-@using Bamboozlers.Components.Settings
+@using Microsoft.AspNetCore.Authorization
 
 @attribute [Authorize]
 
@@ -44,7 +44,7 @@
                            Background="Background.Primary"
                            TextColor="TextColor.White">
                 <Div Class="h-100 d-flex justify-content-center align-items-center">
-                    <Div Class="rounded-3 border-3 border-warning text-warning p-5 fa-2x" 
+                    <Div Class="rounded-3 border-3 border-warning text-warning p-5 fa-2x"
                          Background="Background.Dark">
                         <p>Oops! Something went wrong.</p>
                         <p>@exception.Message</p>
@@ -57,25 +57,24 @@
 
 @code {
     private NavLayout? _navLayout;
-    private CompSettings? _settingsComponent;
 
     private EventCallback<PopupCallbackArgs> _openPopupCallback;
     private EventCallback _closePopupCallback;
-    
+
     private Modal? _popupComponent;
     private RenderFragment? _popupContent;
-    
+
     protected override void OnInitialized()
     {
         _openPopupCallback = EventCallback.Factory.Create<PopupCallbackArgs>(this, OpenPopup);
         _closePopupCallback = EventCallback.Factory.Create(this, ClosePopup);
     }
-    
+
     private async Task OpenPopup(PopupCallbackArgs args)
     {
         if (_popupComponent is null)
             return;
-        
+
         _popupContent = args.PopupType switch
         {
             RecognizedPopupType.Settings => @<text>
@@ -85,11 +84,14 @@
                                                 <CompProfileView FocusUser="UserRecord.From(args.FocusUser!)"/>
                                             </text>,
             RecognizedPopupType.GroupChatSettings => @<text>
-                                                     <CompChatSettings ChatID="@args.ChatId"/>
-                                                 </text>,
+                                                          <CompChatSettings ChatID="@args.ChatId"/>
+                                                      </text>,
             RecognizedPopupType.ChatAddMember => @<text>
                                                       <CompAddMember ChatID="@args.ChatId"/>
                                                   </text>,
+            RecognizedPopupType.Pins => @<text>
+                                             <CompPinsView ChatID="@args.ChatId"/>
+                                         </text>,
             _ => @<text>
                       <ModalContent Size="args.Size" Centered>
                           <ModalHeader>
@@ -112,7 +114,7 @@
                               }
                           </ModalFooter>
                       </ModalContent>
-                  </text>,
+                  </text>
         };
 
         await _popupComponent.Show();
@@ -124,11 +126,12 @@
             return;
         await _popupComponent.Hide();
     }
-    
+
     private void OnPopupClosed()
     {
         if (_popupComponent is null)
             return;
         _popupContent = null;
     }
+
 }

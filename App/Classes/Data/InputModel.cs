@@ -3,7 +3,9 @@ using Bamboozlers.Account;
 
 namespace Bamboozlers.Classes.Data;
 
-public abstract class InputModel { }
+public abstract class InputModel
+{
+}
 
 public sealed class EmailInputModel : InputModel
 {
@@ -16,7 +18,8 @@ public sealed class EmailInputModel : InputModel
 public sealed class UsernameInputModel : InputModel
 {
     [Required]
-    [ValidUsername(ErrorMessage = "Username is invalid. It can only contain letters, numbers, and underscores. There can only be 1 underscore in a row.")]
+    [ValidUsername(ErrorMessage =
+        "Username is invalid. It can only contain letters, numbers, and underscores. There can only be 1 underscore in a row.")]
     [Display(Name = "Username")]
     public string Username { get; set; } = "";
 
@@ -34,7 +37,8 @@ public sealed class PasswordInputModel : InputModel
     public string OldPassword { get; set; } = "";
 
     [Required]
-    [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+    [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.",
+        MinimumLength = 6)]
     [DataType(DataType.Password)]
     [Display(Name = "New password")]
     public string NewPassword { get; set; } = "";
@@ -62,6 +66,5 @@ public sealed class BioInputModel : InputModel
 
 public sealed class DeleteAccountInputModel : InputModel
 {
-    [DataType(DataType.Password)]
-    public string Password { get; set; } = "";
+    [DataType(DataType.Password)] public string Password { get; set; } = "";
 }

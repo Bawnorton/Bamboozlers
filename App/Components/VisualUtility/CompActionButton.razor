@@ -1,4 +1,3 @@
-
 @if (ColumnWrapped)
 {
     <Column ColumnSize="@ColumnSize"
@@ -14,25 +13,25 @@ else
 
 @code {
     private RenderFragment? Button { get; set; }
-    
+
     [Parameter] public EventCallback ActionCallback { get; set; }
-    
+
     [Parameter] public Color Color { get; set; } = Color.Success;
 
     [Parameter] public bool ColumnWrapped { get; set; } = true;
-    
+
     [Parameter] public IFluentColumn ColumnSize { get; set; } = Blazorise.ColumnSize.Is1;
-    
+
     [Parameter] public IFluentSizing ButtonWidth { get; set; } = Width.Auto;
 
     [Parameter] public string? ButtonCaption { get; set; }
-    
+
     [Parameter] public string? ButtonId { get; set; }
 
     [Parameter] public ButtonType ButtonType { get; set; } = ButtonType.Button;
 
     [Parameter] public IconName? IconName { get; set; }
-    
+
     [Parameter] public bool Disabled { get; set; }
 
     protected override void OnParametersSet()
@@ -53,4 +52,5 @@ else
     {
         await ActionCallback.InvokeAsync();
     }
+
 }

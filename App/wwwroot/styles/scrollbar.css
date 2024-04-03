@@ -6,24 +6,24 @@
     --scrollbar-thumb-hover-color: #e0e0e0;
 }
 
-@media screen and (-webkit-min-device-pixel-ratio:0) {
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
     .scrollbar-container {
         overflow-y: scroll;
         overflow-x: hidden;
     }
-    
+
     .scrollbar-container::-webkit-scrollbar {
-        width: var( --scrollbar-width );
+        width: var(--scrollbar-width);
         height: 6px;
     }
-    
+
     .scrollbar-container::-webkit-scrollbar-thumb {
-        background-color: var( --scrollbar-thumb-color );
-        border-radius: var( --scrollbar-thumb-radius );
+        background-color: var(--scrollbar-thumb-color);
+        border-radius: var(--scrollbar-thumb-radius);
     }
-    
+
     .scrollbar-container::-webkit-scrollbar-track {
-        background: var( --scrollbar-track-color );
+        background: var(--scrollbar-track-color);
     }
 }
 

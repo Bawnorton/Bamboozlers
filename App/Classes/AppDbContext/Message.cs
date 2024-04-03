@@ -4,8 +4,8 @@ namespace Bamboozlers.Classes.AppDbContext;
 
 public class Message
 {
-    [Key] 
-    public int ID { get; set; }
+    [Key] public int ID { get; set; }
+
     public Chat? Chat { get; set; }
     public int ChatID { get; set; }
     public User? Sender { get; set; }
@@ -14,5 +14,4 @@ public class Message
     public byte[]? Attachment { get; set; }
     public bool IsPinned { get; set; }
     public DateTime SentAt { get; set; }
-
 }

@@ -1,8 +1,6 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace Bamboozlers.Classes.AppDbContext;
 
-public class GroupChat:Chat
+public class GroupChat : Chat
 {
     public User Owner { get; set; }
     public int OwnerID { get; set; }

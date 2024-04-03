@@ -6,7 +6,8 @@ using Assert = Xunit.Assert;
 namespace Tests.Playwright;
 
 [Collection("Sequential")]
-public class ChatJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper outputHelper) : PlaywrightTestBase(fixture, outputHelper) 
+public class ChatJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper outputHelper)
+    : PlaywrightTestBase(fixture, outputHelper)
 {
     [Fact]
     public async Task SendMessageContent()
@@ -14,7 +15,7 @@ public class ChatJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper 
         var page = await SetupAndLoginAtFirstDm();
 
         var message = TextHelper.RandomText();
-        
+
         await page
             .Locator("#message-input")
             .ClickAsync();
@@ -31,7 +32,7 @@ public class ChatJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper 
             .Locator(".message-content")
             .Last
             .InnerTextAsync();
-        
+
         Assert.Equal(message, content, ignoreAllWhiteSpace: true);
     }
 
@@ -39,7 +40,7 @@ public class ChatJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper 
     public async Task ShiftEnterDoesNotSendMessage()
     {
         var page = await SetupAndLoginAtFirstDm();
-        
+
         await Task.Delay(1000);
         var beforeMessageCount = await page
             .Locator(".message-content")

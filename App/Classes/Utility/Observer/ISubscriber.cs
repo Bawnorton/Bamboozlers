@@ -3,7 +3,7 @@ namespace Bamboozlers.Classes.Utility.Observer;
 public interface ISubscriber
 {
     /// <summary>
-    /// Synchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
+    ///     Synchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
     void OnUpdate();
 }
@@ -11,7 +11,7 @@ public interface ISubscriber
 public interface IAsyncSubscriber
 {
     /// <summary>
-    /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
+    ///     Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
     Task OnUpdate();
 }
@@ -19,7 +19,7 @@ public interface IAsyncSubscriber
 public interface IAsyncUserSubscriber : IAsyncSubscriber
 {
     /// <summary>
-    /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
+    ///     Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
     Task OnUserUpdate();
 }
@@ -27,7 +27,7 @@ public interface IAsyncUserSubscriber : IAsyncSubscriber
 public interface IAsyncInteractionSubscriber : IAsyncSubscriber
 {
     /// <summary>
-    /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
+    ///     Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
     Task OnInteractionUpdate();
 }
@@ -37,8 +37,7 @@ public interface IAsyncGroupSubscriber : IAsyncSubscriber
     List<int?> WatchedIDs { get; }
 
     /// <summary>
-    /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
+    ///     Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
     Task OnGroupUpdate();
 }
-

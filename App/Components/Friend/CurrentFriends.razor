@@ -1,0 +1,73 @@
+@inherits UserViewComponentBase
+
+@using Force.DeepCloner
+@using Microsoft.AspNetCore.Identity
+@using Bamboozlers.Classes.AppDbContext
+
+@inject IDbContextFactory<AppDbContext> Db
+@inject UserManager<User> UserManager;
+
+<br/>
+<input class="search bg-secondary w-25 p-2 border-0 rounded" type="search" @bind-value="CurrentSearch" @bind-value:event="oninput" placeholder="Search">
+<br/><br/>
+<h4>Friends: @_displayedFriends.Count</h4>
+<hr/>
+<p>@_noFriends</p>
+
+@foreach (var friend in _displayedFriends)
+{
+    <span id="user_@friend.Id" style="font-size:1.4em;">@friend.UserName</span>
+    <p></p>
+}
+
+@code {
+    private readonly List<User> _friends = [];
+    private List<User> _displayedFriends = [];
+    private string? _noFriends;
+
+    private string? _currentSearch;
+
+    private string CurrentSearch
+    {
+        get
+        {
+            if (_currentSearch == null) return string.Empty;
+
+            var temp = _friends.DeepClone();
+            temp.RemoveAll(user => user.UserName!.Contains(_currentSearch));
+            _displayedFriends = temp;
+            _noFriends = _displayedFriends.Count == 0 ? "No friends found from this search" : "";
+            return _currentSearch;
+        }
+        set => _currentSearch = value;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated().Result) return;
+
+        var self = await AuthService.GetUser();
+        await using var db = await Db.CreateDbContextAsync();
+        foreach (var friendship in db.FriendShips.Include(f => f.User1).Include(f => f.User2))
+        {
+            if (friendship.User1ID == self!.Id)
+            {
+                _friends.Add(friendship.User2);
+            }
+            else if (friendship.User2ID == self.Id)
+            {
+                _friends.Add(friendship.User1);
+            }
+        }
+
+        if (_friends.Count == 0)
+        {
+            _noFriends = "You do not have any friends added at this time :(";
+        }
+        else
+        {
+            _displayedFriends = _friends.DeepClone();
+        }
+    }
+
+}
