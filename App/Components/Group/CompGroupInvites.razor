@@ -81,8 +81,6 @@
     
     private List<GroupInvite> IncomingGroupInvites { get; set; } = [];
     private List<GroupInvite> OutgoingGroupInvites { get; set; } = [];
-
-    public List<int?> WatchedIDs { get; set; } = [];
     
     private User Self { get; set; } = default!;
 
@@ -95,7 +93,6 @@
 
     public RenderFragment GetOutgoingGroupInviteFragment(GroupInvite groupInvite)
     {
-        var receiverRecord = UserRecord.From(groupInvite.Recipient);
         return @<text>
                     <div id="group-invite" style="display: block; padding-top: 5px; padding-bottom: 5px;">
                         <div id="@($"for-group-{groupInvite.Group.Name}")" 
@@ -107,31 +104,26 @@
                             }
                             @groupInvite.Group.Name
                         </div>
-                        <div id="@($"to-user-{receiverRecord.UserName}")" 
+                        <div id="@($"to-user-{groupInvite.Recipient.UserName}")" 
                              style="display: inline-flex">
                             for
-                            <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@receiverRecord.Avatar" alt=""/>
-                            <CompInteractUsername User="@groupInvite.Recipient"/>
+                            <CompInlineUserWithAvatar User="@groupInvite.Recipient"/>
                         </div>
-                        <div id="action-buttons" 
-                             style="display: inline; float: right;">
-                            <CompActionButton ButtonId="revoke-button"
-                                              ButtonCaption="Revoke Request"
-                                              ActionCallback="@(async () => await UserGroupService.RevokeGroupInvite(groupInvite.GroupID, groupInvite.RecipientID))"
-                                              IconName="@IconName.Ban"
-                                              ColumnWrapped="@false"/>
-                        </div>
+                        <CompGroupButton EventKind="GroupEvent.SentInviteRevoked"
+                                         UserId="@groupInvite.RecipientID"
+                                         GroupID="@groupInvite.GroupID"
+                                         RightFloating="@true"
+                                         ButtonId="revoke-button"/>
                     </div>
                 </text>;
     }
     
     public RenderFragment GetIncomingGroupInviteFragment(GroupInvite groupInvite)
     {
-        var senderRecord = UserRecord.From(groupInvite.Sender);
         return @<text>
-                    <div id="group-invite" style="display: block">
+                    <div id="group-invite" style="display: block; margin-top: 5px; margin-bottom: 5px;">
                         <div id="@($"forgroup-{groupInvite.Group.Name}")" 
-                             style="display:inline; margin-top: 5px; margin-bottom: 5px;">
+                             style="display:inline-flex;">
                             Invite to 
                             @if (groupInvite.Group.Avatar is not null)
                             {
@@ -139,24 +131,21 @@
                             }
                             @groupInvite.Group.Name
                         </div>
-                        <div id="@($"fromuser-{senderRecord.UserName}")" 
-                             style="display: inline-flex; padding-right: 20px">
+                        <div id="@($"fromuser-{groupInvite.Sender.UserName}")" 
+                             style="display: inline-flex;">
                             from 
-                            <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@senderRecord.Avatar" alt=""/>
-                            <CompInteractUsername User="@groupInvite.Sender"/>
+                            <CompInlineUserWithAvatar User="groupInvite.Sender"/>
                         </div>
-                        <div id="action-buttons" 
-                             style="display: inline-flex; float: right;">
-                            <CompActionButton ButtonId="accept-button"
-                                              IconName="@IconName.Check"
-                                              ActionCallback="@(async () => await UserGroupService.AcceptGroupInvite(groupInvite.GroupID, groupInvite.SenderID))"
-                                              ColumnWrapped="@false"/>
-                            <CompActionButton ButtonId="decline-button"
-                                              Color = "@Color.Danger"
-                                              IconName="@IconName.Ban"
-                                              ActionCallback="@(async () => await UserGroupService.DeclineGroupInvite(groupInvite.GroupID, groupInvite.SenderID))"
-                                              ColumnWrapped="@false"/>
-                        </div>
+                        <CompGroupButton EventKind="GroupEvent.ReceivedInviteAccepted"
+                                         UserId="@groupInvite.SenderID" 
+                                         GroupID="@groupInvite.GroupID" 
+                                         RightFloating="@true"
+                                         ButtonId="accept-button"/>
+                        <CompGroupButton EventKind="GroupEvent.ReceivedInviteDeclined"
+                                         UserId="@groupInvite.SenderID" 
+                                         GroupID="@groupInvite.GroupID" 
+                                         RightFloating="@true"
+                                         ButtonId="decline-button"/>
                         <Divider/>
                     </div>
                 </text>;
@@ -167,10 +156,21 @@
         IncomingGroupInvites = await UserGroupService.GetAllIncomingInvites();
         OutgoingGroupInvites = await UserGroupService.GetAllOutgoingInvites();
     }
+
+    public List<GroupEvent> WatchedGroupEvents { get; set; } =
+    [
+        GroupEvent.SentInvite,
+        GroupEvent.SentInviteRevoked,
+        GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.ReceivedInviteDeclined
+    ];
     
-    public async Task OnGroupUpdate()
+    public List<int?> WatchedIDs { get; set; } = [];
+    
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetGroupsData();
         StateHasChanged();
     }
 }
+

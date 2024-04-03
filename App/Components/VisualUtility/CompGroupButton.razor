@@ -1,0 +1,80 @@
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.Services.UserServices
+@using Blazorise.Utilities
+
+<div style="display: inline-flex; @(RightFloating ? "float: right" : "")">
+    <CompActionButton ButtonId="@ButtonId"
+                      Color="@Color"
+                      ButtonCaption="@ButtonCaption"
+                      IconName="@IconName"
+                      ActionCallback="@GroupCallback"
+                      ColumnWrapped="@false"
+                      Disabled="@Disabled"/>
+</div>
+
+@code {
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    
+    [Parameter] public GroupEvent EventKind { get; set; }
+    [Parameter] public int? UserId { get; set; }
+    [Parameter] public int? GroupID { get; set; }
+    [Parameter] public string? ButtonId { get; set; }
+    [Parameter] public bool RightFloating { get; set; } = false;
+
+    private EventCallback GroupCallback { get; set; } = EventCallback.Empty;
+    private IconName IconName { get; set; }
+    private string? ButtonCaption { get; set; } = "";
+    private Color? Color { get; set; } = Color.Success;
+    private bool Disabled { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var eventCallbackFactory = new EventCallbackFactory();
+        switch (EventKind)
+        {
+            case GroupEvent.SentInvite:
+                IconName = IconName.UserPlus;
+                ButtonCaption = "Send Invite";
+                GroupCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserGroupService.SendGroupInvite(GroupID, UserId)
+                );
+                break;
+            case GroupEvent.SentInviteRevoked:
+                IconName = IconName.Ban;
+                Color = Color.Danger;
+                ButtonCaption = "Revoke Invite";
+                GroupCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserGroupService.RevokeGroupInvite(GroupID, UserId)
+                );
+                break;
+            case GroupEvent.SentInvitePending:
+                IconName = IconName.Send;
+                Color = Color.Light;
+                ButtonCaption = "Pending";
+                Disabled = true;
+                break;
+            case GroupEvent.ReceivedInviteDeclined:
+                IconName = IconName.Ban;
+                Color = Color.Danger;
+                GroupCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserGroupService.DeclineGroupInvite(GroupID, UserId)
+                );
+                break;    
+            case GroupEvent.RemoveMember:
+                IconName = IconName.Ban;
+                Color = Color.Danger;
+                ButtonCaption = "Kick User";
+                GroupCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserGroupService.RemoveGroupMember(GroupID, UserId)
+                );
+                break;    
+            default:
+                break;
+        }
+    }
+}

@@ -146,7 +146,7 @@
         GroupEvent.SentInviteRevoked,
         GroupEvent.SentInvite
     ];
-    public async Task OnGroupUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetGroupsData();
         StateHasChanged();
@@ -160,10 +160,10 @@
         InteractionEvent.RequestDeclined,
         InteractionEvent.RequestRevoked
     ];
-    public async Task OnInteractionUpdate(InteractionEvent evt)
+    
+    public async Task OnUpdate(InteractionEvent evt)
     {
         await GetFriendsData();
         StateHasChanged();
     }
-
 }

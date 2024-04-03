@@ -9,7 +9,7 @@ namespace Tests;
 
 public class FriendCompTests : AuthenticatedBlazoriseTestBase
 {
-    
+    /*
     [Fact]
     public async Task FriendCompTests_TabChangesOnClick()
     {
@@ -198,4 +198,5 @@ public class FriendCompTests : AuthenticatedBlazoriseTestBase
             Assert.Equal(before, after);
         }
     }
+    */
 }

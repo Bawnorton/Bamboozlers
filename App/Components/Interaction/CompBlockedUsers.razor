@@ -19,12 +19,12 @@
         Blocked Users
     </Heading>
     <Divider/>
-    <div style="display: inline-block; margin-left: 10px; margin-right: 10px;">
+    <div class="scrollbar-container" style="display: inline-block; position: relative; width: 50%; max-height: 50vh; margin-left: 10px; margin-right: 10px;">
         @if (Blocked.Count > 0)
         {
             foreach (var user in Blocked)
             {
-                @GetBlockedUserFragment(user);
+                @GetBlockedUserFragment(user)
             }
         }
         else
@@ -51,23 +51,16 @@
 
     public RenderFragment GetBlockedUserFragment(User user)
     {
-        var blockedRecord = UserRecord.From(user);
         var isAlsoBlocker = BlockedBy.FirstOrDefault(u => u.Id == user.Id) is not null;
-        var imgSrc = isAlsoBlocker ? "images/default_profile.png" : blockedRecord.Avatar; 
         return @<text>
-                    <div style="display: block; padding-top: 5px; padding-bottom: 5px;" 
+                    <div style="display: block; padding-top: 5px; padding-bottom: 5px;"
                          id="@($"blocked-user-{user.UserName}")">
-                        <div style="display: inline-flex; margin-right: 20px">
-                            <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@imgSrc" alt=""/>
-                            <CompInteractUsername User="@user"/>                            
-                        </div>
-                        <div style="display: inline-flex;">
-                            <CompActionButton Color="Color.Danger" 
-                                              ButtonCaption="Unblock User"
-                                              IconName="@IconName.Shield"
-                                              ActionCallback="@(async () => await UserInteractionService.UnblockUser(user.Id))"
-                                              ColumnWrapped="@false"/>
-                        </div>
+                        <CompInlineUserWithAvatar User="@user" BlockedBy="@isAlsoBlocker"/>
+                        <CompInteractionButton EventKind="InteractionEvent.Unblock"
+                                               RightFloating="@true"
+                                               UserId = "@user.Id"
+                                               ButtonId="unblock-button"/>
+                        <Divider/>
                     </div>
                 </text>;
     }
@@ -77,8 +70,14 @@
         Blocked = await UserInteractionService.GetAllBlocked();
         BlockedBy = await UserInteractionService.GetAllBlockedBy();
     }
-    
-    public async Task OnInteractionUpdate()
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
+    [
+        InteractionEvent.Block,
+        InteractionEvent.Unblock
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
     {
         await GetBlockedData();
         StateHasChanged();

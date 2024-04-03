@@ -8,6 +8,7 @@ public enum InteractionEvent
     RequestDeclined,
     RequestSent,
     RequestRevoked,
+    RequestPending,
     Unfriend,
     Block,
     Unblock
@@ -29,5 +30,5 @@ public interface IInteractionSubscriber : IAsyncSubscriber
     /// <summary>
     /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
-    Task OnInteractionUpdate(InteractionEvent evt);
+    Task OnUpdate(InteractionEvent evt);
 }

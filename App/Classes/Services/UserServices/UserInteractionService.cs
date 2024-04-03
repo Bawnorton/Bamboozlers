@@ -1,3 +1,4 @@
+using AngleSharp.Diffing.Extensions;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Func;
 using Bamboozlers.Classes.Utility.Observer;
@@ -14,7 +15,11 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     {        
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser(inclusionCallback);
-        var other = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == otherId);
+        
+        var query = dbContext.Users.AsQueryable();
+        query = inclusionCallback?.Invoke(query) ?? query;
+        var other = await query.FirstOrDefaultAsync(u => u.Id == otherId);
+        
         return (self, other);
     }
     
@@ -95,6 +100,68 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         );
     }
 
+    public async Task<Chat?> FindDm(int? otherId)
+    {
+        var friendship = await FindFriendship(otherId);
+        if (friendship is null) 
+            return null;
+        
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var (self, other) = await GetInvolvedUsers(
+            otherId, 
+            query => query
+                .Include(u => u.Chats)
+                    .ThenInclude(c => c.Users)
+        );
+
+        if (self is null || other is null)
+            return null;
+        
+        var existingChat = self.Chats.Where(c => c is not GroupChat)
+            .FirstOrDefault(c => c.Users.FirstOrDefault(u => u.Id == self.Id) is not null
+                                 && c.Users.FirstOrDefault(u => u.Id == other.Id) is not null);
+
+        return existingChat;
+    }
+    
+    public async Task<Chat?> CreateDm(int? otherId)
+    {
+        var chatExists = await FindDm(otherId);
+        if (chatExists is not null)
+            return chatExists;
+        
+        var friendship = await FindFriendship(otherId);
+        if (friendship is null) 
+            return null;
+        
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var (self, other) = await GetInvolvedUsers(
+            otherId,
+            query => query.Include(u => u.Chats)
+        );
+
+        if (self is null || other is null)
+            return null;
+
+        var entityEntry = await dbContext.Chats.AddAsync(new Chat());
+        await dbContext.SaveChangesAsync();
+        var newChatId = entityEntry.Entity.ID;
+        dbContext.ChangeTracker.Clear();
+
+        var dm = dbContext.Chats.First(c => c.ID == newChatId);
+        dbContext.AttachRange([self,other,dm]);
+
+        dm.Users = [self, other];
+        self.Chats.Add(dm);
+        other.Chats.Add(dm);
+
+        dbContext.Chats.Update(dm);
+        await dbContext.SaveChangesAsync();
+        await NotifyAllAsync();
+
+        return dm;
+    }
+    
     public async Task BlockUser(int? otherId)
     {
         var (self, other) = await GetInvolvedUsers(otherId);
@@ -305,7 +372,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         
         foreach (var sub in subset)
         {
-            await sub.OnInteractionUpdate(evt);
+            await sub.OnUpdate(evt);
         }
     }
     public bool AddSubscriber(IInteractionSubscriber subscriber) 
@@ -320,7 +387,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     {
         foreach (var sub in Subscribers)
         {
-            await sub.OnInteractionUpdate(InteractionEvent.General);
+            await sub.OnUpdate(InteractionEvent.General);
         }
     }
 }
@@ -332,6 +399,8 @@ public interface IUserInteractionService : IAsyncPublisher<IInteractionSubscribe
     Task<FriendRequest?> FindOutgoingRequest(int? otherId);
     Task<Block?> FindIfBlocked(int? otherId);
     Task<Block?> FindIfBlockedBy(int? otherId);
+    Task<Chat?> FindDm(int? otherId);
+    Task<Chat?> CreateDm(int? otherId);
     Task BlockUser(int? otherId);
     Task UnblockUser(int? otherId);
     Task SendFriendRequest(int? otherId);

@@ -119,6 +119,7 @@
 @code {
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    [CascadingParameter] public EventCallback<int> OpenDmCallback { get; set; }
     
     [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
     private RenderFragment? ActionButton { get; set; }
@@ -182,6 +183,19 @@
                               <Icon Name="IconName.UserFriends"/>
                               FRIEND
                           </Badge>;
+            ActionButton = GetActionButton(
+                EventCallback.Factory.Create(
+                    this,
+                    async () =>
+                    {
+                        if (FocusUser.Id is null) 
+                            return;
+                        await OpenDmCallback.InvokeAsync((int) FocusUser.Id);
+                        await ClosePopupCallback.InvokeAsync();
+                    }),
+                "Send Message",
+                IconName.Mail
+            );
         } 
         else if (!IsBlockedBy && !IsBlocked)
         {
@@ -193,7 +207,7 @@
                         async () => await UserInteractionService.AcceptFriendRequest(FocusUser.Id)
                     ),
                     "Accept Friend Request",
-                    IconName.UserPlus
+                    IconName.UserCheck
                 );
             }
             else if (HasOutgoingRequest)
@@ -325,9 +339,15 @@
                     </Div>
                 </text>;
     }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
+    [
+        InteractionEvent.General
+    ];
     
-    public async Task OnInteractionUpdate()
+    public async Task OnUpdate(InteractionEvent evt)
     {
         await UpdateContext();
     }
 }
+

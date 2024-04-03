@@ -8,6 +8,7 @@ public enum GroupEvent
     ReceivedInviteAccepted,
     ReceivedInviteDeclined,
     SentInviteRevoked,
+    SentInvitePending,
     SelfLeftGroup,
     GrantedPermissions,
     RevokedPermissions,
@@ -32,5 +33,5 @@ public interface IGroupSubscriber : IAsyncSubscriber
     /// <summary>
     /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
-    Task OnGroupUpdate(GroupEvent evt, int? specifiedGroup = null);
+    Task OnUpdate(GroupEvent evt, int? specifiedGroup = null);
 }

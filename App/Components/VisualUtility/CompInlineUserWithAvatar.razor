@@ -1,0 +1,26 @@
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.AppDbContext
+
+<div style="display: inline-flex; margin-right: 10px">
+    <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@(BlockedBy ? "images/default_profile.png" : Record.Avatar)" alt=""/>
+    @if (string.IsNullOrEmpty(Record.DisplayName))
+    {
+        <CompInteractUsername User="@User"/>   
+    }
+    else
+    {
+        <CompInteractUsername User="@User"/> <p style="margin-left: 5px">@Record.UserName</p>
+    }                          
+</div>
+
+@code {
+    [Parameter] public User User { get; set; } = default!;
+    [Parameter] public bool BlockedBy { get; set; } = default!;
+    private UserRecord Record { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Record = UserRecord.From(User);
+    }
+}

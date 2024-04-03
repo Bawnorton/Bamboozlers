@@ -80,6 +80,7 @@
         InvitedAlready = invitesForGroup
             .Select(i => FriendList.FirstOrDefault(u => u.Id == i.RecipientID))
             .Where(u => u != null)
+            .Select(u => u!)
             .ToList();
 
         InviteList = GetInviteList();
@@ -149,10 +150,11 @@
         GroupEvent.General
     ];
     
-    public async Task OnGroupUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await LoadGroupData();
         StateHasChanged();
     }
 }
+
 

@@ -7,7 +7,9 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.VisualUtility
-@using System.Diagnostics
+@using Blazorise.Extensions
+
+@inject ILogger<CompAddFriend> Logger
 
 <ModalContent Size="ModalSize.Large" Centered>
     <ModalHeader>
@@ -18,17 +20,21 @@
         <Heading>Find users by their username or display name.</Heading>
         <Divider/>
         <Div Style="display: block">
-            <div style="display: inline-block; width: max-content;">
+            <div style="display: block;">
                 <TextEdit @bind-Text="SearchQuery"
+                          Style="display: inline-flex; width: 75%"
                           ElementId="search-bar"
+                          KeyPress="@(async () => await PerformSearch())"
                           MaskType="MaskType.RegEx"
                           EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
                           Placeholder="Find users by their username or display name"/>
-                <CompActionButton ActionCallback="@(async () => await Search())"
-                                  IconName="@IconName.Search"
-                                  ColumnWrapped="@false"/>
+                <div style="display: inline-flex">
+                    <CompActionButton ActionCallback="@(async () => await PerformSearch())"
+                                      IconName="@IconName.Search"
+                                      ColumnWrapped="@false"/>
+                </div>
             </div>
-            <div style="display: block; margin-left:  5px; margin-right: 5px;" class="scrollbar-container">
+            <div style="display: block; margin-left: 5px; margin-right: 5px;" class="settings-container scrollbar-container">
                 <Divider/>
                 @if (SearchList.Count > 0)
                 {
@@ -36,12 +42,6 @@
                     {
                         @fragment
                     }
-
-                    <Divider/>
-                }
-                else if (SearchQuery.Length > 0)
-                {
-                    <p>No users matching the supplied search query were found.</p>
                 }
             </div>
         </Div>
@@ -55,7 +55,7 @@
     [Inject] private IKeyPressService KeyPressService { get; set; } = default!;
 
     private List<RenderFragment> SearchList { get; set; } = [];
-    private List<User?> CurrentSearchResults { get; set; } = [];
+    private List<User> CurrentSearchResults { get; set; } = [];
 
     private string SearchQuery { get; set; } = "";
 
@@ -69,63 +69,81 @@
         await GetInteractionData();
     }
     
-    public RenderFragment GetUserFragment(User user)
+    public RenderFragment GetUserFragment(User user, bool sentFr = false, bool receivedFr = false)
     {
-        var record = UserRecord.From(user);
+        var eventType = InteractionEvent.RequestSent;
+        if (sentFr) eventType = InteractionEvent.RequestAccepted;
+        else if (receivedFr) eventType = InteractionEvent.RequestPending;
+        
         return @<text>
-                    <div style="display: inline-block;" id="@($"user-{user.UserName}")">
-                        <div style="display: inline;">
-                            <img class="_32x32 border-mask" src="@record.Avatar" alt=""/>
-                            <CompInteractUsername User="@user"/>                            
-                        </div>
-                        <div style="display: inline; float: right">
-                            <CompActionButton ButtonCaption="Send Friend Request"
-                                              IconName="@IconName.UserPlus"
-                                              ActionCallback="@(async () => await UserInteractionService.SendFriendRequest(user.Id))"
-                                              ColumnWrapped="@false"/>
-                        </div>
+                    <div style="display: block; margin-top: 5px; margin-bottom: 5px;" id="@($"user-{user.UserName}")">
+                        <CompInlineUserWithAvatar User="@user"/>
+                        <CompInteractionButton EventKind="@eventType"
+                                               RightFloating="@true"
+                                               UserId="@user.Id"
+                                               ButtonId="interact-button"/>
+                        <Divider/>
                     </div>
                 </text>;
     }
 
-    public async Task Search()
+    private async Task PerformSearch()
     {
+        if (SearchQuery.Length == 0)
+            return;
+        
+        Logger.LogInformation("Generating search list...");
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
+        var useQuery = SearchQuery.ToLower();
         var matches = dbContext.Users.Where(
-            u => (u.UserName != null && !u.UserName.StartsWith(SearchQuery))
-                 || (u.DisplayName != null && u.DisplayName.StartsWith(SearchQuery))).ToList();
+                u => (u.UserName != null && u.UserName.ToLower().StartsWith(useQuery))
+                     || (u.DisplayName != null && u.DisplayName.ToLower().StartsWith(useQuery)))
+            .Where(u => !Ignore.Contains(u));
         
-        CurrentSearchResults = []; 
-        foreach (var user in matches)
-        {
-            if (Ignore.FirstOrDefault(u => u.Id == user.Id) is null)
-            {
-                CurrentSearchResults.Add(user);
-            }
-        }
-        
-        SearchList = CurrentSearchResults
-            .Where(u => u != null)
-                .Select(u => u!)
-                    .Select(u => GetUserFragment(u))
-                        .ToList();
+        var len = matches.Count();
+        CurrentSearchResults = matches.Take(int.Max(len,100)).ToList();
+
+        await GenerateList();
+        StateHasChanged();
     }
 
-    public async Task GetInteractionData()
+    private async Task GenerateList()
+    {
+        var incoming = await UserInteractionService.GetAllIncomingRequests();
+        var outgoing = await UserInteractionService.GetAllOutgoingRequests();
+        
+        SearchList = CurrentSearchResults
+            .Select(u =>
+            {
+                if (incoming.FirstOrDefault(fr => fr.SenderID == u.Id) is not null)
+                    return GetUserFragment(u, sentFr: true);
+                return outgoing.FirstOrDefault(fr => fr.ReceiverID == u.Id) is not null 
+                    ? GetUserFragment(u, receivedFr: true) 
+                    : GetUserFragment(u);
+            })
+            .ToList();
+    }
+
+    private async Task GetInteractionData()
     {
         Ignore = [Self];
         Ignore.AddRange(await UserInteractionService.GetAllFriends());
         Ignore.AddRange(await UserInteractionService.GetAllBlocked());
         Ignore.AddRange(await UserInteractionService.GetAllBlockedBy());
-        Ignore.AddRange((await UserInteractionService.GetAllIncomingRequests()).Select(f => f.Sender));
-        Ignore.AddRange((await UserInteractionService.GetAllOutgoingRequests()).Select(f => f.Receiver));
     }
 
-    public async Task OnInteractionUpdate()
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
+    [
+        InteractionEvent.RequestSent
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
     {
         await GetInteractionData();
+        await GenerateList();
         StateHasChanged();
     }
 }
+
 

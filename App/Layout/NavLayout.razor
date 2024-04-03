@@ -3,17 +3,9 @@
 @implements IInteractionSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes.Events
-@using Bamboozlers.Classes
-@using AngleSharp.Diffing.Extensions
-@using Bamboozlers.Classes.Events
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Networking
-@using Bamboozlers.Classes.Services
-@using Bamboozlers.Components.Settings
 @using Bamboozlers.Classes.Utility.Observer
-@using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Chat
 @using Bamboozlers.Components.MainVisual
@@ -22,9 +14,9 @@
 @rendermode InteractiveServer
 
 @inject IDbContextFactory<AppDbContext> Db
-@inject AuthenticationStateProvider AuthStateProvider;
 @inject IUserGroupService UserGroupService;
 @inject IUserInteractionService UserInteractionService;
+@inject ILogger<NavLayout> Logger
 
 <Layout Sider>
     <LayoutSider>
@@ -82,7 +74,7 @@
                                 @foreach (var chat in GroupChats)
                                 {
                                     <BarItem>
-                                        <BarLink ElementId="@("group_" + chat.ID)" @onclick="() => { CurrentView = View.Group; CurrentChatId = chat.ID; }">
+                                        <BarLink ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
                                             @if (chat.Avatar is not null)
                                             {
                                                 <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
@@ -199,6 +191,10 @@
                 chat.Users.First(u => u.Id != User.Id), 
                 chat.Users.First(u => u.Id != User.Id).Avatar)
             ).ToList();
+        
+        if (CurrentView != View.Dm || DmChats.FirstOrDefault(c => c.User.Id == CurrentChatId) is not null) return;
+        CurrentChatId = -1;
+        CurrentView = View.Home;
     }
     
     private async Task GetFriendData()
@@ -217,20 +213,38 @@
             }
         }
     }
-
-    private async Task OpenDm(int otherId, bool reload = false)
+    
+    public async Task OpenDm(int chatId = -1, int? otherId = null, bool reload = false)
     {
         if (reload)
         {
             await GetUserData();
             GetDmData();   
         }
-        
-        if (DmChats.FirstOrDefault(d => d.User.Id == otherId) is null)
-            return;
+
+        if (chatId == -1)
+        {
+            if (otherId is not null)
+            {
+                var dm = await UserInteractionService.FindDm(otherId);
+                if (dm is null)
+                {
+                    dm = await UserInteractionService.CreateDm(otherId);
+                    if (dm is null)
+                        return;
+                }
+                chatId = dm.ID;
+                await GetUserData();
+                GetDmData();
+            }
+            else
+            {
+                return;
+            }
+        }
         
         CurrentView = View.Dm; 
-        CurrentChatId = otherId; 
+        CurrentChatId = chatId; 
         StateHasChanged();
     }
     
@@ -250,7 +264,7 @@
         StateHasChanged();
     }
     
-    public List<int?> WatchedIDs { get; set; } = [];
+    public List<int?> WatchedIDs { get; private set; } = [];
 
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
     [
@@ -269,52 +283,14 @@
         GroupEvent.GroupDisplayChange
     ];
 
-    public async Task OnGroupUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetUserData();
-        
-        var listMatch = GroupChats.FirstOrDefault(gc => gc.ID == specifiedGroup);
-        var userMatch = User!.Chats.OfType<GroupChat>().FirstOrDefault(u => u.ID == specifiedGroup);
-        
-        switch (evt)
-        {
-            case GroupEvent.SelfLeftGroup:
-                if (listMatch is not null)
-                    GroupChats.Remove(listMatch);
-                if (specifiedGroup is null) 
-                    break;
-                if (CurrentView != View.Group || CurrentChatId != specifiedGroup)
-                    break;
-                CurrentChatId = -1;
-                CurrentView = View.Home;
-                break;
-            case GroupEvent.ReceivedInviteAccepted: 
-            case GroupEvent.CreateGroup:
-                if (userMatch is not null && listMatch is null)
-                {
-                    GroupChats.Add(userMatch);
-                }
-                break;
-            case GroupEvent.GroupDisplayChange:
-                if (userMatch is not null)
-                {
-                    if (listMatch is not null)
-                    {
-                        GroupChats.Remove(listMatch);
-                        GroupChats.Add(userMatch);
-                        break;
-                    }
-                    GroupChats.Add(userMatch);
-                }
-                break;
-            default:
-                GetGroupData();
-                break;
-        }
+        GetGroupData();
         StateHasChanged();
     }
     
-    public async Task OnInteractionUpdate(InteractionEvent evt)
+    public async Task OnUpdate(InteractionEvent evt)
     {
         await GetUserData();
         GetDmData();

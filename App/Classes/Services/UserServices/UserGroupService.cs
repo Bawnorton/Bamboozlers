@@ -73,17 +73,13 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             return IdentityResult.Failed([
                 new IdentityError { Description = "Could not create group. Database error occured." }
             ]);
+
+        var group = new GroupChat();
+        group.Name = name ?? $"{self.UserName}'s Group";
+        group.Avatar = avatar;
+        group.OwnerID = self.Id;
+        group.Users.Add(self);
         
-        var group = new GroupChat
-        {
-            Owner = self,
-            OwnerID = self.Id,
-            Name = name ?? $"{self.UserName}'s Group",
-            Avatar = avatar,
-            Users = [self],
-            Moderators = [],
-            Messages = []
-        };
         self.OwnedChats.Add(group);
         self.Chats.Add(group);
 
@@ -372,7 +368,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         
         foreach (var sub in subset)
         {
-            await sub.OnGroupUpdate(evt);
+            await sub.OnUpdate(evt);
         }
     }
     
@@ -380,7 +376,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
     {
         foreach (var sub in Subscribers)
         {
-            await sub.OnGroupUpdate(GroupEvent.General);
+            await sub.OnUpdate(GroupEvent.General);
         }
     }
 }

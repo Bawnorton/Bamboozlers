@@ -98,27 +98,21 @@
 
     public RenderFragment GetIncomingFriendRequestFragment(FriendRequest friendRequest)
     {
-        var senderRecord = UserRecord.From(friendRequest.Sender);
         return @<text>
                     <div id="friend-request" style="display: block; padding-top: 5px; padding-bottom: 5px;">
-                        <div id="@($"for-user-{senderRecord.UserName}")"
-                             style="display: inline-flex;">
-                            Friend request from
-                            <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@senderRecord.Avatar" alt=""/>
-                            <CompInteractUsername User="@friendRequest.Sender"/>
+                        <div id="@($"from-user-{friendRequest.Sender.UserName}")" 
+                             style="display:inline-flex">
+                            Friend request sent by
+                            <CompInlineUserWithAvatar User="@friendRequest.Sender"/>
                         </div>
-                        <div id="action-buttons1"
-                             style="display: inline-flex; float: right;">
-                            <CompActionButton ButtonId="accept-button"
-                                              IconName="@IconName.UserPlus"
-                                              ActionCallback="@(async () => await UserInteractionService.AcceptFriendRequest(friendRequest.SenderID))"
-                                              ColumnWrapped="@false"/>
-                            <CompActionButton ButtonId="decline-button"
-                                              Color="@Color.Danger"
-                                              IconName="@IconName.Ban"
-                                              ActionCallback="@(async () => await UserInteractionService.DeclineFriendRequest(friendRequest.SenderID))"
-                                              ColumnWrapped="@false"/>
-                        </div>
+                        <CompInteractionButton EventKind="InteractionEvent.RequestDeclined"
+                                               UserId="@friendRequest.SenderID"
+                                               RightFloating="@true"
+                                               ButtonId="decline-button"/>
+                        <CompInteractionButton EventKind="InteractionEvent.RequestAccepted"
+                                               UserId="@friendRequest.SenderID"
+                                               RightFloating="@true"
+                                               ButtonId="accept-button"/>
                         <Divider/>
                     </div>
                 </text>;
@@ -126,24 +120,17 @@
     
     public RenderFragment GetOutgoingFriendRequestFragment(FriendRequest friendRequest)
     {
-        var receiverRecord = UserRecord.From(friendRequest.Sender);
         return @<text>
                     <div id="friend-request" style="display: block">
-                        <div id="@($"for-user-{receiverRecord.UserName}")" 
+                        <div id="@($"for-user-{friendRequest.Sender.UserName}")" 
                              style="display:inline-flex">
-                             Friend request sent to
-                             <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@receiverRecord.Avatar" alt=""/>   
-                             <CompInteractUsername User="@friendRequest.Receiver"/>
+                            Friend request sent to
+                            <CompInlineUserWithAvatar User="@friendRequest.Receiver"/>
                         </div>
-                        <div id="action-buttons" 
-                             style="display: inline-flex; float: right;">
-                            <CompActionButton ButtonId="revoke-button"
-                                              IconName="@IconName.Ban"
-                                              Color="@Color.Danger"
-                                              ButtonCaption="Revoke Friend Request"
-                                              ActionCallback="@(async () => await UserInteractionService.RevokeFriendRequest(friendRequest.ReceiverID))"
-                                              ColumnWrapped="@false"/>
-                        </div>
+                        <CompInteractionButton EventKind="InteractionEvent.RequestRevoked" 
+                                               UserId="@friendRequest.ReceiverID"
+                                               RightFloating="@true"
+                                               ButtonId="revoke-button"/>
                         <Divider/>
                     </div>
                 </text>;
@@ -153,14 +140,34 @@
     {
         IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
         OutgoingFriendRequests = await UserInteractionService.GetAllOutgoingRequests();
-        
         IncomingFragments = IncomingFriendRequests.Select(GetIncomingFriendRequestFragment).ToList(); 
         OutgoingFragments = OutgoingFriendRequests.Select(GetOutgoingFriendRequestFragment).ToList();
     }
-    
-    public async Task OnInteractionUpdate()
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
+    [
+        InteractionEvent.RequestAccepted,
+        InteractionEvent.RequestDeclined,
+        InteractionEvent.RequestRevoked,
+        InteractionEvent.RequestSent
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
     {
-        await GetFriendsData();
+        switch (evt)
+        {
+            case InteractionEvent.RequestAccepted: case InteractionEvent.RequestDeclined:
+                IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
+                IncomingFragments = IncomingFriendRequests.Select(GetIncomingFriendRequestFragment).ToList(); 
+                break;
+            case InteractionEvent.RequestRevoked: case InteractionEvent.RequestSent:
+                OutgoingFriendRequests = await UserInteractionService.GetAllOutgoingRequests();
+                OutgoingFragments = OutgoingFriendRequests.Select(GetOutgoingFriendRequestFragment).ToList();
+                break;
+            default:
+                await GetFriendsData();
+                break;
+        }
         StateHasChanged();
     }
 }

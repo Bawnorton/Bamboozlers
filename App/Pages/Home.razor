@@ -6,6 +6,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.Interaction
 @using Bamboozlers.Components.MainVisual
 @using Bamboozlers.Components.Group
@@ -26,10 +27,12 @@
             -->
             <CascadingValue Value="_openPopupCallback">
                 <CascadingValue Value="_closePopupCallback">
-                    <NavLayout @ref="_navLayout"/>
-                    <Modal @ref="_popupComponent" Closed="OnPopupClosed">
-                        @_popupContent
-                    </Modal>
+                    <CascadingValue Value="_openDmCallback">
+                        <NavLayout @ref="_navLayout"/>
+                        <Modal @ref="_popupComponent" Closed="OnPopupClosed">
+                            @_popupContent
+                        </Modal>
+                    </CascadingValue>
                 </CascadingValue>
             </CascadingValue>
         </AuthorizeView>
@@ -60,9 +63,10 @@
 @code {
     private NavLayout? _navLayout;
     private CompSettings? _settingsComponent;
-
+    
     private EventCallback<PopupCallbackArgs> _openPopupCallback;
     private EventCallback _closePopupCallback;
+    private EventCallback<int> _openDmCallback;
     
     private Modal? _popupComponent;
     private RenderFragment? _popupContent;
@@ -71,6 +75,7 @@
     {
         _openPopupCallback = EventCallback.Factory.Create<PopupCallbackArgs>(this, OpenPopup);
         _closePopupCallback = EventCallback.Factory.Create(this, ClosePopup);
+        _openDmCallback = EventCallback.Factory.Create<int>(this, id => _navLayout!.OpenDm(-1, id, true));
     }
     
     private async Task OpenPopup(PopupCallbackArgs args)
@@ -135,5 +140,14 @@
         if (_popupComponent is null)
             return;
         _popupContent = null;
+    }
+
+    public List<ISubscriber> Subscribers { get; } = [];
+
+    public bool AddSubscriber(ISubscriber subscriber)
+    {
+        if (Subscribers.Contains(subscriber)) return false;
+        Subscribers.Add(subscriber);
+        return true;
     }
 }

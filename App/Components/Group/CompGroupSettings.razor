@@ -66,8 +66,6 @@
     
     [Parameter] public int? ChatID { get; set; }
     
-    public List<int?> WatchedIDs { get; set; } = [];
-    
     private GroupChat? Chat { get; set; }
     private User? Self { get; set; }
     
@@ -332,10 +330,20 @@
                                      ActionCallback="@(async () => await UserGroupService.RemoveGroupMember(ChatID, user.Id))"/>
                 </div>;
     }
+
+    public List<GroupEvent> WatchedGroupEvents { get; set; } =
+    [
+        GroupEvent.RemoveMember,
+        GroupEvent.RevokedPermissions,
+        GroupEvent.GrantedPermissions,
+        GroupEvent.GroupDisplayChange
+    ];
+    public List<int?> WatchedIDs { get; set; } = [];
     
-    public async Task OnGroupUpdate()
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await LoadGroupData();
         StateHasChanged();
     }
 }
+

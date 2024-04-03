@@ -7,7 +7,7 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.VisualUtility
 
-<div style="margin-top: 10px">
+<div style="margin-top: 10px; width: 100%">
     <Heading>
         @if (Friends.Count > 0)
         {
@@ -19,7 +19,7 @@
         Friends
     </Heading>
     <Divider/>
-    <div style="display: inline-block; margin-left: 10px; margin-right: 10px;">
+    <div class="scrollbar-container" style="display: inline-block; position: relative; width: 50%; max-height: 50vh; margin-left: 10px; margin-right: 10px;">
         @if (Friends.Count > 0)
         {
             foreach (var user in Friends)
@@ -37,7 +37,9 @@
 
 @code {
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
-
+    
+    [CascadingParameter] private EventCallback<int> OpenDmCallback { get; set; }
+    
     private User Self { get; set; } = default!;
     private List<User> Friends { get; set; } = [];
 
@@ -50,18 +52,14 @@
 
     public RenderFragment GetFriendFragment(User user)
     {
-        var friendRecord = UserRecord.From(user);
         return @<text>
                     <div style="display: block; padding-top: 5px; padding-bottom: 5px;" 
                          id="@($"user-{user.UserName}")">
-                        <div style="display: inline-flex; margin-right: 10px">
-                            <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@friendRecord.Avatar" alt=""/>
-                            <CompInteractUsername User="@user"/>                            
-                        </div>
+                        <CompInlineUserWithAvatar User="@user"/>
                         <div style="display: inline-flex; float: right;">
                             <CompActionButton ButtonCaption="Send Message"
                                               IconName="@IconName.Mail"
-                                              ActionCallback="@(async () => {/*TODO: Open DM*/})"
+                                              ActionCallback="@(async () => await OpenDmCallback.InvokeAsync(user.Id))"
                                               ColumnWrapped="@false"/>
                         </div>
                         <Divider/>
@@ -73,8 +71,14 @@
     {
         Friends = await UserInteractionService.GetAllFriends();
     }
-    
-    public async Task OnInteractionUpdate()
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
+    [
+        InteractionEvent.Unfriend,
+        InteractionEvent.RequestAccepted
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
     {
         await GetFriendData();
         StateHasChanged();

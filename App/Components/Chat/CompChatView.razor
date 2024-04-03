@@ -137,30 +137,37 @@
         </Div>
     </LayoutFooter>
 </Layout>
-@if (Chat is GroupChat)
-{
-    <LayoutSider>
-        <LayoutSiderContent>
-            <Bar Mode="BarMode.VerticalInline"
-                 CollapseMode="BarCollapseMode.Hide"
-                 ThemeContrast="ThemeContrast.Dark"
-                 Class="h-100">
-                <BarMenu>
-                    <BarItem Class="mb-2">
-                        <Div TextColor="TextColor.Primary"
-                             Background="Background.Dark"
-                             Padding="Padding.Is3"
-                             TextSize="TextSize.Heading5">
-                            <Text Class="me-4">Members - @Chat.Users.Count</Text>
+<LayoutSider>
+    <LayoutSiderContent>
+        <Bar Mode="BarMode.VerticalInline"
+             CollapseMode="BarCollapseMode.Hide"
+             ThemeContrast="ThemeContrast.Dark"
+             Class="h-100">
+            <BarMenu>
+                <BarItem Class="mb-2">
+                    <Div TextColor="TextColor.Primary"
+                         Background="Background.Dark"
+                         Padding="Padding.Is3"
+                         TextSize="TextSize.Heading5">
+                        @if (Chat is GroupChat)
+                        {
+                            <Paragraph Class="me-4">Members - @Chat.Users.Count</Paragraph>
                             @if (IsMod)
                             {
-                                <Icon ElementId="addMembers" 
-                                      role="button" 
-                                      Name="IconName.Add" 
-                                      onclick="@(() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs{ PopupType = RecognizedPopupType.ChatAddMember, ChatId = ChatID }))"/>
+                                <Icon ElementId="addMembers"
+                                      role="button"
+                                      Name="IconName.Add"
+                                      onclick="@(() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.ChatAddMember, ChatId = ChatID }))"/>
                             }
-                        </Div>
-                    </BarItem>
+                        }
+                        else
+                        {
+                            <Paragraph Class="me-4">Direct Message</Paragraph>
+                        }
+                    </Div>
+                </BarItem>
+                @if (Chat is not null)
+                {
                     @foreach (var user in Chat.Users)
                     {
                         <BarItem>
@@ -175,11 +182,12 @@
                             </BarLink>
                         </BarItem>
                     }
-                </BarMenu>
-            </Bar>
-        </LayoutSiderContent>
-    </LayoutSider>
-}
+                }
+            </BarMenu>
+        </Bar>
+    </LayoutSiderContent>
+</LayoutSider>
+
 
 
 @code {
@@ -479,7 +487,7 @@
         GroupEvent.GroupDisplayChange
     ];
     
-    public async Task OnGroupUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetChatData();
     }

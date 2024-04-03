@@ -1,3 +1,4 @@
+using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Classes.Utility.Observer;
 using Tests.Provider;
@@ -62,7 +63,7 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         
         var notified = false;
         var subscriber = new Mock<IUserSubscriber>();
-        subscriber.Setup(x => x.OnUserUpdate()).Callback(() => notified = true);
+        subscriber.Setup(x => x.OnUpdate(It.IsAny<UserRecord>())).Callback(() => notified = true);
         
         var result = UserService.AddSubscriber(subscriber.Object);
         Assert.True(result);
@@ -83,12 +84,12 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         Assert.Equal("TestUser2",userData.UserName);
         Assert.Equal("test_user2@gmail.com",userData.Email);
 
-        result = ((IAsyncPublisher<IUserSubscriber>) UserService).RemoveSubscriber(subscriber.Object);
+        result = ((IPublisher<IUserSubscriber>) UserService).RemoveSubscriber(subscriber.Object);
         Assert.True(result);
         Assert.DoesNotContain(subscriber.Object,UserService.Subscribers);
         
         subscriber = new Mock<IUserSubscriber>();
-        result = ((IAsyncPublisher<IUserSubscriber>) UserService).RemoveSubscriber(subscriber.Object);
+        result = ((IPublisher<IUserSubscriber>) UserService).RemoveSubscriber(subscriber.Object);
         Assert.False(result);
         
         await SetUser(null);
