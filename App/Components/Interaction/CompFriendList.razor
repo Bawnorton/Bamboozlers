@@ -19,7 +19,7 @@
         Friends
     </Heading>
     <Divider/>
-    <div class="scrollbar-container" style="display: inline-block; position: relative; width: 50%; max-height: 50vh; margin-left: 10px; margin-right: 10px;">
+    <div class="scrollbar-container" style="display: inline-block; position: relative; left: 12%; width: 75%; max-height: 50vh; margin-left: 10px; margin-right: 10px;">
         @if (Friends.Count > 0)
         {
             foreach (var user in Friends)
@@ -39,6 +39,9 @@
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     
     [CascadingParameter] private EventCallback<int> OpenDmCallback { get; set; }
+    [CascadingParameter] private EventCallback ClosePopupCallback { get; set; }
+    
+    [Parameter] public bool IsPopup { get; set; } = false;
     
     private User Self { get; set; } = default!;
     private List<User> Friends { get; set; } = [];
@@ -53,13 +56,13 @@
     public RenderFragment GetFriendFragment(User user)
     {
         return @<text>
-                    <div style="display: block; padding-top: 5px; padding-bottom: 5px;" 
+                    <div style="display: block; margin-top: 5px; margin-bottom: 5px;" 
                          id="@($"user-{user.UserName}")">
                         <CompInlineUserWithAvatar User="@user"/>
                         <div style="display: inline-flex; float: right;">
                             <CompActionButton ButtonCaption="Send Message"
                                               IconName="@IconName.Mail"
-                                              ActionCallback="@(async () => await OpenDmCallback.InvokeAsync(user.Id))"
+                                              ActionCallback="@(async () => { await OpenDmCallback.InvokeAsync(user.Id); if (IsPopup) ClosePopupCallback.InvokeAsync(); })"
                                               ColumnWrapped="@false"/>
                         </div>
                         <Divider/>

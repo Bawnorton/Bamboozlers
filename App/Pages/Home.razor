@@ -100,6 +100,11 @@
             RecognizedPopupType.AddFriends => @<text>
                                                    <CompAddFriend/>
                                                </text>,
+            RecognizedPopupType.OpenDm => @<text>
+                                               <ModalContent Centered>
+                                                   <CompFriendList IsPopup="@true"/>
+                                               </ModalContent>
+                                           </text>,
             _ => @<text>
                       <ModalContent Size="args.Size" Centered>
                           <ModalHeader>

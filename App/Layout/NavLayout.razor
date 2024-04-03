@@ -38,6 +38,7 @@
                             Home
                         </BarLink>
                     </BarItem>
+                    <Divider/>
                     <BarItem>
                         <BarDropdown>
                             <BarDropdownToggle>
@@ -45,25 +46,42 @@
                                 Direct Messages
                             </BarDropdownToggle>
                             <BarDropdownMenu ElementId="dms_dropdown">
-                                @foreach (var chat in DmChats)
+                                <BarLink ElementId="create_dm" @onclick="@(async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs {PopupType = RecognizedPopupType.OpenDm}))">
+                                    <BarIcon IconName="Icons.Envelope"></BarIcon>
+                                    Open Direct Message
+                                </BarLink>
+                                <Divider/>
+                                @if (DmChats.Count > 0)
+                                {
+                                    foreach (var chat in DmChats)
+                                    {
+                                        <BarItem>
+                                            <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
+                                                @if (chat.Avatar is not null)
+                                                {
+                                                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
+                                                }
+                                                else
+                                                {
+                                                    <BarIcon IconName="Icons.UserGroup"></BarIcon>
+                                                }
+                                                @(chat.User.DisplayName.IsNullOrEmpty() ? chat.User.UserName : chat.User.DisplayName)
+                                            </BarLink>
+                                        </BarItem>
+                                    }
+                                }
+                                else
                                 {
                                     <BarItem>
-                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
-                                            @if (chat.Avatar is not null)
-                                            {
-                                                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
-                                            }
-                                            else
-                                            {
-                                                <BarIcon IconName="Icons.User"></BarIcon>
-                                            }
-                                            @(chat.User.DisplayName.IsNullOrEmpty() ? chat.User.UserName : chat.User.DisplayName)
-                                        </BarLink>
+                                        <BarLabel>
+                                           <i>No direct messages</i>
+                                        </BarLabel>
                                     </BarItem>
                                 }
                             </BarDropdownMenu>
                         </BarDropdown>
                     </BarItem>
+                    <Divider/>
                     <BarItem>
                         <BarDropdown>
                             <BarDropdownToggle>
@@ -71,20 +89,38 @@
                                 Group Chats
                             </BarDropdownToggle>
                             <BarDropdownMenu ElementId="groups_dropdown">
-                                @foreach (var chat in GroupChats)
+                                <BarItem>
+                                    <BarLink ElementId="create_group" @onclick="@(async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs {}))">
+                                        <BarIcon IconName="Icons.UserPlus"></BarIcon>
+                                        Create Group Chat
+                                    </BarLink>
+                                </BarItem>
+                                <Divider/>
+                                @if (GroupChats.Count > 0)
+                                {
+                                    foreach (var chat in GroupChats)
+                                    {
+                                        <BarItem>
+                                            <BarLink ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
+                                                @if (chat.Avatar is not null)
+                                                {
+                                                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
+                                                }
+                                                else
+                                                {
+                                                    <BarIcon IconName="Icons.Users"></BarIcon>
+                                                }
+                                                @chat.Name
+                                            </BarLink>
+                                        </BarItem>
+                                    }
+                                }
+                                else
                                 {
                                     <BarItem>
-                                        <BarLink ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
-                                            @if (chat.Avatar is not null)
-                                            {
-                                                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
-                                            }
-                                            else
-                                            {
-                                                <BarIcon IconName="Icons.Users"></BarIcon>
-                                            }
-                                            @chat.Name
-                                        </BarLink>
+                                        <BarLabel>
+                                            <i>No group chats</i>
+                                        </BarLabel>
                                     </BarItem>
                                 }
                             </BarDropdownMenu>
