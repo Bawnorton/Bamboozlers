@@ -8,7 +8,7 @@
 @inject UserManager<User> UserManager;
 
 <br/>
-<input class="search bg-secondary w-25 p-2 border-0 rounded" type="search" @bind-value="CurrentSearch" @bind-value:event="oninput" placeholder="Search">
+<input class="search bg-secondary w-25 p-2 border-0 rounded" type="search" placeholder="Search" @oninput="OnSearch" />
 <br/><br/>
 <h4>Friends: @_displayedFriends.Count</h4>
 <hr/>
@@ -24,23 +24,6 @@
     private readonly List<User> _friends = [];
     private List<User> _displayedFriends = [];
     private string? _noFriends;
-
-    private string? _currentSearch;
-
-    private string CurrentSearch
-    {
-        get
-        {
-            if (_currentSearch == null) return string.Empty;
-
-            var temp = _friends.DeepClone();
-            temp.RemoveAll(user => user.UserName!.Contains(_currentSearch));
-            _displayedFriends = temp;
-            _noFriends = _displayedFriends.Count == 0 ? "No friends found from this search" : "";
-            return _currentSearch;
-        }
-        set => _currentSearch = value;
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,4 +53,12 @@
         }
     }
 
+    private void OnSearch(ChangeEventArgs e)
+    {
+        var search = e.Value?.ToString() ?? string.Empty;
+        var temp = _friends.DeepClone();
+        temp.RemoveAll(user => !user.UserName!.Contains(search));
+        _displayedFriends = temp;
+        _noFriends = _displayedFriends.Count == 0 ? "No friends found from this search" : "";
+    }
 }

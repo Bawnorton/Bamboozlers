@@ -48,7 +48,7 @@ public class FriendCompTests : AuthenticatedBlazoriseTestBase
         }
 
         component.Find("input").Input("w");
-        friends.RemoveAll(user => user.UserName!.Contains('w'));
+        friends.RemoveAll(user => !user.UserName!.Contains('w'));
 
         foreach (var user in friends)
         {
