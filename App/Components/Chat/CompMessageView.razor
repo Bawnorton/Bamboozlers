@@ -7,6 +7,8 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Services
+@using Bamboozlers.Components.VisualUtility
+@using System.Diagnostics
 
 @inject IDbContextFactory<AppDbContext> Db
 
@@ -21,9 +23,7 @@
                     {
                         <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Message.Sender.Avatar)}") Class="message-avatar" alt=""/>
                     }
-                    <Div Class="message-username" onclick="alert('Not Implemented')">
-                        @(Message.Sender.DisplayName ?? Message.Sender.UserName)
-                    </Div>
+                    <CompInteractUsername User="@Message.Sender"/>
                     <Div Class="message-timestamp">
                         @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
                     </Div>
@@ -69,6 +69,8 @@
 }
 
 @code {
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    
     [Parameter] public Message Message { get; set; }
 
     [Parameter] public Message? PreviousMessage { get; set; }

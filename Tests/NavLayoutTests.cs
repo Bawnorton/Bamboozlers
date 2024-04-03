@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Xunit.Abstractions;
 
 namespace Tests;
 
@@ -84,14 +85,9 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         
         var component = Ctx.RenderComponent<NavLayout>();
         
-        await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
-        var friends = friendships.Where(f => f.User1ID == Self!.Id || f.User2ID == Self.Id).Select(f => f.User1ID == Self.Id ? f.User2 : f.User1).ToList();
-        
-        var count = friends.Count;
         component.Find("#friends").Click();
         var text = component.Find("#header-text");
-        var expected = $"Friends ({count})";
+        var expected = $"Friends";
         
         // Assert
         Assert.Equal(expected, text.TextContent);

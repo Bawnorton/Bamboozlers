@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 public class ValidUsernameAttribute : ValidationAttribute
 {
-    public override bool IsValid(object value)
+    public override bool IsValid(object? value)
     {
         if (value == null || string.IsNullOrEmpty(value.ToString()))
             return false;
@@ -12,6 +12,6 @@ public class ValidUsernameAttribute : ValidationAttribute
         var username = value.ToString();
         // Regex pattern to match your criteria
         var regex = new Regex(@"^(?:_?[a-zA-Z0-9]+)*_?$");
-        return regex.IsMatch(username);
+        return username is not null && regex.IsMatch(username);
     }
 }

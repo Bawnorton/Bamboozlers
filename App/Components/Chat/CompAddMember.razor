@@ -1,131 +1,141 @@
+@inherits UserViewComponentBase
+@implements IAsyncGroupSubscriber
+
 @using Bamboozlers.Classes.AppDbContext
 @using AngleSharp.Diffing.Extensions
+@using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Components.VisualUtility
 @using Microsoft.IdentityModel.Tokens
+@using Bamboozlers.Classes.Utility.Observer
+@using Blazorise.Extensions
 @inject IDbContextFactory<AppDbContext> Db
-@inherits UserViewComponentBase
 
-<Modal @ref="_modalRef">
-    <ModalContent Centered>
-        <ModalHeader>
-            <ModalTitle>Add Member(s)</ModalTitle>
-            <CloseButton />
-        </ModalHeader>
-        <ModalBody>
-            <Alert Color="Color.Danger" @bind-Visible="@ErrorVisible">
-                <AlertMessage>
-                    Sorry we failed to add your friends :( Please try again
-                </AlertMessage>
-            </Alert>
-            @if (Users.IsNullOrEmpty())
-            {
-                <p>Sorry all your friends are already here</p>
-            }
-            else
-            {
-                @foreach (var user in Users)
-                {
-                    <Check TValue="bool" Checked="@IsChecked(user)" CheckedChanged="@(value => Change(value, user))">
-                        @if (user.Avatar != null)
-                        {
-                            <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") Class="message-avatar" alt=""/>
-                        }
-                        @(user.DisplayName ?? user.UserName)
-                    </Check>
-                }
-            }
+<ModalContent Centered>
+    <ModalHeader>
+        <ModalTitle>Invite Friends to @(Chat is null ? "Group" : Chat.Name)</ModalTitle>
+        <CloseButton/>
+    </ModalHeader>
+    <ModalBody>
+        <Div Style="display: block">
+            @InviteList
+        </Div>
+    </ModalBody>
+</ModalContent>
 
-        </ModalBody>
-        <ModalFooter>
-            <Button Color="Color.Danger" Clicked="@(() => HideModal())">Cancel</Button>
-            <Button ElementId="saveChanges" Color="Color.Success" Clicked="@AddMembers">Save Changes</Button>
-        </ModalFooter>
-    </ModalContent>
-</Modal>
 @code{
-    [Parameter] public GroupChat Chat {get; set;}
-    [Parameter] public EventCallback<List<User>> OnAdd { get; set; }
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     
-    private List<Names> UsersToAdd { get; set; }
-    private List<Names> Users { get; set; }
+    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+
+    [Parameter] public int? ChatID { get; set; }
+    public List<int?> WatchedIDs { get; set; } = [];
     
-    private User Self { get; set; }
+    private GroupChat? Chat { get; set; }
+    public RenderFragment? InviteList { get; set; }
     
-    private Modal _modalRef;
-    private bool ErrorVisible { get; set; } = false;
+    private User? Self { get; set; }
     
     protected override async Task OnInitializedAsync()
     {
-        Self = (await AuthService.GetUser())!;
-    }
-
-    private void Change(bool isChecked, Names user)
-    {
-        if (isChecked)
-        {
-            UsersToAdd.Add(user);
-        }
-        else
-        {
-            UsersToAdd.Remove(user);
-        }
-    }
-
-    private bool IsChecked(Names user)
-    {
-        return UsersToAdd.Any(a => a.UserName == user.UserName);
+        UserGroupService.AddSubscriber(this);
+        WatchedIDs = [ChatID];
+        await LoadGroupData();
     }
     
-    public async Task ShowModal()
+    public async Task LoadGroupData()
     {
-        UsersToAdd = [];
+        Self = await AuthService.GetUser();
+        if (Self is null) 
+            return;
+        
         await using var db = await Db.CreateDbContextAsync();
-        var friends = (await Self.GetFriends(db)).Select(s => new Names(
-            s.UserName!,
-            s.DisplayName,
-            s.Avatar
-        )).ToList();
         
-        var current = Chat.Users.Select(s => new Names(
-            s.UserName!,
-            s.DisplayName,
-            s.Avatar
-        )).ToList();
+        Chat = db.GroupChats.Where(c => c.ID == ChatID)
+            .Include(c => c.Users)
+            .Include(c => c.Moderators)
+            .FirstOrDefault();
         
-        Users = friends
-            .Where(f => current.All(c => c.UserName != f.UserName))
+        if (Chat is null)
+            return;
+        
+        var friendList = await UserInteractionService.GetAllFriends();
+        
+        var inGroup = friendList.Where(
+                f => Chat.Users.FirstOrDefault(u => u.UserName == f.UserName) is not null
+            ).ToList();
+
+        var allInvites = await UserGroupService.GetAllOutgoingInvites();
+        var invitesForGroup = allInvites is not null 
+            ? allInvites.Where(i => i.GroupID == ChatID) 
+            : [];
+        
+        var invitedFriends = invitesForGroup
+            .Select(i => friendList.FirstOrDefault(u => u.Id == i.RecipientID))
+            .Where(u => u != null)
             .ToList();
 
-        await _modalRef.Show();
-    }
-
-    private async Task HideModal(List<User>? usersAdded = null)
-    {
-        await OnAdd.InvokeAsync(usersAdded);
-        await _modalRef.Hide();
-    }
-
-    private async Task AddMembers()
-    {
-        if(UsersToAdd.IsNullOrEmpty())
-        {
-            await HideModal();
-            return;
-        }
-        try
-        {
-            await using var db = await Db.CreateDbContextAsync();
-            var users = await db.Users.Where(u => UsersToAdd.Select(s => s.UserName).Contains(u.UserName)).ToListAsync();
-            db.Chats.Include(i => i.Users).FirstOrDefault(f => f.ID == Chat.ID)?.Users.AddRange(users);
-            await db.SaveChangesAsync();
-            await HideModal(users);
-        }catch (Exception e)
-        {
-            ErrorVisible = true;
-            Console.WriteLine(e);
-        }
-        
+        InviteList = @<text>
+                          @foreach (var user in friendList)
+                          {
+                              <div id="@($"{user.UserName}-display")" style="display: inline-block; width: max-content;">
+                                  <Image Class="_32x32 message-avatar"
+                                         Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
+                                         alt=""/>
+                                  <CompInteractUsername User="@user"/>
+                                  @if (inGroup.Contains(user))
+                                  {
+                                      @GetActionButton(user,
+                                          Color.Dark,
+                                          "Already in group",
+                                          null,
+                                          EventCallback.Empty,
+                                          true
+                                      )
+                                  }
+                                  else
+                                  {
+                                      if (invitedFriends.Contains(user))
+                                      {
+                                          @GetActionButton(user,
+                                              Color.Danger,
+                                              "Revoke Invitation",
+                                              IconName.Ban,
+                                              new EventCallbackFactory().Create(this, async () => await UserGroupService.RevokeGroupInvite(ChatID, user.Id)))
+                                      }
+                                      else
+                                      {
+                                          @GetActionButton(user,
+                                              null,
+                                              "Invite",
+                                              IconName.UserPlus,
+                                              new EventCallbackFactory().Create(this, async () => await UserGroupService.SendGroupInvite(ChatID, user.Id)))
+                                      }
+                                  }
+                              </div>
+                              <Divider/>
+                          }
+                      </text>;
     }
     
-    private record Names(string UserName, string? DisplayName, byte[]? Avatar);
+    private RenderFragment GetActionButton(User user, Color? color, string? caption, IconName? iconName, EventCallback? actionCallback, bool disabled = false)
+    {
+        return @<div id="@($"{user.UserName}-action-button")" style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
+                   <CompActionButton ButtonCaption="@caption"
+                                     Color="@(color ?? Color.Success)"
+                                     IconName="@(iconName ?? null)"
+                                     ColumnWrapped="@false"
+                                     ActionCallback="@(actionCallback ?? EventCallback.Empty)"
+                                     Disabled="@disabled"/>
+               </div>;
+    }
+    
+    public async Task OnGroupUpdate()
+    {
+        await LoadGroupData();
+        StateHasChanged();
+    }
 }
