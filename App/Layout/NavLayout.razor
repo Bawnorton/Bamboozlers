@@ -9,6 +9,7 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Chat
 @using Bamboozlers.Components.MainVisual
+@using Bamboozlers.Components.Utility
 @using Blazorise.Extensions
 
 @rendermode InteractiveServer
@@ -46,7 +47,7 @@
                                 Direct Messages
                             </BarDropdownToggle>
                             <BarDropdownMenu ElementId="dms_dropdown">
-                                <BarLink ElementId="create_dm" @onclick="@(async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs {PopupType = RecognizedPopupType.OpenDm}))">
+                                <BarLink ElementId="create_dm" @onclick="@(async () => await PopupService.RequestKnownPopup(PopupType.FriendList))">
                                     <BarIcon IconName="Icons.Envelope"></BarIcon>
                                     Open Direct Message
                                 </BarLink>
@@ -90,7 +91,7 @@
                             </BarDropdownToggle>
                             <BarDropdownMenu ElementId="groups_dropdown">
                                 <BarItem>
-                                    <BarLink ElementId="create_group" @onclick="@(async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs {PopupType = RecognizedPopupType.CreateGroup}))">
+                                    <BarLink ElementId="create_group" @onclick="@(async () => await PopupService.RequestKnownPopup(PopupType.CreateGroup))">
                                         <BarIcon IconName="Icons.UserPlus"></BarIcon>
                                         Create Group Chat
                                     </BarLink>
@@ -132,7 +133,7 @@
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
                  id="profile-button"
-                 @onclick="async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs(RecognizedPopupType.Settings))">
+                 @onclick="async () => await PopupService.RequestKnownPopup(PopupType.Settings)">
                 <Text>
                     @(User is null ? UserRecord.Default.UserName : User.DisplayName.IsNullOrEmpty() ? User.UserName : User.DisplayName)
                 </Text>
@@ -158,9 +159,6 @@
 </Layout>
 
 @code {
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
-    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
-    
     private User? User { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
 

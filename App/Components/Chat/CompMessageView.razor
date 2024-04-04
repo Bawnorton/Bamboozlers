@@ -6,7 +6,7 @@
 @using Bamboozlers.Classes
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services
-@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Components.Utility
 @using System.Diagnostics
 
 @inject IDbContextFactory<AppDbContext> Db
@@ -60,7 +60,6 @@
 }
 
 @code {
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [Parameter] public Message Message { get; set; } = default!;
     [Parameter] public MessageState MessageState { get; set; }
     
@@ -88,7 +87,5 @@
         }
 
         Loaded = true;
-        
     }
-
 }

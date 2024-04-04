@@ -6,7 +6,7 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes.Services.UserServices
-@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Components.Utility
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.Utility.Observer
 @using Blazorise.Extensions
@@ -15,7 +15,6 @@
 <ModalContent Centered>
     <ModalHeader>
         <ModalTitle>Invite Friends to @(Chat is null ? "Group" : Chat.Name)</ModalTitle>
-        <CloseButton/>
     </ModalHeader>
     <ModalBody>
         <Div Style="display: block">
@@ -27,9 +26,6 @@
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
-    
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
-    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
 
     [Parameter] public int? ChatID { get; set; }
     public List<int?> WatchedIDs { get; set; } = [];

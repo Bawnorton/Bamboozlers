@@ -14,11 +14,10 @@
 @using Bamboozlers.Classes
 @using Blazorise.Extensions
 @using AngleSharp.Diffing.Extensions
-@using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services.UserServices
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.Utility.Observer
-@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Components.Utility
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject NavigationManager NavigationManager
@@ -87,7 +86,7 @@
         </Div>
         @if (Chat is GroupChat)
         {
-            <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs{ PopupType = RecognizedPopupType.GroupChatSettings, ChatId = ChatID })"/>
+            <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="async () => await PopupService.RequestKnownPopup(PopupType.GroupChatSettings, chatId: ChatID)"/>
         }
     </LayoutHeader>
     <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
@@ -140,7 +139,7 @@
                                 <Icon ElementId="addMembers"
                                       role="button"
                                       Name="IconName.Add"
-                                      onclick="@(() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.ChatAddMember, ChatId = ChatID }))"/>
+                                      @onclick="async () => await PopupService.RequestKnownPopup(PopupType.InviteGroupMembers, chatId: ChatID)"/>
                             }
                         }
                         else
@@ -175,9 +174,6 @@
 
 @code {
     [Inject] IUserGroupService UserGroupService { get; set; } = default!;
-    
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
-    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
 
     [Parameter] public int? ChatID { get; set; }
     public List<int?> WatchedIDs { get; set; } = [];

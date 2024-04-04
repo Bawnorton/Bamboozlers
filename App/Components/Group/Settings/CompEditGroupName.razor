@@ -5,54 +5,50 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
-@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Components.Utility
 @using Blazorise.Extensions
 
-<Div>
-    <Tabs SelectedTab="@SelectedTab">
-        <Content>
-            <TabPanel Name="view">
-                <Div style="display: inline-block; width: max-content;">
-                    <Div Style="display: inline; float: left;">
+<Tabs SelectedTab="@SelectedTab">
+    <Content>
+        <TabPanel Name="view">
+            <Container>
+                <Row Class="centre-content">
+                    <Column ColumnSize="ColumnSize.Is6">
                         <TextEdit Text="@ChatName"
                                   ElementId="chat-name"
                                   Placeholder="Chat Name"
                                   Disabled>
                         </TextEdit>
-                    </Div>
-                    <Div Style="display: inline; float: left; margin-left: 10px">
-                        <CompActionButton Color="Color.Light"
-                                          IconName="IconName.Pen"
-                                          ColumnWrapped="@false"
-                                          ActionCallback="@(() => SelectedTab = "edit")"/>
-                    </Div>
-                </Div>
-            </TabPanel>
-            <TabPanel Name="edit">
-                <Div style="display: inline-block">
-                    <Div Style="display: inline-flex; float: left;">
+                    </Column>
+                    <CompActionButton Color="Color.Light"
+                                      IconName="IconName.Pen"
+                                      ColumnSize="ColumnSize.Is1"
+                                      ActionCallback="@(() => SelectedTab = "edit")"/>
+                </Row>
+            </Container>
+        </TabPanel>
+        <TabPanel Name="edit">
+            <Container>
+                <Row Class="centre-content">
+                    <Column ColumnSize="ColumnSize.Is6">
                         <TextEdit @bind-Text="TypedName"
                                   ElementId="chat-name"
                                   Placeholder="Chat Name">
                         </TextEdit>
-                    </Div>
-                    <Div Style="display: inline-flex; float: left;">
-                        <CompActionButton Color="Color.Danger"
-                                          IconName="IconName.Ban"
-                                          ColumnWrapped="@false"
-                                          ActionCallback="@(() => { TypedName = ""; SelectedTab = "view"; })"/>
-                    </Div>
-                    <Div Style="display: inline-flex; float: left;">
-                        <CompActionButton Color="Color.Success"
-                                          IconName="IconName.Check"
-                                          ColumnWrapped="@false"
-                                          ActionCallback="OnSave"/>
-                    </Div>
-                </Div>
-            </TabPanel>
-        </Content>
-    </Tabs>
-</Div>
+                    </Column>
+                    <CompActionButton Color="Color.Danger"
+                                      IconName="IconName.Ban"
+                                      ColumnSize="ColumnSize.Is1"
+                                      ActionCallback="@(() => { TypedName = ""; SelectedTab = "view"; })"/>
+                    <CompActionButton Color="Color.Success"
+                                      IconName="IconName.Check"
+                                      ColumnSize="ColumnSize.Is1"
+                                      ActionCallback="OnSave"/>
+                </Row>
+            </Container>
+        </TabPanel>
+    </Content>
+</Tabs>
 
 @code {
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;

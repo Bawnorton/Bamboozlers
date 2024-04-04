@@ -1,4 +1,4 @@
-namespace Bamboozlers.Components.VisualUtility;
+namespace Bamboozlers.Components.Utility;
 
 public interface IAvatarViewer
 {

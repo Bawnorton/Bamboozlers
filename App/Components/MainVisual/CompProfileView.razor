@@ -2,7 +2,7 @@
 @implements IInteractionSubscriber
 
 @using Bamboozlers.Classes.Data
-@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Components.Utility
 @using Blazorise.Extensions
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Services
@@ -117,8 +117,6 @@
 </ModalContent>
 
 @code {
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
-    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
     
     [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
@@ -160,12 +158,7 @@
             ActionButton = GetActionButton(
                 EventCallback.Factory.Create(
                     this,
-                    async () =>
-                    {
-                        await ClosePopupCallback.InvokeAsync();
-                        await Task.Delay(100);
-                        await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.Settings }); 
-                    }),
+                    async () => await PopupService.RequestKnownPopup(PopupType.Settings)),
                 "Settings",
                 IconName.Settings
             );
@@ -191,7 +184,6 @@
                         if (FocusUser.Id is null) 
                             return;
                         await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, (int) FocusUser.Id));
-                        await ClosePopupCallback.InvokeAsync();
                     }),
                 "Send Message",
                 IconName.Mail
@@ -306,10 +298,7 @@
                                             {
                                                 <Button ElementId="@($"{chat.Name}-invite-option")"
                                                         Class="dropdown-option"
-                                                        Clicked="@(async () => { 
-                                                                   await ClosePopupCallback.InvokeAsync();
-                                                                   await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.ChatAddMember, ChatId = chat.ID});
-                                                                 })">
+                                                        Clicked="@(async () =>  await PopupService.RequestKnownPopup(PopupType.InviteGroupMembers, chatId: chat.ID))">
                                                     Invite to @chat.Name
                                                 </Button>
                                             }

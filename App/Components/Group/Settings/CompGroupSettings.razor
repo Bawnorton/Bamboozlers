@@ -3,17 +3,17 @@
 
 @using Bamboozlers.Classes.AppDbContext
 @using Microsoft.IdentityModel.Tokens
-@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Components.Utility
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 
 @inject IDbContextFactory<AppDbContext> Db
+@inject ILogger<CompGroupSettings> Logger;
 
 <ModalContent Centered Size="ModalSize.Large">
     <ModalHeader>
         <ModalTitle>@(Chat is null ? "Group Chat" : Chat.Name) Settings</ModalTitle>
-        <CloseButton/>
     </ModalHeader>
     <ModalBody>
         <Alert ElementId="settings-alert" Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
@@ -47,16 +47,13 @@
                               Color="Color.Danger"
                               IconName="IconName.Running"
                               ColumnWrapped="@false"
-                              ActionCallback="@(async () => { await UserGroupService.LeaveGroup(ChatID); await ClosePopupCallback.InvokeAsync(); })"/>
+                              ActionCallback="@(async () => { await UserGroupService.LeaveGroup(ChatID); await PopupService.RequestDismissPopup(); })"/>
         }
     </ModalFooter>
 </ModalContent>
 
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
-    
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
-    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     
     [Parameter] public int? ChatID { get; set; }
     
@@ -134,20 +131,22 @@
         if (Self.Id == Chat.OwnerID || Chat.Moderators.FirstOrDefault(m => m.Id == Self.Id) is not null)
         {
             GroupDisplay = @<text>
-                                <Div id="@($"{Chat.Name}_displayContainer")" style="display: block; margin-left: 10%; margin-right: 10%;">
-                                    <Div ElementId="@($"{Chat.Name}_avatarEdit")" style="display: inline-block; width: 40%;">
-                                        <CompAvatarUploader OnDelete="DeleteAvatar"
-                                                            OnUpload="OnAvatarChange"
-                                                            DefaultSrc="images/default_group.png"
-                                                            AlertCallback="@(args => AlertArguments = args)"
-                                                            Avatar="@Chat.Avatar"
-                                                            DisplayPx="128"/>
-                                    </Div>
-                                    <Div style="display: inline-block; width: 40%;">
-                                       <CompEditGroupName ChatID="@Chat.ID" 
-                                                           AlertCallback="@(args => AlertArguments = args)"/>
-                                    </Div>
-                                </Div>
+                                <Container id="@($"{Chat.Name}_displayContainer")">
+                                    <Row Class="centre-content">
+                                        <Column ColumnSize="ColumnSize.Is2">
+                                            <CompAvatarUploader OnDelete="DeleteAvatar"
+                                                                OnUpload="OnAvatarChange"
+                                                                DefaultSrc="images/default_group.png"
+                                                                AlertCallback="@(args => AlertArguments = args)"
+                                                                Avatar="@Chat.Avatar"
+                                                                DisplayPx="128"/>
+                                        </Column>
+                                        <Column ColumnSize="ColumnSize.Is9">
+                                            <CompEditGroupName ChatID="@Chat.ID"
+                                                               AlertCallback="@(args => AlertArguments = args)"/>
+                                        </Column>
+                                    </Row>
+                                </Container>
                             </text>;
         }
         else
@@ -173,7 +172,7 @@
     
     private async Task DeleteAvatar()
     {
-        if (Chat is null || Chat.Avatar.IsNullOrEmpty()) 
+        if (Chat?.Avatar is null) 
             return;
         
         var result = await UserGroupService.UpdateGroupAvatar(ChatID, Array.Empty<byte>());
@@ -182,7 +181,7 @@
             AlertArguments = new AlertArguments(
                 Color.Danger,
                 true,
-                "Unsuccessful attempt to make changes.",
+                "Unsuccessful attempt to delete avatar.",
                 $"{string.Join(",",result.Errors.Select(s => s.Description))}"
             );
             return;
@@ -203,14 +202,9 @@
         if (Chat is null) 
             return false;
         
-        var result = await UserGroupService.UpdateGroupAvatar(ChatID, Chat.Avatar);
+        var result = await UserGroupService.UpdateGroupAvatar(ChatID, newAvatar);
 
-        if (!result.Succeeded) return false;
-        
-        Chat.Avatar = newAvatar;
-        await LoadGroupData();
-        StateHasChanged();
-        return true;
+        return result.Succeeded;
     }
 
     private RenderFragment? GetUserFragment(User user)

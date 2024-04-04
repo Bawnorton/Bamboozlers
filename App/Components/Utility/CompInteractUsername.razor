@@ -1,3 +1,5 @@
+@inherits UserViewComponentBase
+
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
 @using Bunit.Extensions
@@ -16,7 +18,6 @@
 </Div>
 
 @code {
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
 
     [Parameter] public User? User { get; set; }
@@ -24,14 +25,8 @@
     private async Task OpenProfilePopup()
     {
         if (User is not null)
-        {
-            await ClosePopupCallback.InvokeAsync();
-            await OpenPopupCallback.InvokeAsync(
-                new PopupCallbackArgs(
-                    RecognizedPopupType.Profile,
-                    FocusUser: User
-                )
-            );
+        { 
+            await PopupService.RequestKnownPopup(PopupType.UserProfile, focusUser: User);
         }
     }
 }

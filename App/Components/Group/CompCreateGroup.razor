@@ -1,6 +1,6 @@
 @inherits UserViewComponentBase
 
-@using Bamboozlers.Components.VisualUtility
+@using Bamboozlers.Components.Utility
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
@@ -11,47 +11,55 @@
         <Heading>Create Group Chat</Heading>
     </ModalHeader>
     <ModalBody>
-        <Div style="display: block">
-            <Heading>Configure Group appearance</Heading>
-            <Div style="display: inline-block">
-                <Div style="margin-left: 20px; margin-right: 20px;">
+        <Heading>Configure Group</Heading>
+        <Divider/>
+        <Container>
+            <Row>
+                <Column ColumnSize="ColumnSize.Is3">
                     <CompAvatarUploader DefaultSrc="images/default_group.png"
                                         Avatar="@Avatar"
                                         DisplayPx="128"
                                         OnDelete="DeleteAvatar"
                                         OnUpload="UploadAvatar"/>
-                </Div>
-                <TextEdit Class="w-25"
-                          @bind-Text="@Name"
-                          ElementId="chat-name"
-                          Placeholder="Chat Name"/>
-            </Div>
-        </Div>
-        <Divider/>
+                </Column>
+                <Column ColumnSize="ColumnSize.Is6">
+                    <TextEdit @bind-Text="@Name"
+                              ElementId="chat-name"
+                              Placeholder="Chat Name"/>
+                </Column>
+            </Row>
+        </Container>
         <Div>
             <Alert ElementId="creation-alert" Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
                 <AlertMessage>
                     @AlertArguments.AlertMessage
-                    <CloseButton Clicked="@(() => AlertArguments = new AlertArguments())" 
-                                 Style="--bs-btn-close-white-filter: black;" 
-                                 VerticalAlignment="VerticalAlignment.Middle" 
-                                 Float="Float.End" 
+                    <CloseButton Clicked="@(() => AlertArguments = new AlertArguments())"
+                                 Style="--bs-btn-close-white-filter: black;"
+                                 VerticalAlignment="VerticalAlignment.Middle"
+                                 Float="Float.End"
                                  TextColor="TextColor.Warning"/>
                 </AlertMessage>
                 <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
             </Alert>
-            <Heading>Invite friends upon Group creation</Heading>
+            <Heading>Invite Friends</Heading>
+            <Divider/>
             @foreach (var inv in InviteList)
             {
-                <Div>
-                    <InputCheckbox @bind-Value="inv.Invite"/>
-                    <CompInlineUserWithAvatar User="@inv.Friend"></CompInlineUserWithAvatar>
-                </Div>
+                <Container Style="max-height: 15vh; margin-left: 10%; margin-right: 10%" Class="scrollbar-container">
+                    <Row Class="centre-content">
+                        <Column ColumnSize="ColumnSize.Is1">
+                            <Check TValue="bool" @bind-Checked="inv.Invite"/>
+                        </Column>
+                        <Column>
+                            <CompInlineUserWithAvatar User="@inv.Friend"></CompInlineUserWithAvatar>
+                        </Column>
+                    </Row>
+                </Container>
             }
         </Div>
     </ModalBody>
     <ModalFooter>
-        <Button Clicked="ClosePopupCallback">
+        <Button Color="Color.Danger" Clicked="ClosePopupCallback">
             <Icon Name="IconName.Ban"/>
             Cancel
         </Button>

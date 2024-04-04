@@ -130,7 +130,10 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             return IdentityResult.Failed([new IdentityError{Description = "Issue occurred that prevented group changes from being saved."}]);
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        group!.Avatar ??= avatar;
+        group = dbContext.GroupChats.First(gc => gc.ID == chatId);
+        avatar = avatar.IsNullOrEmpty() ? null : avatar;
+        
+        group.Avatar = avatar;
         await dbContext.SaveChangesAsync();
         
         await NotifySubscribersOf(group.ID, GroupEvent.GroupDisplayChange);
@@ -145,8 +148,10 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             return IdentityResult.Failed([new IdentityError{Description = "Issue occurred that prevented group changes from being saved."}]);
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        name ??= $"{group!.Owner.UserName}'s Group";
-        group!.Name = name;
+        group = dbContext.GroupChats.Include(gc => gc.Owner)
+                    .First(gc => gc.ID == chatId);
+        name = name.IsNullOrEmpty() ? $"{group.Owner.UserName}'s Group" : name;
+        group.Name = name!;
         await dbContext.SaveChangesAsync();
         
         await NotifySubscribersOf(group.ID, GroupEvent.GroupDisplayChange);
@@ -400,18 +405,21 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
 
     private async Task NotifySubscribersOf(int groupId, GroupEvent evt)
     {
-        var listenersToEvent = evt is GroupEvent.General
-            ? Subscribers
-            : Subscribers.Where(s => s.WatchedGroupEvents.Contains(evt) 
-                                     || (s.WatchedGroupEvents.Contains(GroupEvent.General) && s.WatchedGroupEvents.Count == 1));
-        
-        var subset = groupId == -1 
-            ? listenersToEvent
-            : listenersToEvent.Where(s => s.WatchedIDs.Contains(groupId) || s.WatchedIDs.Count == 0);
-        
-        foreach (var sub in subset)
+        var subscribersToGroup = groupId == -1 ? Subscribers : Subscribers.Where(s => s.WatchedIDs.Contains(groupId));
+        if (evt is GroupEvent.General)
         {
-            await sub.OnUpdate(evt);
+            foreach (var sub in subscribersToGroup)
+            {
+                await sub.OnUpdate(GroupEvent.General);
+            }
+        }
+        else
+        {
+            subscribersToGroup = subscribersToGroup.Where(s => s.WatchedGroupEvents.Contains(evt));
+            foreach (var sub in subscribersToGroup)
+            {
+                await sub.OnUpdate(evt);
+            }
         }
     }
     
