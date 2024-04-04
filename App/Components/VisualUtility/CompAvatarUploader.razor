@@ -1,16 +1,53 @@
-using System.Diagnostics;
-using Bamboozlers.Classes.Data;
-using Blazorise;
-using Blazorise.Extensions;
-using Microsoft.AspNetCore.Components.Forms;
+@implements IAvatarViewer
 
-namespace Bamboozlers.Components;
+@using Bamboozlers.Classes.Data
+@using Blazorise.Extensions
 
-public interface ICompImageUploader
-{
+<Container style="position: relative; display: inline-block; width: max-content; height: max-content;">
+    <Row>
+        <Label Width="@Width.Px(DisplayPx)" Height="@Height.Px(DisplayPx)" Class="overlay-wrapper" for="input-file">
+            <Image ElementId="avatar-display"
+                   Class="border-mask overlay-base fit"
+                   Source="@(((IAvatarViewer) this).GetDisplayString())"/>
+            <Image ElementId="hover-effect"
+                   Class="border-mask overlay fit"
+                   Source="images/edit_overlay.png"/>
+        </Label>
+        <InputFile id="input-file" OnChange="OnFileUpload" hidden/>
+    </Row>
+    <Row>
+        @if (Avatar is not null)
+        {
+            <CompActionButton Color="Color.Danger"
+                              IconName="IconName.Delete"
+                              ActionCallback="SignalDeleteAvatar"/>
+        }
+    </Row>
+</Container>
+
+@code {
     private static readonly string[] AllowedFormats = ["png", "jpeg", "jpeg"];
     
-    public async Task<AlertArguments> OnFileUpload(InputFileChangeEventArgs args, Func<byte[], Task<bool>> setCallback)
+    [Parameter] public byte[]? Avatar { get; set; }
+    [Parameter] public string DefaultSrc { get; set; } = "images/default_profile.png";
+    [Parameter] public int DisplayPx { get; set; } = 256;
+    
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback<AlertArguments> AlertCallback { get; set; }
+    [Parameter] public Func<byte[], Task<bool>> OnUpload { get; set; } = async _ => false;
+
+    public async Task SignalDeleteAvatar()
+    {
+        if (Avatar is null) return;
+        await OnDelete.InvokeAsync();
+    }
+
+    public async Task OnFileUpload(InputFileChangeEventArgs args)
+    {
+        await AlertCallback.InvokeAsync(await ProcessFileUpload(args));
+    }
+    
+    public async Task<AlertArguments> ProcessFileUpload(InputFileChangeEventArgs args)
     {
         IBrowserFile? upload;
         try
@@ -74,15 +111,16 @@ public interface ICompImageUploader
             );
         try
         {
-            var result = await setCallback.Invoke(image.ToArray());
-            if (result)
-                return new AlertArguments(
-                    Color.Success,
-                    true,
-                    "Success!",
-                    "Image was successfully uploaded."
-                );
-            throw new Exception();
+            var result = await OnUpload.Invoke(image.ToArray());
+            if (!result) throw new Exception();
+            Avatar = image;
+            StateHasChanged();
+            return new AlertArguments(
+                Color.Success,
+                true,
+                "Success!",
+                "Image was successfully uploaded."
+            );
         }
         catch (Exception)
         {

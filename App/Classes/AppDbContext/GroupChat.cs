@@ -1,9 +1,12 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace Bamboozlers.Classes.AppDbContext;
 
 public class GroupChat:Chat
 {
+    public GroupChat(int OwnerID)
+    {
+        this.OwnerID = OwnerID;
+    }
+    
     public User Owner { get; set; }
     public int OwnerID { get; set; }
     public ICollection<User> Moderators { get; set; }

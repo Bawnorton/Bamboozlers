@@ -1,0 +1,15 @@
+@implements IAvatarViewer;
+
+<Row>
+    <Div Width="@Width.Px(DisplayPx)" Height="@Height.Px(DisplayPx)">
+        <Image ElementId="avatar-display"
+               Class="border-mask fit"
+               Source="@(((IAvatarViewer) this).GetDisplayString())"/>
+    </Div>
+</Row>
+
+@code {
+    [Parameter] public byte[]? Avatar { get; set; }
+    [Parameter] public string? DefaultSrc { get; set; } = "images/default_profile.png";
+    [Parameter] public int DisplayPx { get; set; } = 256;
+}

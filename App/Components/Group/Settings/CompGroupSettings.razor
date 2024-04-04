@@ -1,18 +1,12 @@
 @inherits UserViewComponentBase
-@implements ICompImageUploader
 @implements IGroupSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
-@using AngleSharp.Diffing.Extensions
-@using Bamboozlers.Classes.Services
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Components.VisualUtility
-@using System.Xml.Schema
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore.ChangeTracking
 
 @inject IDbContextFactory<AppDbContext> Db
 
@@ -88,25 +82,6 @@
         await LoadGroupData();
     }
     
-    public void DeleteAvatar()
-    {
-        AlertArguments = new AlertArguments();
-        Chat!.Avatar = null;
-    }
-    
-    public async Task OnFileUpload(InputFileChangeEventArgs args)
-    {
-        AlertArguments = await ((ICompImageUploader) this).OnFileUpload(args, async bytes =>
-        {
-            return await Task.Run(() =>
-                {
-                    Chat!.Avatar = bytes;
-                    return true;
-                }
-            );
-        });
-    }
-    
     private async Task LoadGroupData()
     {
         Self = await AuthService.GetUser();
@@ -159,39 +134,20 @@
         if (Self.Id == Chat.OwnerID || Chat.Moderators.FirstOrDefault(m => m.Id == Self.Id) is not null)
         {
             GroupDisplay = @<text>
-                                <Div id="@($"{Chat.Name}_displayDiv")">
-                                    <Row ElementId="@($"{Chat.Name}_avatarEdit")">
-                                        <Label Width="@Width.Px(128)" Height="@Height.Px(128)" Class="overlay-wrapper" Style="margin-left: 20px" for="input-file">
-                                            <Image ElementId="avatar-display"
-                                                   Class="border-mask overlay-base fit"
-                                                   Source="@(Chat?.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(Chat.Avatar)}")"/>
-                                            <Image ElementId="hover-effect"
-                                                   Class="border-mask overlay fit"
-                                                   Source="images/edit_overlay.png"/>
-                                        </Label>
-                                        <InputFile id="input-file" OnChange="@OnFileUpload" hidden/>
-                                    </Row>
-                                    <Row>
-                                        @if (Chat?.Avatar is not null)
-                                        {
-                                            <Paragraph ElementId="@($"{Chat.Name}_avatarDelete")"
-                                                       TextSize="TextSize.Small" Display="Display.Inline"
-                                                       role="button"
-                                                       Class="text-decoration-underline mb-0 text-danger-emphasis"
-                                                       @onclick="@DeleteAvatar">Delete Avatar</Paragraph>
-                                        }
-                                    </Row>
+                                <Div id="@($"{Chat.Name}_displayContainer")" style="display: block; margin-left: 10%; margin-right: 10%;">
+                                    <Div ElementId="@($"{Chat.Name}_avatarEdit")" style="display: inline-block; width: 40%;">
+                                        <CompAvatarUploader OnDelete="DeleteAvatar"
+                                                            OnUpload="OnAvatarChange"
+                                                            DefaultSrc="images/default_group.png"
+                                                            AlertCallback="@(args => AlertArguments = args)"
+                                                            Avatar="@Chat.Avatar"
+                                                            DisplayPx="128"/>
+                                    </Div>
+                                    <Div style="display: inline-block; width: 40%;">
+                                       <CompEditGroupName ChatID="@Chat.ID" 
+                                                           AlertCallback="@(args => AlertArguments = args)"/>
+                                    </Div>
                                 </Div>
-                                <TextEdit Class="w-50"
-                                          @bind-Text="Chat.Name"
-                                          ElementId="chat-name"
-                                          Placeholder="Chat Name">
-                                </TextEdit>
-                                <Button Style="float: right; margin-left: 2dvw; margin-right: 2dvh;"
-                                        ElementId="settings-save" Color="Color.Success"
-                                        Clicked="@SaveChanges">
-                                    Save Changes
-                                </Button>
                             </text>;
         }
         else
@@ -200,61 +156,61 @@
                                 <Div ElementId=@($"{Chat.Name}_displayDiv")>
                                     <Row>
                                         <Div Style="margin-left: 20px">
-                                            <Image Width="@Width.Px(128)" Height="@Height.Px(128)" ElementId="avatar-display"
-                                                   Class="border-mask"
-                                                   Source="@(Chat?.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(Chat.Avatar)}")"/>
+                                            <CompViewAvatar DefaultSrc="images/default_group.png"
+                                                            Avatar="@Chat.Avatar"
+                                                            DisplayPx="128"/>
                                         </Div>
                                     </Row>
                                 </Div>
-                                <TextEdit Class="w-50"
+                                <TextEdit Class="w-25"
                                           Text="@(Chat is null ? "Chat" : Chat.Name)"
                                           ElementId="chat-name"
                                           Placeholder="Chat Name" 
                                           Disabled/>
-                                
                             </text>;
         }
     }
     
-    private async Task SaveChanges()
+    private async Task DeleteAvatar()
     {
-        try
+        if (Chat is null || Chat.Avatar.IsNullOrEmpty()) 
+            return;
+        
+        var result = await UserGroupService.UpdateGroupAvatar(ChatID, Array.Empty<byte>());
+        if (!result.Succeeded)
         {
-            if (Chat is null)
-            {
-                AlertArguments = new AlertArguments(
-                    Color.Success,
-                    true,
-                    "An error occurred while saving changes.",
-                    "An unknown error occurred. Please try again."
-                );
-                return;
-            }
-
-            var result = await UserGroupService.UpdateGroupDisplay(ChatID, Chat.Avatar, Chat.Name);
-            if (!result.Succeeded)
-            {
-                AlertArguments = new AlertArguments(
-                    Color.Danger,
-                    true,
-                    "Unsuccessful attempt to make changes.",
-                    $"{string.Join(",",result.Errors.Select(s => s.Description))}"
-                );
-                return;
-            }
-            
-            await LoadGroupData();
-        }
-        catch (Exception ex)
-        {
-            // TODO: Don't tell the user the stack trace?
             AlertArguments = new AlertArguments(
                 Color.Danger,
                 true,
-                "An error occurred while saving changes.",
-                $"{ex.Message} {ex.StackTrace}"
+                "Unsuccessful attempt to make changes.",
+                $"{string.Join(",",result.Errors.Select(s => s.Description))}"
             );
+            return;
         }
+        AlertArguments = new AlertArguments(
+            Color.Success,
+                true,
+                "Success!",
+                "Group avatar was deleted."
+        );
+        
+        await LoadGroupData();
+        StateHasChanged();
+    }
+    
+    private async Task<bool> OnAvatarChange(byte[] newAvatar)
+    {
+        if (Chat is null) 
+            return false;
+        
+        var result = await UserGroupService.UpdateGroupAvatar(ChatID, Chat.Avatar);
+
+        if (!result.Succeeded) return false;
+        
+        Chat.Avatar = newAvatar;
+        await LoadGroupData();
+        StateHasChanged();
+        return true;
     }
 
     private RenderFragment? GetUserFragment(User user)
@@ -338,6 +294,7 @@
         GroupEvent.GrantedPermissions,
         GroupEvent.GroupDisplayChange
     ];
+    
     public List<int?> WatchedIDs { get; set; } = [];
     
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)

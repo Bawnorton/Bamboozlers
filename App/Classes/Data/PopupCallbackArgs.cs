@@ -22,5 +22,6 @@ public enum RecognizedPopupType
     GroupChatSettings,
     ChatAddMember,
     AddFriends,
-    OpenDm
+    OpenDm,
+    CreateGroup
 }

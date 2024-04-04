@@ -11,6 +11,7 @@
 @using Bamboozlers.Components.MainVisual
 @using Bamboozlers.Components.Group
 @using Bamboozlers.Components.Settings
+@using Bamboozlers.Components.Group.Settings
 
 @attribute [Authorize]
 
@@ -27,7 +28,7 @@
             -->
             <CascadingValue Value="_openPopupCallback">
                 <CascadingValue Value="_closePopupCallback">
-                    <CascadingValue Value="_openDmCallback">
+                    <CascadingValue Value="_openChatCallback">
                         <NavLayout @ref="_navLayout"/>
                         <Modal @ref="_popupComponent" Closed="OnPopupClosed">
                             @_popupContent
@@ -66,7 +67,7 @@
     
     private EventCallback<PopupCallbackArgs> _openPopupCallback;
     private EventCallback _closePopupCallback;
-    private EventCallback<int> _openDmCallback;
+    private EventCallback<OpenChatArgs> _openChatCallback;
     
     private Modal? _popupComponent;
     private RenderFragment? _popupContent;
@@ -75,7 +76,18 @@
     {
         _openPopupCallback = EventCallback.Factory.Create<PopupCallbackArgs>(this, OpenPopup);
         _closePopupCallback = EventCallback.Factory.Create(this, ClosePopup);
-        _openDmCallback = EventCallback.Factory.Create<int>(this, id => _navLayout!.OpenDm(-1, id, true));
+        _openChatCallback = EventCallback.Factory.Create<OpenChatArgs>(this, async args =>
+        {
+            switch (args.ChatType)
+            {
+                case ChatType.Dm:
+                    await _navLayout!.OpenDm(-1, args.Id, true);
+                    break;
+                case ChatType.Group:
+                    await _navLayout!.OpenGroup(args.Id, true);
+                    break;
+            }
+        });
     }
     
     private async Task OpenPopup(PopupCallbackArgs args)
@@ -105,6 +117,9 @@
                                                    <CompFriendList IsPopup="@true"/>
                                                </ModalContent>
                                            </text>,
+            RecognizedPopupType.CreateGroup => @<text>
+                                                    <CompCreateGroup/>
+                                                </text>,
             _ => @<text>
                       <ModalContent Size="args.Size" Centered>
                           <ModalHeader>

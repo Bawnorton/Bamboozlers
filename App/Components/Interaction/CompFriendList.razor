@@ -38,7 +38,7 @@
 @code {
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     
-    [CascadingParameter] private EventCallback<int> OpenDmCallback { get; set; }
+    [CascadingParameter] private EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
     [CascadingParameter] private EventCallback ClosePopupCallback { get; set; }
     
     [Parameter] public bool IsPopup { get; set; } = false;
@@ -62,7 +62,7 @@
                         <div style="display: inline-flex; float: right;">
                             <CompActionButton ButtonCaption="Send Message"
                                               IconName="@IconName.Mail"
-                                              ActionCallback="@(async () => { await OpenDmCallback.InvokeAsync(user.Id); if (IsPopup) ClosePopupCallback.InvokeAsync(); })"
+                                              ActionCallback="@(async () => { await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, user.Id)); if (IsPopup) ClosePopupCallback.InvokeAsync(); })"
                                               ColumnWrapped="@false"/>
                         </div>
                         <Divider/>

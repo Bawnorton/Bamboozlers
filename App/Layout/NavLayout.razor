@@ -90,7 +90,7 @@
                             </BarDropdownToggle>
                             <BarDropdownMenu ElementId="groups_dropdown">
                                 <BarItem>
-                                    <BarLink ElementId="create_group" @onclick="@(async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs {}))">
+                                    <BarLink ElementId="create_group" @onclick="@(async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs {PopupType = RecognizedPopupType.CreateGroup}))">
                                         <BarIcon IconName="Icons.UserPlus"></BarIcon>
                                         Create Group Chat
                                     </BarLink>
@@ -283,8 +283,8 @@
         CurrentChatId = chatId; 
         StateHasChanged();
     }
-    
-    private async Task OpenGroup(int chatId, bool reload = false)
+
+    public async Task OpenGroup(int chatId, bool reload = false)
     {
         if (reload)
         {

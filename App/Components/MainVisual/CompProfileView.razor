@@ -119,7 +119,7 @@
 @code {
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
-    [CascadingParameter] public EventCallback<int> OpenDmCallback { get; set; }
+    [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
     
     [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
     private RenderFragment? ActionButton { get; set; }
@@ -190,7 +190,7 @@
                     {
                         if (FocusUser.Id is null) 
                             return;
-                        await OpenDmCallback.InvokeAsync((int) FocusUser.Id);
+                        await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, (int) FocusUser.Id));
                         await ClosePopupCallback.InvokeAsync();
                     }),
                 "Send Message",

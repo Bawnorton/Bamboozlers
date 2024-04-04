@@ -27,24 +27,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <!--suppress JSVoidFunctionReturnValueUsed, JSUnresolvedReference -->
-<script>
-    function showConfirmDialog(message) {
-        return Swal.fire({
-            title: 'Are you sure?',
-            text: message,
-            color: '#d33',
-            icon: 'warning',
-            iconColor:'#d33',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#247352',
-            confirmButtonText: 'Yes',
-            background: '#343a40',
-        }).then((result) => {
-            return result.isConfirmed;
-        });
-    }
-    
+<script> 
     function waitForElm(selector) {
         return new Promise(resolve => {
             if (document.querySelector(selector)) {
@@ -148,10 +131,10 @@
                     <Div TextColor="TextColor.Primary"
                          Background="Background.Dark"
                          Padding="Padding.Is3"
-                         TextSize="TextSize.Heading5">
+                         TextSize="TextSize.Large">
                         @if (Chat is GroupChat)
                         {
-                            <Paragraph Class="me-4">Members - @Chat.Users.Count</Paragraph>
+                            <span class="me-4">Members - @Chat.Users.Count</span>
                             @if (IsMod)
                             {
                                 <Icon ElementId="addMembers"
@@ -162,7 +145,7 @@
                         }
                         else
                         {
-                            <Paragraph Class="me-4">Direct Message</Paragraph>
+                            <span class="me-4">Direct Message</span>
                         }
                     </Div>
                 </BarItem>
