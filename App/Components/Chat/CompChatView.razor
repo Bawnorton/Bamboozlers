@@ -1,7 +1,8 @@
 @inherits UserViewComponentBase
 
-@implements Bamboozlers.Classes.Utility.Observer.IAsyncGroupSubscriber
+@implements IAsyncGroupSubscriber
 @implements IAsyncDisposable
+@implements IAsyncPacketSubscriber
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Microsoft.AspNetCore.SignalR.Client
@@ -14,10 +15,11 @@
 @using Bamboozlers.Classes.Networking.SignalR
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.VisualUtility
 
 @inject IDbContextFactory<AppDbContext> Db
-@inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
 @inject IKeyPressService KeyPressService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -77,6 +79,20 @@
         resizeTextarea(textarea);
         textarea.focus();
     });
+    
+    function scrollToMessage(id, highlight) {
+        waitForElm(`#message_${id}`).then(message => {
+            let highlighted = document.querySelectorAll('.highlight');
+            highlighted.forEach(e => e.classList.remove('highlight'));
+            if (message) {
+                message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (highlight) {
+                    message.classList.add('highlight');
+                    message.addEventListener('mouseover', () => message.classList.remove('highlight'), { once: true });
+                }
+            }
+        });
+    }
 </script>
 
 <Layout>
@@ -105,8 +121,8 @@
                 <CompInteractUsername User=@OtherUser/>
             }
         </Div>
-        <Div>
-            <Icon ElementId="pin_button" Name="Icons.MapPin" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.Pins, ChatId = ChatID })"/>
+        <Div Style="position: relative">
+            <Icon ElementId="pin_button" Name="Icons.MapPin" Style="margin-right: 0.5em" Class="button-tooltip tooltip-left" data-tooltip="Pins" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.Pins, ChatId = ChatID, IsModInChat = IsMod, OnClose = async arg => await JumpToMessage((Message)arg)})"/>
             @if (Chat is GroupChat)
             {
                 <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.GroupChatSettings, ChatId = ChatID })"/>
@@ -196,6 +212,8 @@
 
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
+    [CascadingParameter] public Func<IAsyncPacketSubscriber, bool> AddPacketSubscriber { get; set; }
 
     [Parameter] public int? ChatID { get; set; }
     private Chat? Chat { get; set; }
@@ -230,9 +248,6 @@
 
     private string MessageInput { get; set; }
 
-    private string _hubUrl;
-    private HubConnection? _hubConnection;
-
     private bool IsShiftHeld { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -263,6 +278,46 @@
         };
 
         await UpdateMessages();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        
+        AddPacketSubscriber.Invoke(this);
+        await SendToServer.InvokeAsync(new JoinChatC2SPacket {ChatId = (int)ChatID!});
+    }
+
+    public async Task OnPacket(IPacket packet)
+    {
+        switch (packet)
+        {
+            case ReadDatabaseS2CPacket readDatabase:
+                if (readDatabase.DbEntry == DbEntry.ChatMessage)
+                {
+                    await UpdateMessages();
+                }
+                break;
+            case MessageDeletedS2CPacket messageDeleted:
+                await RemoveClientMessage(messageDeleted.MessageId);
+                break;
+            case MessageEditedS2CPacket messageEdited:
+            {
+                await using var db = await Db.CreateDbContextAsync();
+                var message = await db.Messages.Include(m => m.Sender).FirstAsync(m => m.ID == messageEdited.MessageId);
+                Messages[MessageIdToIndex[messageEdited.MessageId]].DbMessage = message;
+                await InvokeAsync(StateHasChanged);
+                break;
+            }
+            case MessagePinStatusS2CPacket pinStatus:
+            {
+                await using var db = await Db.CreateDbContextAsync();
+                var message = await db.Messages.Include(m => m.Sender).FirstAsync(m => m.ID == pinStatus.MessageId);
+                Messages[MessageIdToIndex[pinStatus.MessageId]].DbMessage = message;
+                await InvokeAsync(StateHasChanged);
+                break;
+            }
+        }
     }
 
     private bool IsModerator()
@@ -310,67 +365,6 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-
-        await Connect();
-    }
-
-    private async Task Connect()
-    {
-        var baseUrl = NavigationManager.BaseUri;
-        _hubUrl = baseUrl.TrimEnd('/') + BamboozlersHub.HubUrl;
-
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl(_hubUrl, options =>
-            {
-                options.UseDefaultCredentials = true;
-                options.HttpMessageHandlerFactory = innerHandler => new IncludeRequestCredentialsMessageHandler { InnerHandler = innerHandler };
-            })
-            .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)])
-            .Build();
-
-        _hubConnection.On("RecievePacketOnClient", async (string packetJson) =>
-        {
-            await ClientNetworkHandler.Instance.Handle(packetJson, async packet =>
-            {
-                switch (packet)
-                {
-                    case ReadDatabaseS2CPacket readDatabaseS2CPacket:
-                        if (readDatabaseS2CPacket.DbEntry == DbEntry.ChatMessage)
-                        {
-                            await UpdateMessages();
-                        }
-
-                        break;
-                    case MessageDeletedS2CPacket messageDeletedS2CPacket:
-                        await RemoveClientMessage(messageDeletedS2CPacket.MessageId);
-                        break;
-                    case MessageEditedS2CPacket messageEditedS2CPacket:
-                        var messageEntry = Messages[MessageIdToIndex[messageEditedS2CPacket.MessageId]];
-                        messageEntry.DbMessage.Content = messageEditedS2CPacket.NewContent;
-                        if (EphemeralMessages.Contains(messageEntry.DbMessage.ID)) return;
-
-                        messageEntry.EchoRecieved = true;
-                        await InvokeAsync(StateHasChanged);
-                        break;
-                }
-            });
-        });
-
-        await _hubConnection.StartAsync();
-
-        await _hubConnection.SendAsync("JoinChat", ChatID);
-    }
-
-    private async Task SendToServer<T>(T packet) where T : IPacket
-    {
-        if (_hubConnection is null) throw new InvalidOperationException("Hub connection is not initialized");
-        if (_hubConnection.State != HubConnectionState.Connected) throw new InvalidOperationException("Hub connection is not connected");
-        await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());
-    }
-
     private async Task OnInput(KeyboardEventArgs eventArgs)
     {
         if (eventArgs.Key != "Enter" || eventArgs.ShiftKey) return;
@@ -385,15 +379,14 @@
         db.Messages.Remove(message);
         await db.SaveChangesAsync();
 
-        var messageUpdated = new MessageUpdatedC2SPacket
+        var messageDeleted = new MessageDeletedC2SPacket
         {
+            SenderId = Self!.Id,
             ChatId = (int)ChatID!,
             MessageId = message.ID,
-            Deleted = true,
-            UpdaterId = Self!.Id
         };
 
-        await SendToServer(messageUpdated);
+        await SendToServer.InvokeAsync(messageDeleted);
     }
 
     private async Task RemoveClientMessage(int messageId)
@@ -429,23 +422,37 @@
         db.Messages.Update(message);
         await db.SaveChangesAsync();
 
-        var messageUpdated = new MessageUpdatedC2SPacket
+        var messageUpdated = new MessageEditedC2SPacket
         {
+            SenderId = Self!.Id,
             ChatId = (int)ChatID!,
             MessageId = message.ID,
             NewContent = newContent,
-            UpdaterId = Self!.Id
         };
 
-        await SendToServer(messageUpdated);
+        await SendToServer.InvokeAsync(messageUpdated);
     }
 
     private async Task PinMessage(Message message)
     {
         await using var db = await Db.CreateDbContextAsync();
-        message.IsPinned = !message.IsPinned;
+        message.PinnedAt = message.IsPinned ? null : DateTime.Now;
         db.Messages.Update(message);
         await db.SaveChangesAsync();
+        
+        var pinStatus = new MessagePinStatusC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = (int)ChatID!,
+            MessageId = message.ID,
+            Pinned = message.IsPinned
+        };
+        await SendToServer.InvokeAsync(pinStatus);
+    }
+
+    private async Task JumpToMessage(Message message, bool highlight = true)
+    {
+        await JsRuntime.InvokeVoidAsync("scrollToMessage", message.ID, highlight);
     }
 
     private async Task UpdateMessages()
@@ -461,6 +468,10 @@
             {
                 EphemeralMessages.Remove(message.ID);
                 Messages[MessageIdToIndex[message.ID]].EchoRecieved = true;
+            }
+            else if (MessageIdToIndex.TryGetValue(message.ID, out var messageIndex))
+            {
+                Messages[messageIndex].DbMessage = message;
             }
             else
             {
@@ -485,8 +496,7 @@
             ChatID = (int)ChatID!,
             SenderID = self!.Id,
             Content = messageText,
-            SentAt = DateTime.Now,
-            IsPinned = false
+            SentAt = DateTime.Now
         };
         await using var db = await Db.CreateDbContextAsync();
 
@@ -499,9 +509,11 @@
             ChatId = (int)ChatID!,
             DbEntry = DbEntry.ChatMessage
         };
-        await SendToServer(readDatabaseRequest);
+        await SendToServer.InvokeAsync(readDatabaseRequest);
 
         CreateMessageEntry(message, true);
+        StateHasChanged();
+        await JumpToMessage(message, false);
     }
 
     private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false)
@@ -525,7 +537,7 @@
         {
             EphemeralMessages.Add(message.ID);
         }
-
+        
         return messageEntry;
     }
 
@@ -557,15 +569,6 @@
         {
             /* Ignore */
         }
-
-        if (_hubConnection is null) return;
-
-        await _hubConnection.StopAsync();
-        await _hubConnection.DisposeAsync();
-
-        _hubConnection = null;
-
-        GC.SuppressFinalize(this);
     }
 
     public async Task OnGroupUpdate()

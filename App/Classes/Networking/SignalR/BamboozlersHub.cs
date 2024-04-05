@@ -21,40 +21,50 @@ public class BamboozlersHub : Hub
     {
         await ServerNetworkHandler.Instance.Handle(packetJson, async packet =>
         {
+            Console.WriteLine($"Recieved packet from client: {packet.PacketType().GetId()}");
             switch (packet)
             {
-                case TellOthersToReadDatabaseC2SPacket tellOthersToReadDatabaseC2SPacket:
-                    var readDatabaseS2CPacket = new ReadDatabaseS2CPacket
-                    {
-                        DbEntry = tellOthersToReadDatabaseC2SPacket.DbEntry
-                    };
-                    await Clients.Groups(tellOthersToReadDatabaseC2SPacket.ChatId.ToString())
-                        .SendAsync("RecievePacketOnClient", ((IPacket)readDatabaseS2CPacket).Serialize());
+                case JoinChatC2SPacket joinChat:
+                    await Groups.AddToGroupAsync(Context.ConnectionId, joinChat.ChatId.ToString());
                     break;
-                case MessageUpdatedC2SPacket messageUpdatedC2SPacket:
-                    IPacket response;
-                    if (messageUpdatedC2SPacket.Deleted)
-                        response = new MessageDeletedS2CPacket
-                        {
-                            MessageId = messageUpdatedC2SPacket.MessageId
-                        };
-                    else
-                        response = new MessageEditedS2CPacket
-                        {
-                            MessageId = messageUpdatedC2SPacket.MessageId,
-                            NewContent = messageUpdatedC2SPacket.NewContent!
-                        };
-                    await Clients.Groups(messageUpdatedC2SPacket.ChatId.ToString())
-                        .SendAsync("RecievePacketOnClient", response.Serialize());
+                case TellOthersToReadDatabaseC2SPacket tellOthersToReadDatabase:
+                    var readDatabase = new ReadDatabaseS2CPacket
+                    {
+                        DbEntry = tellOthersToReadDatabase.DbEntry
+                    };
+                    await SendToChat(tellOthersToReadDatabase.ChatId, readDatabase);
+                    break;
+                case MessageEditedC2SPacket messageEdited:
+                    var messageEditedResponse = new MessageEditedS2CPacket
+                    {
+                        MessageId = messageEdited.MessageId,
+                        NewContent = messageEdited.NewContent
+                    };
+                    await SendToChat(messageEdited.ChatId, messageEditedResponse);
+                    break;
+                case MessageDeletedC2SPacket messageDeleted:
+                    var messageDeletedRespone = new MessageDeletedS2CPacket
+                    {
+                        MessageId = messageDeleted.MessageId
+                    };
+                    await SendToChat(messageDeleted.ChatId, messageDeletedRespone);
+                    break;
+                case MessagePinStatusC2SPacket messagePinStatus:
+                    var messagePinStatusResponse = new MessagePinStatusS2CPacket
+                    {
+                        MessageId = messagePinStatus.MessageId,
+                        Pinned = messagePinStatus.Pinned
+                    };
+                    await SendToChat(messagePinStatus.ChatId, messagePinStatusResponse);
                     break;
             }
         });
     }
-
-    public async Task JoinChat(int chatId)
+    
+    private async Task SendToChat(int chatId, IPacket packet)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, chatId.ToString());
-        Console.WriteLine($"User {Context.ConnectionId} joined chat {chatId}");
+        Console.WriteLine($"Sending packet to chat {chatId}: {packet.PacketType().GetId()}");
+        await Clients.Groups(chatId.ToString()).SendAsync("RecievePacketOnClient", packet.Serialize());
     }
 
     public override Task OnConnectedAsync()

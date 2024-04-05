@@ -66,7 +66,11 @@ builder.Services.AddScoped<IKeyPressService, KeyPressService>();
 builder.Services.AddSignalR(e => { e.MaximumReceiveMessageSize = 1024 * 1024; });
 builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
 
-builder.WebHost.UseUrls("http://localhost:5152");
+
+builder.WebHost.UseUrls(builder.Environment.ContentRootPath.Contains("bawnorton")
+    ? "http://192.168.1.199:5152" // Used to test server when hosted on Ben's local machine as the port forwarding needs to map to an exact IP address.
+    : "http://localhost:5152"
+);
 
 var app = builder.Build();
 
@@ -96,4 +100,4 @@ app.MapRazorComponents<App>()
 app.MapAdditionalIdentityEndpoints();
 app.Run();
 
-internal partial class Program;
+public partial class Program;

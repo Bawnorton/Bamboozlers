@@ -1,12 +1,34 @@
 @using Bamboozlers.Classes.AppDbContext
+@using System.Text.Json
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Func
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 
-<Div>
+<Div Style="margin-top: 5px; margin-bottom: 5px; position: relative;" class="message">
     <CompMessageHeaderView Message="Message"/>
-    <CompMessageContentView Content="@Message.Content"/>
+    <Div Class="message-content">
+        <CompMessageContentView Content="@Message.Content"/>
+        <Div Class="message-actions">
+            <Button Clicked="@(async () => await OnJump.Invoke(Message))" class="button-tooltip tooltip-up" data-tooltip="Jump">
+                <Icon Class="@(Icons.ArrowUp)"></Icon>
+            </Button>
+            @if (CanUnpin)
+            {
+                <Button Clicked="@(async () => await OnUnpin.Invoke(Message))" class="button-tooltip tooltip-up" data-tooltip="Unpin">
+                    <Icon Class="@(Icons.Times)"></Icon>
+                </Button>
+            }
+        </Div>
+    </Div>
 </Div>
 
 @code {
 
     [Parameter] public Message Message { get; set; }
-
+    
+    [Parameter] public bool CanUnpin { get; set; }
+    
+    [Parameter] public AsyncConsumer<Message> OnJump { get; set; }
+    
+    [Parameter] public AsyncConsumer<Message> OnUnpin { get; set; }
 }

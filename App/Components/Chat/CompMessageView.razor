@@ -8,8 +8,11 @@
 
 @if (Loaded)
 {
-    <Div ElementId="@("message_" + Message.ID)">
-        <CompMessageHeaderView Message="Message" PreviousMessage="PreviousMessage"/>
+    <Div ElementId="@("message_" + Message.ID)" Class=@MessageClass>
+        @if (Message.SenderID != PreviousMessage?.SenderID)
+        {
+            <CompMessageHeaderView Message="Message"/>
+        }
         <Div Class="message-content">
             <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
                 <CompMessageContentView Content=@Message.Content/>
@@ -18,28 +21,28 @@
                 @switch (ShowEdit)
                 {
                     case true:
-                        <Button Clicked="@(async () => await ChatContext.OnEdit(Message, Message.Content + " (edited)"))">
+                        <Button Clicked="@(async () => await ChatContext.OnEdit(Message, Message.Content + " (edited)"))" class=@TooltipClassDir data-tooltip="Edit">
                             <Icon Class="fa-pencil-alt"></Icon>
                         </Button>
                         break;
                     case false:
-                        <Button onclick="alert('Not Implemented')">
+                        <Button onclick="alert('Not Implemented')" class=@TooltipClassDir data-tooltip="Reply">
                             <Icon Name="Icons.Reply"></Icon>
                         </Button>
                         break;
                 }
-                <Button Clicked="async () => await ChatContext.OnPin(Message)">
+                <Button Clicked="async () => await ChatContext.OnPin(Message)" class=@TooltipClassDir data-tooltip=@(Message.IsPinned ? "Unpin" : "Pin")>
                     <Icon Name="Icons.MapPin"></Icon>
                 </Button>
                 @if (ShowDelete)
                 {
-                    <Button Clicked="@(async () => await ChatContext.OnDelete(Message))">
+                    <Button Clicked="@(async () => await ChatContext.OnDelete(Message))" class=@TooltipClassDir data-tooltip="Delete">
                         <Icon Name="Icons.Trash"></Icon>
                     </Button>
                 }
                 else
                 {
-                    <Button Outline=false>
+                    <Button Outline=false class=@TooltipClassDir data-tooltip="More">
                         <Icon Name="Icons.Ellipsis"></Icon>
                     </Button>
                 }
@@ -49,8 +52,6 @@
 }
 
 @code {
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
-
     [Parameter] public Message Message { get; set; }
 
     [Parameter] public Message? PreviousMessage { get; set; }
@@ -68,6 +69,10 @@
     private bool ShowEdit => IsSelfMessage && ChatContext.IsShiftHelf;
 
     private bool ShowDelete => ChatContext.IsShiftHelf && (IsSelfMessage || ChatContext.IsMod);
+    
+    private string TooltipClassDir => "button-tooltip " + (PreviousMessage == null ? "tooltip-down" : "tooltip-up");
+    
+    private string MessageClass => "message " + (Message.SenderID != PreviousMessage?.SenderID ? "mt-2" : "");
 
     protected override async Task OnInitializedAsync()
     {

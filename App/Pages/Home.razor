@@ -26,10 +26,12 @@
             <CascadingValue Value="_openPopupCallback">
                 <CascadingValue Value="_closePopupCallback">
                     <CascadingValue Value="_openChatCallback">
-                        <NavLayout @ref="_navLayout"/>
-                        <Modal @ref="_popupComponent" Closed="OnPopupClosed">
-                            @_popupContent
-                        </Modal>
+                        <NetworkHub>
+                            <NavLayout @ref="_navLayout"/>
+                            <Modal @ref="_popupComponent" Closed="OnPopupClosed">
+                                @_popupContent
+                            </Modal>
+                        </NetworkHub>
                     </CascadingValue>
                 </CascadingValue>
             </CascadingValue>
@@ -95,7 +97,7 @@
                                                       <CompAddMember ChatID="@args.ChatId"/>
                                                   </text>,
             RecognizedPopupType.Pins => @<text>
-                                             <CompPinsView ChatID="@args.ChatId"/>
+                                             <CompPinsView ChatID="@args.ChatId" IsMod="@((bool)args.IsModInChat!)" OnMessageJump="@(async message => { await args.OnClose?.Invoke(message)!; await ClosePopup(); })"/>
                                          </text>,
             _ => @<text>
                       <ModalContent Size="args.Size" Centered>

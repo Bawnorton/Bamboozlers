@@ -1,38 +1,137 @@
 @inherits UserViewComponentBase
 
+@implements IAsyncPacketSubscriber
+
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Clientbound
+@using Bamboozlers.Classes.Networking.Packets.Serverbound
+@using Bamboozlers.Classes.Utility.Observer
+@using Bunit.Extensions
 
 @inject IDbContextFactory<AppDbContext> Db;
+@inject IJSRuntime JsRuntime
 
 <ModalContent>
     <ModalHeader>
-        <Div>
+        <h4>
             Pins
-        </Div>
+        </h4>
     </ModalHeader>
     <ModalBody>
-        @foreach (var message in PinnedMessages)
+        @if (PinnedMessages.IsNullOrEmpty())
         {
-            <CompPinMessageView Message="@message"/>
+            <Div>
+                No pinned messages :(
+            </Div>
+        }
+        else
+        {
+            @foreach (var message in PinnedMessages)
+            {
+                <CompPinMessageView
+                    Message="@message"
+                    CanUnpin="@CanUnpin(message)"
+                    OnUnpin="@UnpinMessage"
+                    OnJump="@JumpToMessage"/>
+            }
         }
     </ModalBody>
+    <ModalFooter/>
 </ModalContent>
 
 @code {
 
     [Parameter] public int? ChatID { get; set; }
+    
+    [Parameter] public bool IsMod { get; set; }
+    
+    [Parameter] public AsyncConsumer<Message> OnMessageJump { get; set; }
+    
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
+    
+    [CascadingParameter] public Func<IAsyncPacketSubscriber, bool> AddPacketSubscriber { get; set; }
 
     private List<Message> PinnedMessages { get; set; } = [];
 
+    private bool IsDm { get; set; }
+
+    private bool CanUnpin(Message message) => IsMod || (IsDm && message.SenderID == UserData!.Id);
+    
     protected override async Task OnParametersSetAsync()
     {
         if (ChatID == null) throw new ArgumentNullException(nameof(ChatID));
 
         await using var db = await Db.CreateDbContextAsync();
-        var chat = await db.Chats.Include(c => c.Messages).FirstOrDefaultAsync(c => c.ID == ChatID);
+        var chat = await db.Chats.Include(c => c.Messages)!.ThenInclude(m => m.Sender).FirstOrDefaultAsync(c => c.ID == ChatID);
         if (chat == null) throw new ArgumentNullException(nameof(chat));
+        if (chat is not GroupChat) IsDm = true;
 
         PinnedMessages = chat.Messages?.Where(m => m.IsPinned).ToList() ?? [];
+        PinnedMessages.Sort((a, b) => b.PinnedAt!.Value.CompareTo(a.PinnedAt!.Value));
     }
 
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(!firstRender) return Task.CompletedTask;
+        
+        Console.WriteLine("Adding packet subscriber");
+        AddPacketSubscriber.Invoke(this);
+        return Task.CompletedTask;
+    }
+
+    public async Task OnPacket(IPacket packet)
+    {
+        switch (packet)
+        {
+            case MessagePinStatusS2CPacket pinStatus:
+            {
+                await using var db = await Db.CreateDbContextAsync();
+                var message = await db.Messages.Include(m => m.Sender).FirstOrDefaultAsync(m => m.ID == pinStatus.MessageId);
+                if (message == null) return;
+                
+                if (pinStatus.Pinned)
+                {
+                    PinnedMessages.Insert(0, message);
+                    await InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    var index = PinnedMessages.FindIndex(m => m.ID == message.ID);
+                    if (index == -1) return;
+                    
+                    PinnedMessages.RemoveAt(index);
+                    await InvokeAsync(StateHasChanged);
+                }
+                break;
+            }
+        }
+    }
+
+    private async Task UnpinMessage(Message message)
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        var msg = await db.Messages.FirstOrDefaultAsync(m => m.ID == message.ID);
+        if (msg == null) throw new ArgumentNullException(nameof(msg));
+
+        msg.PinnedAt = null;
+        await db.SaveChangesAsync();
+
+        var packet = new MessagePinStatusC2SPacket
+        {
+            SenderId = (int)UserData!.Id!,
+            ChatId = (int)ChatID!,
+            MessageId = msg.ID,
+            Pinned = false
+        };
+        await SendToServer.InvokeAsync(packet);
+        
+        StateHasChanged();
+    }
+    
+    private async Task JumpToMessage(Message message)
+    {
+        await OnMessageJump.Invoke(message);
+    }
 }

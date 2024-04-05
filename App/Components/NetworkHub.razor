@@ -1,0 +1,110 @@
+@implements IAsyncDisposable 
+@implements IAsyncPublisher<IAsyncPacketSubscriber>
+
+@using Microsoft.AspNetCore.SignalR.Client
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.SignalR
+@using Bamboozlers.Classes.Networking
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Utility.Observer
+
+@inject NavigationManager NavigationManager
+
+<CascadingValue Value="_addPacketSubscriber">
+    <CascadingValue Value="_sendToServer">
+        @ChildContent
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private EventCallback<IPacket> _sendToServer;
+    private Func<IAsyncPacketSubscriber, bool> _addPacketSubscriber;
+
+    public List<IAsyncPacketSubscriber> Subscribers { get; } = [];
+    
+    private string _hubUrl;
+    private HubConnection? _hubConnection;
+
+    protected override void OnInitialized()
+    {
+        _sendToServer = EventCallback.Factory.Create<IPacket>(this, SendPacketToServer);
+        _addPacketSubscriber = AddSubscriber;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await Connect();
+    }
+    
+    private async Task Connect()
+    {
+        var baseUrl = NavigationManager.BaseUri;
+        _hubUrl = baseUrl.TrimEnd('/') + BamboozlersHub.HubUrl;
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(_hubUrl, options =>
+            {
+                options.UseDefaultCredentials = true;
+                options.HttpMessageHandlerFactory = innerHandler => new IncludeRequestCredentialsMessageHandler { InnerHandler = innerHandler };
+            })
+            .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)])
+            .Build();
+
+        _hubConnection.On("RecievePacketOnClient", async (string packetJson) =>
+        {
+            await ClientNetworkHandler.Instance.Handle(packetJson, async packet =>
+            {
+                await OnPacketRecieved(packet);
+            });
+        });
+
+        await _hubConnection.StartAsync();
+    }
+    
+    public bool AddSubscriber(IAsyncPacketSubscriber subscriber)
+    {
+        if (Subscribers.Contains(subscriber)) return false;
+        Subscribers.Add(subscriber);
+        return true;
+    }
+    
+    private async Task OnPacketRecieved(IPacket packet)
+    {
+        Console.WriteLine($"Recieved packet from server: {packet.PacketType().GetId()}");
+        foreach (var subscriber in Subscribers)
+        {
+            await subscriber.OnPacket(packet);
+        }
+    }
+
+    private async Task SendPacketToServer(IPacket packet)
+    {
+        if (_hubConnection is null) throw new InvalidOperationException("Hub connection is not initialized");
+        if (_hubConnection.State != HubConnectionState.Connected) throw new InvalidOperationException("Hub connection is not connected");
+        Console.WriteLine($"Sending packet to server: {packet.PacketType().GetId()}");
+        await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());
+    }
+    
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_hubConnection is null) return;
+
+        await _hubConnection.StopAsync();
+        await _hubConnection.DisposeAsync();
+
+        _hubConnection = null;
+
+        GC.SuppressFinalize(this);
+    }
+    
+    public Task NotifyAllAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+}

@@ -8,7 +8,10 @@ public class ServerNetworkHandler : AbstractNetworkHandler
 
     private ServerNetworkHandler()
     {
+        PacketRegistry.RegisterPacket(JoinChatC2SPacket.Type);
         PacketRegistry.RegisterPacket(TellOthersToReadDatabaseC2SPacket.Type);
-        PacketRegistry.RegisterPacket(MessageUpdatedC2SPacket.Type);
+        PacketRegistry.RegisterPacket(MessageEditedC2SPacket.Type);
+        PacketRegistry.RegisterPacket(MessageDeletedC2SPacket.Type);
+        PacketRegistry.RegisterPacket(MessagePinStatusC2SPacket.Type);
     }
 }
