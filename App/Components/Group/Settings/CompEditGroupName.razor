@@ -75,11 +75,13 @@
 
         WatchedIDs = [ChatID];
         UserGroupService.AddSubscriber(this);
-        Group = dbContext.GroupChats.FirstOrDefault(c => c.ID == ChatID);
+        Group = dbContext.GroupChats.AsNoTracking()
+                    .Include(gc => gc.Owner)
+                        .FirstOrDefault(c => c.ID == ChatID);
         if (Group is null)
             return;
         
-        ChatName = Group!.Name;
+        ChatName = Group.GetGroupName();
     }
 
     private async Task OnSave()
@@ -95,7 +97,7 @@
             return;
         }
 
-        if (Group.Name == TypedName)
+        if (Group.Name == TypedName || (TypedName.IsNullOrEmpty() && Group.Name.IsNullOrEmpty()))
         {
             await AlertCallback.InvokeAsync(new AlertArguments(
                 Color.Warning,

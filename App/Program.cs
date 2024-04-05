@@ -23,16 +23,12 @@ builder.Services
     .AddBlazorise( options =>
     {
         options.Immediate = true;
-        options.Debounce = true;
-        options.DebounceInterval = 300;
     })
     .AddBootstrap5Providers()
     .AddFontAwesomeIcons();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
-builder.Services.AddSingleton<IPopupService, PopupService>();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IIdentityRedirectManager, IdentityRedirectManager>();

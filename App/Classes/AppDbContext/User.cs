@@ -1,3 +1,4 @@
+using Blazorise.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,4 +12,9 @@ public class User:IdentityUser<int>
     public ICollection<Chat> Chats { get; set; }
     public ICollection<GroupChat> ModeratedChats { get; set; }
     public ICollection<GroupChat> OwnedChats { get; set; }
+
+    public string GetName()
+    {
+        return DisplayName.IsNullOrEmpty() ? UserName! : DisplayName!;
+    }
 }

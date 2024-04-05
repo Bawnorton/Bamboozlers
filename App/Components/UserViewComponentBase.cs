@@ -1,30 +1,36 @@
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.UserServices;
-using Bamboozlers.Classes.Utility.Mediator;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components;
 
 namespace Bamboozlers.Components;
 
-public class UserViewComponentBase : ComponentBase, IUserSubscriber, IAsyncSubscriber, IPopupColleague
+public class UserViewComponentBase : ComponentBase, IUserSubscriber
 {
     [Inject] protected IUserService UserService { get; set; } = default!;
     [Inject] protected IAuthService AuthService { get; set; } = default!;
-    [Inject] public IPopupService PopupService { get; set; } = default!;
     protected UserRecord? UserData { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         UserService.AddSubscriber(this);
-        PopupService.RegisterColleague(this);
     }
     
-    public void OnUpdate(UserRecord? data)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (UserData is null)
+        {
+            UserData = await UserService.GetUserDataAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    
+    public virtual async Task OnUpdate(UserRecord? data)
     {
         UserData = data ?? UserData;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     void ISubscriber.OnUpdate()
@@ -32,9 +38,8 @@ public class UserViewComponentBase : ComponentBase, IUserSubscriber, IAsyncSubsc
         StateHasChanged();
     }
 
-    public Task OnUpdate()
+    public async Task OnUpdate()
     {
-        StateHasChanged();
-        return Task.CompletedTask;
+        await InvokeAsync(StateHasChanged);
     }
 }

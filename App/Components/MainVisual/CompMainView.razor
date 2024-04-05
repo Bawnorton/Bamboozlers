@@ -66,8 +66,8 @@
                     <CompActionButton ColumnWrapped="@false"
                                       ButtonCaption="Find Friends"
                                       IconName="@IconName.UserPlus"
-                                      ActionCallback="@(async () => await PopupService.RequestKnownPopup(PopupType.FindFriends))"/>
-                </Items>
+                                      ActionCallback="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.FindFriends)))"/>
+                    </Items>
                 <Content>
                     <TabPanel Name="All">
                         <CompFriendList/>
@@ -91,7 +91,7 @@
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
-    [CascadingParameter] private PopupHandler PopupHandler { get; set; } = default!;
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
 
     private string HeaderLabel { get; set; } = "";
     private string SelectedTab { get; set; } = "All";
@@ -145,10 +145,11 @@
         GroupEvent.SentInviteRevoked,
         GroupEvent.SentInvite
     ];
+    
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetGroupsData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
@@ -163,6 +164,6 @@
     public async Task OnUpdate(InteractionEvent evt)
     {
         await GetFriendsData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 }

@@ -90,7 +90,6 @@
         await base.OnInitializedAsync();
         UserInteractionService.AddSubscriber(this);
         await GetFriendsData();
-        StateHasChanged();
     }
 
     public RenderFragment GetIncomingFriendRequestFragment(FriendRequest friendRequest)
@@ -165,6 +164,6 @@
                 await GetFriendsData();
                 break;
         }
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 }

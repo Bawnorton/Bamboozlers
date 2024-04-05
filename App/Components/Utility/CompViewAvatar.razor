@@ -2,7 +2,9 @@
 
 <Row>
     <Div Width="@Width.Px(DisplayPx)" Height="@Height.Px(DisplayPx)">
-        <Image ElementId="avatar-display"
+        <Image Width="@Width.Px(DisplayPx)" 
+               Height="@Height.Px(DisplayPx)" 
+               ElementId="avatar-display"
                Class="border-mask fit"
                Source="@(((IAvatarViewer) this).GetDisplayString())"/>
     </Div>

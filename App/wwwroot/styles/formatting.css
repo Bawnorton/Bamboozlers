@@ -10,8 +10,8 @@
 }
 
 .settings-tab {
-    min-height: 50vh;
-    max-height: 50vh;
+    min-height: 45vh;
+    max-height: 45vh;
     margin: 2%;
     overflow-y: auto;
     overflow-x: hidden;

@@ -19,20 +19,24 @@
         Friends
     </Heading>
     <Divider/>
-    <div class="scrollbar-container" style="display: inline-block; position: relative; left: 12%; width: 75%; max-height: 50vh; margin-left: 10px; margin-right: 10px;">
-        @if (Friends.Count > 0)
-        {
-            foreach (var user in Friends)
+    @if (Friends.Count > 0)
+    {
+        <div class="scrollbar-container" style="display: inline-block; position: relative; left: 12%; width: 75%; max-height: 100%; margin-left: 10px; margin-right: 10px;">
+            <div>
+                
+            </div>
+            @foreach (var user in Friends)
             {
-                @GetFriendFragment(user);
+                @GetFriendFragment(user)
+                ;
             }
-        }
-        else
-        {
-            <p>Nothing to see here...</p>
-            <p>You haven't made any friends.</p>
-        }
-    </div>
+        </div>
+    }
+    else
+    {
+        <p>Nothing to see here...</p>
+        <p>You haven't made any friends.</p>
+    }
 </div>
 
 @code {
@@ -78,12 +82,13 @@
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
     [
         InteractionEvent.Unfriend,
-        InteractionEvent.RequestAccepted
+        InteractionEvent.RequestAccepted,
+        InteractionEvent.Block
     ];
 
     public async Task OnUpdate(InteractionEvent evt)
     {
         await GetFriendData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 }

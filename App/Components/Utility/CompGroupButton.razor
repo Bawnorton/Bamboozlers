@@ -56,6 +56,14 @@
                 ButtonCaption = "Pending";
                 Disabled = true;
                 break;
+            case GroupEvent.ReceivedInviteAccepted:
+                IconName = IconName.Check;
+                Color = Color.Success;
+                GroupCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserGroupService.AcceptGroupInvite(GroupID, UserId)
+                );
+                break;    
             case GroupEvent.ReceivedInviteDeclined:
                 IconName = IconName.Ban;
                 Color = Color.Danger;

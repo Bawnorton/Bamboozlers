@@ -7,7 +7,7 @@
 <Div Class="message-username" Style="display: inline-block" onclick="@(async () => await OpenProfilePopup())">
     @if (User is not null)
     {
-        @(!User.DisplayName.IsNullOrEmpty() ? User.DisplayName : User.UserName)
+        @User.GetName()
     }
     else
     {
@@ -18,15 +18,15 @@
 </Div>
 
 @code {
-    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
-
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    
     [Parameter] public User? User { get; set; }
 
     private async Task OpenProfilePopup()
     {
         if (User is not null)
         { 
-            await PopupService.RequestKnownPopup(PopupType.UserProfile, focusUser: User);
+            await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User));
         }
     }
 }

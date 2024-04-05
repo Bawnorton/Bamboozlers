@@ -157,7 +157,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
 
         dbContext.Chats.Update(dm);
         await dbContext.SaveChangesAsync();
-        await NotifyAllAsync();
+        await NotifySubscribersOf(InteractionEvent.CreateDm);
 
         return dm;
     }
@@ -180,10 +180,13 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
             if (incoming is not null) dbContext.FriendRequests.Remove(incoming);
             if (outgoing is not null) dbContext.FriendRequests.Remove(outgoing);
 
+            var friendship = await FindFriendship(otherId);
+            if (friendship is not null)
+                dbContext.Remove(friendship);
             var block = new Block(other.Id, self.Id);
             await dbContext.BlockList.AddAsync(block);
             await dbContext.SaveChangesAsync();
-            await NotifyAllAsync();
+            await NotifySubscribersOf(InteractionEvent.Block);
         }
     }
 
@@ -203,7 +206,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
             dbContext.BlockList.Remove(blockEntry);
             
             await dbContext.SaveChangesAsync();
-            await NotifyAllAsync();
+            await NotifySubscribersOf(InteractionEvent.Unblock);
         }
     }
 
@@ -222,7 +225,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
             var friendRequest = new FriendRequest(self.Id, other.Id);
             await dbContext.FriendRequests.AddAsync(friendRequest);
             await dbContext.SaveChangesAsync();
-            await NotifyAllAsync();
+            await NotifySubscribersOf(InteractionEvent.RequestSent);
         }
     }
 
@@ -240,7 +243,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         {
             dbContext.FriendRequests.Remove(requestEntry);
             await dbContext.SaveChangesAsync();
-            await NotifyAllAsync();
+            await NotifySubscribersOf(InteractionEvent.RequestRevoked);
         }
     }
 
@@ -260,7 +263,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
             var friendship = new Friendship(self.Id, other.Id);
             await dbContext.FriendShips.AddAsync(friendship);
             await dbContext.SaveChangesAsync();
-            await NotifyAllAsync();
+            await NotifySubscribersOf(InteractionEvent.RequestDeclined);
         }
     }
     
@@ -279,7 +282,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         {
             dbContext.FriendRequests.Remove(requestEntry);
             await dbContext.SaveChangesAsync();
-            await NotifyAllAsync();
+            await NotifySubscribersOf(InteractionEvent.RequestDeclined);
         }
     }
 
@@ -298,7 +301,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         {
             dbContext.Remove(friendship);
             await dbContext.SaveChangesAsync();
-            await NotifyAllAsync();
+            await NotifySubscribersOf(InteractionEvent.Unfriend);
         }
     }
 
@@ -365,14 +368,19 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     
     private async Task NotifySubscribersOf(InteractionEvent evt)
     {
-        var subset = evt is InteractionEvent.General
-            ? Subscribers
-            : Subscribers.Where(s => s.WatchedInteractionEvents.Contains(evt) 
-                                     || (s.WatchedInteractionEvents.Contains(InteractionEvent.General) && s.WatchedInteractionEvents.Count == 1));
-        
-        foreach (var sub in subset)
+        if (evt is InteractionEvent.General)
         {
-            await sub.OnUpdate(evt);
+            foreach (var sub in Subscribers)
+            {
+                await sub.OnUpdate(InteractionEvent.General);
+            }
+        }
+        else
+        {
+            foreach (var sub in Subscribers.Where(s => s.WatchedInteractionEvents.Contains(evt) || s.WatchedInteractionEvents.Contains(InteractionEvent.General)))
+            {
+                await sub.OnUpdate(evt);
+            }
         }
     }
     public bool AddSubscriber(IInteractionSubscriber subscriber) 

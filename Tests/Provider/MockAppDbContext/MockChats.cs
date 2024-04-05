@@ -25,12 +25,11 @@ public class MockChats : AbstractMockDbSet<Chat>
                 Users = new List<User> { user1, user2 },
                 Messages = []
             },
-            new GroupChat
+            new GroupChat(user1.Id)
             {
                 ID = 2,
                 Name = "TestGroupChat",
                 Owner = user1,
-                OwnerID = user1.Id,
                 Moderators = new List<User> { user2 },
                 Users = new List<User> { user1, user2, user3 },
                 Messages = []

@@ -5,8 +5,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Bamboozlers.Classes.Services.UserServices;
 
-public class UserService(IAuthService authService, ServiceProviderWrapper serviceProvider)
-    : IUserService
+public class UserService(IAuthService authService, ServiceProviderWrapper serviceProvider) : IUserService
 {
     private IAuthService AuthService { get; } = authService;
     private ServiceProviderWrapper ServiceProvider { get; } = serviceProvider;
@@ -145,7 +144,7 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
     {
         if (invalidate)
             Invalidate();
-        await BuildUserDataAsync();
+        UserRecord = await BuildUserDataAsync();
         ((IPublisher<IUserSubscriber>) this).NotifyAll();
     }
     

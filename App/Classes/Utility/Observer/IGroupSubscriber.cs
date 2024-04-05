@@ -4,6 +4,7 @@ public enum GroupEvent
 {
     General,
     CreateGroup,
+    DeleteGroup,
     SentInvite,
     ReceivedInviteAccepted,
     ReceivedInviteDeclined,

@@ -80,6 +80,6 @@
     public async Task OnUpdate(InteractionEvent evt)
     {
         await GetBlockedData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 }

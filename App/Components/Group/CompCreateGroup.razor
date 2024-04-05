@@ -6,7 +6,7 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services.UserServices
 
-<ModalContent Size="ModalSize.Large" Centered>
+<ModalContent Size="ModalSize.Large" Height="Height.Is75" Centered>
     <ModalHeader>
         <Heading>Create Group Chat</Heading>
     </ModalHeader>
@@ -59,7 +59,7 @@
         </Div>
     </ModalBody>
     <ModalFooter>
-        <Button Color="Color.Danger" Clicked="ClosePopupCallback">
+        <Button Color="Color.Danger" Clicked="@(async () => await ClosePopupCallback.InvokeAsync())">
             <Icon Name="IconName.Ban"/>
             Cancel
         </Button>

@@ -16,46 +16,22 @@ namespace Bamboozlers.Components.Settings;
 
 public partial class CompSettings : SettingsComponentBase
 {
-    [Parameter] public EventCallback StateChangedCallback { get; set; }
+    [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
     [Parameter] public bool Visible { get; set; }
     [Parameter] public string? SectionName { get; set; }
-    
-    /*
-    [Parameter] public string? SentStatusMessage { get; set; }
-    [Parameter] public string? SentStatusDescription { get; set; }
-    */
     
     protected override void OnInitialized()
     {
         SectionName ??= "Account";
     }
 
-    // TODO: Impl with events?
-    protected override async Task OnParametersSetAsync()
-    {
-        /*
-        if (!(SentStatusMessage is null || SentStatusDescription is null))
-        {
-            await OnAlertChange(new AlertArguments(
-                Color.Default,
-                true,
-                SentStatusMessage,
-                SentStatusDescription
-            ));
-        }
-        */
-    }
-
     [Parameter] public EventCallback<UserUpdateResult> UserUpdateCallback { get; set; }
     public AlertArguments Arguments { get; private set; }  = new();
 
-    public Task OnAlertChange(AlertArguments arguments)
+    public async Task OnAlertChange(AlertArguments arguments)
     {
         Arguments = arguments;
-        
-        StateHasChanged();
-        
-        return Task.CompletedTask;
+        await InvokeAsync(StateHasChanged);
     }
 
     public async Task<bool> OnDataChange(UserDataRecord userDataRecord)
@@ -91,8 +67,7 @@ public partial class CompSettings : SettingsComponentBase
                 break;
         }
         
-        StateHasChanged();
-        await StateChangedCallback.InvokeAsync();
+        await InvokeAsync(StateHasChanged);
         
         return result;
     }
@@ -193,8 +168,6 @@ public partial class CompSettings : SettingsComponentBase
             "")
         );
         
-        Logger.LogInformation("User changed their username successfully.");
-        
         await OnAlertChange(new AlertArguments(
             Color.Success,
             true,
@@ -268,8 +241,6 @@ public partial class CompSettings : SettingsComponentBase
             true, 
             "")
         );
-        
-        Logger.LogInformation("User changed their password successfully.");
         
         await OnAlertChange(new AlertArguments(
             Color.Success,
@@ -399,8 +370,6 @@ public partial class CompSettings : SettingsComponentBase
             true, 
             "")
         );
-        
-        Logger.LogInformation("User with name '{user.UserName}' deleted their account.",UserData.UserName);
         
         await JsRuntime.InvokeVoidAsync("settingsInterop.ForceLogout");
         

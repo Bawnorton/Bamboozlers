@@ -13,7 +13,7 @@
 
 <ModalContent Centered Size="ModalSize.Large">
     <ModalHeader>
-        <ModalTitle>@(Chat is null ? "Group Chat" : Chat.Name) Settings</ModalTitle>
+        <ModalTitle>@(Chat is null ? "Group" : Chat.GetGroupName()) Settings</ModalTitle>
     </ModalHeader>
     <ModalBody>
         <Alert ElementId="settings-alert" Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
@@ -47,13 +47,16 @@
                               Color="Color.Danger"
                               IconName="IconName.Running"
                               ColumnWrapped="@false"
-                              ActionCallback="@(async () => { await UserGroupService.LeaveGroup(ChatID); await PopupService.RequestDismissPopup(); })"/>
+                              ActionCallback="@(async () => { await UserGroupService.LeaveGroup(ChatID); })"/>
         }
     </ModalFooter>
 </ModalContent>
 
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+
+    [CascadingParameter] public EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
+    [CascadingParameter] public EventCallback DismissPopup { get; set; }
     
     [Parameter] public int? ChatID { get; set; }
     
@@ -85,14 +88,14 @@
         if (Self is null) 
             return;
         
-        await using var db = await Db.CreateDbContextAsync();
+        await using var dbContext = await Db.CreateDbContextAsync();
 
-        Chat = db.GroupChats.Where(c => c.ID == ChatID)
+        Chat = dbContext.GroupChats.Where(c => c.ID == ChatID)
             .Include(c => c.Users).ThenInclude(u => u.ModeratedChats)
             .Include(c => c.Moderators)
             .First();
 
-        var owner = await db.Users.Where(u => u.Id == Chat.OwnerID).FirstOrDefaultAsync();
+        var owner = await dbContext.Users.Where(u => u.Id == Chat.OwnerID).FirstOrDefaultAsync();
         MemberList = @<div id="memberList">
                          @foreach (var user in Chat.Users)
                          {
@@ -162,12 +165,14 @@
                                     </Row>
                                 </Div>
                                 <TextEdit Class="w-25"
-                                          Text="@(Chat is null ? "Chat" : Chat.Name)"
+                                          Text="@(Chat is null ? "Chat" : Chat.GetGroupName())"
                                           ElementId="chat-name"
                                           Placeholder="Chat Name" 
                                           Disabled/>
                             </text>;
         }
+
+        await dbContext.DisposeAsync();
     }
     
     private async Task DeleteAvatar()
@@ -277,22 +282,41 @@
                                      Color="Color.Danger"
                                      IconName="IconName.Ban"
                                      ColumnWrapped="@false"
-                                     ActionCallback="@(async () => await UserGroupService.RemoveGroupMember(ChatID, user.Id))"/>
+                                     ActionCallback="@(async () => await OpenKickConfirmation(user.Id))"/>
                 </div>;
     }
 
+    private async Task OpenKickConfirmation(int memberId)
+    {
+        await OpenAlertPopup.InvokeAsync(
+            new AlertPopupArgs(
+                @<text>
+                     This user will be removed from the group, and they will have to be invited again to re-join!
+                 </text>,
+                EventCallback.Factory.Create(this, () => UserGroupService.RemoveGroupMember(ChatID, memberId))
+            )
+        );
+    }
+    
     public List<GroupEvent> WatchedGroupEvents { get; set; } =
     [
         GroupEvent.RemoveMember,
         GroupEvent.RevokedPermissions,
         GroupEvent.GrantedPermissions,
-        GroupEvent.GroupDisplayChange
+        GroupEvent.GroupDisplayChange,
+        GroupEvent.SelfLeftGroup,
+        GroupEvent.DeleteGroup
     ];
     
     public List<int?> WatchedIDs { get; set; } = [];
     
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
+        if (evt is GroupEvent.SelfLeftGroup or GroupEvent.DeleteGroup)
+        {
+            await DismissPopup.InvokeAsync();
+            return;
+        }
         await LoadGroupData();
         StateHasChanged();
     }

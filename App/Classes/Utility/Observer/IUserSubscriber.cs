@@ -7,5 +7,5 @@ public interface IUserSubscriber : ISubscriber
     /// <summary>
     /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
-    void OnUpdate(UserRecord? data);
+    Task OnUpdate(UserRecord? data);
 }

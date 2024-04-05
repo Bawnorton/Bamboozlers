@@ -6,8 +6,13 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Utility.Observer
-@using Bamboozlers.Components.Utility
+@using Bamboozlers.Classes.AppDbContext
+
+@using Bamboozlers.Components.MainVisual
+@using Bamboozlers.Components.Settings
+@using Bamboozlers.Components.Interaction
+@using Bamboozlers.Components.Group
+@using Bamboozlers.Components.Group.Settings
 
 @attribute [Authorize]
 
@@ -16,16 +21,21 @@
 <ErrorBoundary>
     <ChildContent>
         <AuthorizeView>
-            <!-- IMPORTANT: This allows child components to create Popups! 
-                 Declare a [CascadingParameter] of type PopupHandler in a component to use this!
-                 
-                 Allows for dynamic creation of popups without using Blazorise ModalProvider/Service, which isn't
-                 very cooperative!
-            -->
-            <PopupHandler @ref="PopupHandler"/>
-            <CascadingValue Value="@PopupHandler">
-                <CascadingValue Value="OpenChatCallback">
-                    <NavLayout @ref="_navLayout"/>
+            <CascadingValue Value="OpenAlertPopup">
+                <CascadingValue Value="OpenNewPopup">
+                    <CascadingValue Value="OpenKnownPopup">
+                        <CascadingValue Value="DismissPopup">
+                            <CascadingValue Value="OpenChatCallback">
+                                <NavLayout @ref="_navLayout"/>
+                                <Modal @ref="ModalRef" Closed="@(() => CurrentPopup = null)">
+                                    @CurrentPopup
+                                </Modal>
+                                <Modal @ref="AlertModalRef" Closed="@(() => AlertPopup = null)">
+                                    @AlertPopup
+                                </Modal>
+                            </CascadingValue>
+                        </CascadingValue>
+                    </CascadingValue>
                 </CascadingValue>
             </CascadingValue>
         </AuthorizeView>
@@ -56,11 +66,29 @@
 @code {
     private NavLayout? _navLayout;
     
-    private PopupHandler PopupHandler { get; set; } = default!;
+    private EventCallback<NewPopupArgs> OpenNewPopup { get; set; }
+    private EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    private EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
+    private EventCallback DismissPopup { get; set; }
+    
     private EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
     
     protected override void OnInitialized()
     {
+        OpenKnownPopup = EventCallback.Factory.Create<KnownPopupArgs>(this, 
+            async args => await CreateKnownPopup(args.Type, args.FocusUser, args.ChatId)
+        );
+        
+        OpenAlertPopup = EventCallback.Factory.Create<AlertPopupArgs>(this, 
+            async args => await CreateAlertPopup(args.AlertBody, args.OnConfirmCallback)
+        );
+        
+        OpenNewPopup = EventCallback.Factory.Create<NewPopupArgs>(this, 
+            async args => await CreateNewPopup(args.Body, args.Header, args.Footer)
+        );
+
+        DismissPopup = EventCallback.Factory.Create(this, async args => await ClosePopup());
+        
         OpenChatCallback = EventCallback.Factory.Create<OpenChatArgs>(this, async args =>
         {
             switch (args.ChatType)
@@ -74,21 +102,102 @@
             }
         });
     }
-
-    protected override void OnAfterRender(bool firstRender)
+    
+    private Modal ModalRef { get; set; } = default!;
+    private RenderFragment? CurrentPopup { get; set; }
+    
+    private Modal AlertModalRef { get; set; } = default!;
+    private RenderFragment? AlertPopup { get; set; }
+    
+    private async Task CreateKnownPopup(PopupType type, User? focusUser = null, int? chatId = null)
     {
-        base.OnAfterRender(firstRender);
-        if (firstRender)
+        CurrentPopup = type switch
         {
-        }
+            PopupType.Settings => @<text>
+                                       <CompSettings/>
+                                   </text>,
+            PopupType.UserProfile => @<text>
+                                          <CompProfileView FocusUser="@UserRecord.From(focusUser!)"/>
+                                      </text>, 
+            PopupType.GroupChatSettings => @<text>
+                                                <CompGroupSettings ChatID="@chatId"/>
+                                            </text>,
+            PopupType.InviteGroupMembers => @<text>
+                                                 <CompAddMember ChatID="@chatId"/>
+                                             </text>,
+            PopupType.CreateGroup => @<text>
+                                          <CompCreateGroup/>
+                                      </text>,
+            PopupType.FriendList => @<text>
+                                         <ModalContent Centered>
+                                             <CompFriendList IsPopup="@true"/>
+                                         </ModalContent>
+                                     </text>,
+            PopupType.FindFriends => @<text>
+                                          <CompAddFriend/>
+                                      </text>,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, $"Cannot create popup of type {type}")
+        };
+        await ModalRef.Show();
     }
 
-    public List<ISubscriber> Subscribers { get; } = [];
-
-    public bool AddSubscriber(ISubscriber subscriber)
+    private async Task CreateNewPopup(RenderFragment bodyContent, RenderFragment? headerContent = null, RenderFragment? footerContent = null)
     {
-        if (Subscribers.Contains(subscriber)) return false;
-        Subscribers.Add(subscriber);
-        return true;
+        CurrentPopup = @<text>
+                            <ModalContent>
+                                @if (headerContent is not null)
+                                {
+                                    <ModalHeader>
+                                        @headerContent
+                                    </ModalHeader>
+                                }
+                                <ModalBody>
+                                    @bodyContent
+                                </ModalBody>
+                                @if (footerContent is not null)
+                                {
+                                    <ModalFooter TextAlignment="TextAlignment.Center">
+                                        @footerContent
+                                    </ModalFooter>
+                                }
+                            </ModalContent>
+                        </text>;
+        await ModalRef.Show();
+    }
+
+    private async Task CreateAlertPopup(RenderFragment bodyAlert, EventCallback onConfirm)
+    {
+        AlertPopup = @<text>
+                            <ModalContent Centered>
+                                <ModalHeader>
+                                    <Heading>Are you sure?</Heading>
+                                </ModalHeader>
+                                <ModalBody>
+                                    @bodyAlert
+                                </ModalBody>
+                                <ModalFooter TextAlignment="TextAlignment.Center">
+                                    <Button Color="Color.Danger" Clicked="@(async () => { await ClosePopup(); })">
+                                        <Icon Name="IconName.Ban"/>
+                                        Cancel
+                                    </Button>
+                                    <Button Color="Color.Success" Clicked="@(async () => { await onConfirm.InvokeAsync(); await ClosePopup(); })">
+                                        <Icon Name="IconName.Check"/>
+                                        Confirm
+                                    </Button>
+                                </ModalFooter>
+                            </ModalContent>
+                        </text>;
+        await AlertModalRef.Show();
+    }
+
+    private async Task ClosePopup()
+    {
+        if (AlertPopup is not null)
+        {
+            await AlertModalRef.Hide();
+            return;
+        }
+
+        await ModalRef.Hide();
     }
 }

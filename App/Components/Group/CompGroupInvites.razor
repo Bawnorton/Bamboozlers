@@ -56,7 +56,6 @@
                         foreach (var invite in OutgoingGroupInvites)
                         {
                             @GetOutgoingGroupInviteFragment(invite)
-                            ;
                         }
                     }
                     else
@@ -99,7 +98,7 @@
                             {
                                 <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@($"data:image/png;base64,{Convert.ToBase64String(groupInvite.Group.Avatar)}")" alt=""/>   
                             }
-                            @groupInvite.Group.Name
+                            @groupInvite.Group.GetGroupName()
                         </div>
                         <div id="@($"to-user-{groupInvite.Recipient.UserName}")" 
                              style="display: inline-flex">
@@ -126,7 +125,7 @@
                             {
                                 <img style="margin-left: 5px; margin-right: 5px;" class="_32x32 border-mask" src="@($"data:image/png;base64,{Convert.ToBase64String(groupInvite.Group.Avatar)}")" alt=""/>   
                             }
-                            @groupInvite.Group.Name
+                            @groupInvite.Group.GetGroupName()
                         </div>
                         <div id="@($"fromuser-{groupInvite.Sender.UserName}")" 
                              style="display: inline-flex;">
@@ -167,7 +166,7 @@
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetGroupsData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 }
 

@@ -39,7 +39,7 @@
                             Home
                         </BarLink>
                     </BarItem>
-                    <Divider/>
+                    <Divider Margin="Margin.Is0"/>
                     <BarItem>
                         <BarDropdown>
                             <BarDropdownToggle>
@@ -47,11 +47,11 @@
                                 Direct Messages
                             </BarDropdownToggle>
                             <BarDropdownMenu ElementId="dms_dropdown">
-                                <BarLink ElementId="create_dm" @onclick="@(async () => await PopupService.RequestKnownPopup(PopupType.FriendList))">
+                                <BarLink ElementId="create_dm" @onclick="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.FriendList)))">
                                     <BarIcon IconName="Icons.Envelope"></BarIcon>
                                     Open Direct Message
                                 </BarLink>
-                                <Divider/>
+                                <Divider Margin="Margin.Is0"/>
                                 @if (DmChats.Count > 0)
                                 {
                                     foreach (var chat in DmChats)
@@ -66,7 +66,7 @@
                                                 {
                                                     <BarIcon IconName="Icons.UserGroup"></BarIcon>
                                                 }
-                                                @(chat.User.DisplayName.IsNullOrEmpty() ? chat.User.UserName : chat.User.DisplayName)
+                                                @chat.User.GetName()
                                             </BarLink>
                                         </BarItem>
                                     }
@@ -75,14 +75,14 @@
                                 {
                                     <BarItem>
                                         <BarLabel>
-                                           <i>No direct messages</i>
+                                            <i>No direct messages</i>
                                         </BarLabel>
                                     </BarItem>
                                 }
                             </BarDropdownMenu>
                         </BarDropdown>
                     </BarItem>
-                    <Divider/>
+                    <Divider Margin="Margin.Is0"/>
                     <BarItem>
                         <BarDropdown>
                             <BarDropdownToggle>
@@ -91,12 +91,12 @@
                             </BarDropdownToggle>
                             <BarDropdownMenu ElementId="groups_dropdown">
                                 <BarItem>
-                                    <BarLink ElementId="create_group" @onclick="@(async () => await PopupService.RequestKnownPopup(PopupType.CreateGroup))">
+                                    <BarLink ElementId="create_group" @onclick="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.CreateGroup)))">
                                         <BarIcon IconName="Icons.UserPlus"></BarIcon>
                                         Create Group Chat
                                     </BarLink>
                                 </BarItem>
-                                <Divider/>
+                                <Divider Margin="Margin.Is0"/>
                                 @if (GroupChats.Count > 0)
                                 {
                                     foreach (var chat in GroupChats)
@@ -111,7 +111,7 @@
                                                 {
                                                     <BarIcon IconName="Icons.Users"></BarIcon>
                                                 }
-                                                @chat.Name
+                                                @chat.GetGroupName()
                                             </BarLink>
                                         </BarItem>
                                     }
@@ -133,13 +133,13 @@
                  TextSize="TextSize.Heading5"
                  Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
                  id="profile-button"
-                 @onclick="async () => await PopupService.RequestKnownPopup(PopupType.Settings)">
+                 @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Settings))">
                 <Text>
-                    @(User is null ? UserRecord.Default.UserName : User.DisplayName.IsNullOrEmpty() ? User.UserName : User.DisplayName)
+                    @(Self is null ? UserRecord.Default.UserName : Self.GetName())
                 </Text>
-                @if (User?.Avatar is not null)
+                @if (Self?.Avatar is not null)
                 {
-                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(User.Avatar)}") Class="message-avatar" alt=""/>
+                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Self.Avatar)}") Class="message-avatar" alt=""/>
                 }
                 else
                 {
@@ -159,17 +159,20 @@
 </Layout>
 
 @code {
-    private User? User { get; set; }
+    [Inject] protected new IUserService UserService { get; set; } = default!;
+    
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    
+    private User? Self { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
-
     private List<GroupChat> GroupChats { get; set; } = [];
-
     private View CurrentView { get; set; } = View.Home;
     private int CurrentChatId { get; set; } = -1;
     private int FriendCount { get; set; } = 0;
     
     protected override async Task OnInitializedAsync()
     {
+        UserService.AddSubscriber(this);
         UserGroupService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
         await Refresh();
@@ -184,7 +187,7 @@
     {
         await GetUserData();
 
-        if (User is null)
+        if (Self is null)
             return;
 
         GetGroupData();
@@ -194,7 +197,7 @@
 
     private async Task GetUserData()
     {
-        User = await AuthService.GetUser(query =>
+        Self = await AuthService.GetUser(query =>
             query
                 .Include(u => u.Chats)
                 .ThenInclude(c => c.Users)
@@ -203,10 +206,10 @@
 
     private void GetGroupData()
     {
-        if (User?.Chats is null)
+        if (Self?.Chats is null)
             throw new InvalidOperationException("User and/or chats were not found.");
         
-        GroupChats = User.Chats.OfType<GroupChat>().ToList();
+        GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         WatchedIDs = GroupChats.Select(s => (int?) s.ID).ToList();
 
         if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
@@ -216,14 +219,14 @@
 
     private void GetDmData()
     {
-        if (User is null)
+        if (Self is null)
             throw new InvalidOperationException("User and/or chats were not found.");
         
-        DmChats = User.Chats.Except(User.Chats.OfType<GroupChat>())
+        DmChats = Self.Chats.Except(Self.Chats.OfType<GroupChat>())
             .Select(chat => new DmChat(
                 chat.ID, 
-                chat.Users.First(u => u.Id != User.Id), 
-                chat.Users.First(u => u.Id != User.Id).Avatar)
+                chat.Users.First(u => u.Id != Self.Id), 
+                chat.Users.First(u => u.Id != Self.Id).Avatar)
             ).ToList();
         
         if (CurrentView != View.Dm || DmChats.FirstOrDefault(c => c.User.Id == CurrentChatId) is not null) return;
@@ -233,7 +236,7 @@
     
     private async Task GetFriendData()
     {
-        if (User is null)
+        if (Self is null)
             throw new InvalidOperationException("User and/or chats were not found.");
         
         await using var db = await Db.CreateDbContextAsync();
@@ -241,7 +244,7 @@
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
         foreach (var friendship in friendships)
         {
-            if (friendship.User1ID == User.Id || friendship.User2ID == User.Id)
+            if (friendship.User1ID == Self.Id || friendship.User2ID == Self.Id)
             {
                 FriendCount++;
             }
@@ -279,7 +282,7 @@
         
         CurrentView = View.Dm; 
         CurrentChatId = chatId; 
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     public async Task OpenGroup(int chatId, bool reload = false)
@@ -295,7 +298,7 @@
         
         CurrentView = View.Group; 
         CurrentChatId = chatId; 
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
     
     public List<int?> WatchedIDs { get; private set; } = [];
@@ -314,14 +317,15 @@
         GroupEvent.CreateGroup,
         GroupEvent.ReceivedInviteAccepted,
         GroupEvent.SelfLeftGroup,
-        GroupEvent.GroupDisplayChange
+        GroupEvent.GroupDisplayChange,
+        GroupEvent.DeleteGroup
     ];
 
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetUserData();
         GetGroupData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
     
     public async Task OnUpdate(InteractionEvent evt)
@@ -329,7 +333,13 @@
         await GetUserData();
         GetDmData();
         await GetFriendData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    public override async Task OnUpdate(UserRecord? data)
+    {
+        await GetDataAsync();
+        await base.OnUpdate(data);
     }
     
     private enum View

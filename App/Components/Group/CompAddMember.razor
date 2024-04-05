@@ -14,11 +14,11 @@
 
 <ModalContent Centered>
     <ModalHeader>
-        <ModalTitle>Invite Friends to @(Chat is null ? "Group" : Chat.Name)</ModalTitle>
+        <ModalTitle>Invite Friends to @(Chat is null ? "Group" : Chat.GetGroupName())</ModalTitle>
     </ModalHeader>
     <ModalBody>
         <Div Style="display: block">
-            @InviteList
+            @GetInviteList()
         </Div>
     </ModalBody>
 </ModalContent>
@@ -31,22 +31,22 @@
     public List<int?> WatchedIDs { get; set; } = [];
     
     private GroupChat? Chat { get; set; }
-    public RenderFragment? InviteList { get; set; }
     
     private User? Self { get; set; }
 
-    private List<User> FriendList { get; set; }
-    private List<User> InvitedAlready { get; set; }
-    private List<User> InGroupAlready { get; set; }
-
+    private List<User> FriendList { get; set; } = [];
+    private List<User> InvitedAlready { get; set; } = [];
+    private List<User> InGroupAlready { get; set; } = [];
+    
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
         UserGroupService.AddSubscriber(this);
         WatchedIDs = [ChatID];
         await LoadGroupData();
     }
     
-    public async Task LoadGroupData()
+    private async Task LoadGroupData()
     {
         Self = await AuthService.GetUser();
         if (Self is null) 
@@ -54,7 +54,7 @@
         
         await using var db = await Db.CreateDbContextAsync();
         
-        Chat = db.GroupChats.Where(c => c.ID == ChatID)
+        Chat = db.GroupChats.AsNoTracking().Where(c => c.ID == ChatID)
             .Include(c => c.Users)
             .Include(c => c.Moderators)
             .FirstOrDefault();
@@ -69,17 +69,13 @@
             ).ToList();
 
         var allInvites = await UserGroupService.GetAllOutgoingInvites();
-        var invitesForGroup = allInvites is not null 
-            ? allInvites.Where(i => i.GroupID == ChatID) 
-            : [];
+        var invitesForGroup = allInvites.Where(i => i.GroupID == ChatID);
         
         InvitedAlready = invitesForGroup
             .Select(i => FriendList.FirstOrDefault(u => u.Id == i.RecipientID))
-            .Where(u => u != null)
-            .Select(u => u!)
-            .ToList();
-
-        InviteList = GetInviteList();
+                .Where(u => u != null)
+                    .Select(u => u!)
+                        .ToList();
     }
 
     private RenderFragment GetInviteList()
@@ -143,13 +139,14 @@
 
     public List<GroupEvent> WatchedGroupEvents { get; set; } =
     [
-        GroupEvent.General
+        GroupEvent.SentInvite,
+        GroupEvent.SentInviteRevoked
     ];
     
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await LoadGroupData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 }
 

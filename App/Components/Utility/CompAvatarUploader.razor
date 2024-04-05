@@ -114,7 +114,7 @@
             var result = await OnUpload.Invoke(image.ToArray());
             if (!result) throw new Exception();
             Avatar = image;
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
             return new AlertArguments(
                 Color.Success,
                 true,

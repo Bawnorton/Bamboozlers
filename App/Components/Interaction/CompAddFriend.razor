@@ -9,9 +9,7 @@
 @using Bamboozlers.Components.Utility
 @using Blazorise.Extensions
 
-@inject ILogger<CompAddFriend> Logger
-
-<ModalContent Size="ModalSize.Large" Centered>
+<ModalContent Size="ModalSize.Large">
     <ModalHeader>
         <ModalTitle>Add Friends</ModalTitle>
     </ModalHeader>
@@ -23,7 +21,6 @@
                 <TextEdit @bind-Text="SearchQuery"
                           Style="display: inline-flex; width: 75%"
                           ElementId="search-bar"
-                          KeyPress="@(async () => await PerformSearch())"
                           MaskType="MaskType.RegEx"
                           EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
                           Placeholder="Find users by their username or display name"/>
@@ -35,11 +32,22 @@
             </div>
             <div style="display: block; margin-left: 5px; margin-right: 5px;" class="settings-container scrollbar-container">
                 <Divider/>
-                @if (SearchList.Count > 0)
+                @if (CurrentSearchResults.Count > 0)
                 {
-                    foreach (var fragment in SearchList)
+                    foreach (var user in CurrentSearchResults)
                     {
-                        @fragment
+                        if (IncomingRequests.FirstOrDefault(u => u.SenderID == user.Id) is not null)
+                        {
+                            @GetUserFragment(user, true);
+                        }
+                        else if (OutgoingRequests.FirstOrDefault(u => u.ReceiverID == user.Id) is not null)
+                        {
+                            @GetUserFragment(user, receivedFr: true);
+                        }
+                        else
+                        {
+                            @GetUserFragment(user);
+                        }
                     }
                 }
             </div>
@@ -53,7 +61,8 @@
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
     [Inject] private IKeyPressService KeyPressService { get; set; } = default!;
 
-    private List<RenderFragment> SearchList { get; set; } = [];
+    private List<FriendRequest> IncomingRequests { get; set;} = [];
+    private List<FriendRequest> OutgoingRequests { get; set;} = [];
     private List<User> CurrentSearchResults { get; set; } = [];
 
     private string SearchQuery { get; set; } = "";
@@ -68,7 +77,34 @@
         await GetInteractionData();
     }
     
-    public RenderFragment GetUserFragment(User user, bool sentFr = false, bool receivedFr = false)
+    private async Task PerformSearch()
+    {
+        if (SearchQuery.Length == 0)
+            return;
+        
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var useQuery = SearchQuery.ToLower();
+        var matches = dbContext.Users.Where(
+                u => (u.UserName != null && u.UserName.ToLower().StartsWith(useQuery))
+                     || (u.DisplayName != null && u.DisplayName.ToLower().StartsWith(useQuery)))
+            .Where(u => !Ignore.Contains(u));
+        
+        var len = matches.Count();
+        CurrentSearchResults = matches.Take(int.Max(len,100)).ToList();
+    }
+
+    private async Task GetInteractionData()
+    {
+        Ignore = [Self];
+        Ignore.AddRange(await UserInteractionService.GetAllFriends());
+        Ignore.AddRange(await UserInteractionService.GetAllBlocked());
+        Ignore.AddRange(await UserInteractionService.GetAllBlockedBy());
+        IncomingRequests = await UserInteractionService.GetAllIncomingRequests();
+        OutgoingRequests = await UserInteractionService.GetAllOutgoingRequests();
+    }
+    
+    private RenderFragment GetUserFragment(User user, bool sentFr = false, bool receivedFr = false)
     {
         var eventType = InteractionEvent.RequestSent;
         if (sentFr) eventType = InteractionEvent.RequestAccepted;
@@ -86,62 +122,18 @@
                 </text>;
     }
 
-    private async Task PerformSearch()
-    {
-        if (SearchQuery.Length == 0)
-            return;
-        
-        Logger.LogInformation("Generating search list...");
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-
-        var useQuery = SearchQuery.ToLower();
-        var matches = dbContext.Users.Where(
-                u => (u.UserName != null && u.UserName.ToLower().StartsWith(useQuery))
-                     || (u.DisplayName != null && u.DisplayName.ToLower().StartsWith(useQuery)))
-            .Where(u => !Ignore.Contains(u));
-        
-        var len = matches.Count();
-        CurrentSearchResults = matches.Take(int.Max(len,100)).ToList();
-
-        await GenerateList();
-        StateHasChanged();
-    }
-
-    private async Task GenerateList()
-    {
-        var incoming = await UserInteractionService.GetAllIncomingRequests();
-        var outgoing = await UserInteractionService.GetAllOutgoingRequests();
-        
-        SearchList = CurrentSearchResults
-            .Select(u =>
-            {
-                if (incoming.FirstOrDefault(fr => fr.SenderID == u.Id) is not null)
-                    return GetUserFragment(u, sentFr: true);
-                return outgoing.FirstOrDefault(fr => fr.ReceiverID == u.Id) is not null 
-                    ? GetUserFragment(u, receivedFr: true) 
-                    : GetUserFragment(u);
-            })
-            .ToList();
-    }
-
-    private async Task GetInteractionData()
-    {
-        Ignore = [Self];
-        Ignore.AddRange(await UserInteractionService.GetAllFriends());
-        Ignore.AddRange(await UserInteractionService.GetAllBlocked());
-        Ignore.AddRange(await UserInteractionService.GetAllBlockedBy());
-    }
 
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
     [
-        InteractionEvent.RequestSent
+        InteractionEvent.General,
+        InteractionEvent.RequestSent,
+        InteractionEvent.RequestAccepted
     ];
 
     public async Task OnUpdate(InteractionEvent evt)
     {
         await GetInteractionData();
-        await GenerateList();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 }
 

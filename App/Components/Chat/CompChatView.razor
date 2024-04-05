@@ -86,7 +86,7 @@
         </Div>
         @if (Chat is GroupChat)
         {
-            <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="async () => await PopupService.RequestKnownPopup(PopupType.GroupChatSettings, chatId: ChatID)"/>
+            <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.GroupChatSettings, null, ChatID))"/>
         }
     </LayoutHeader>
     <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
@@ -139,7 +139,7 @@
                                 <Icon ElementId="addMembers"
                                       role="button"
                                       Name="IconName.Add"
-                                      @onclick="async () => await PopupService.RequestKnownPopup(PopupType.InviteGroupMembers, chatId: ChatID)"/>
+                                      @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.InviteGroupMembers, null, ChatID))"/>
                             }
                         }
                         else
@@ -170,19 +170,17 @@
     </LayoutSiderContent>
 </LayoutSider>
 
-
-
 @code {
     [Inject] IUserGroupService UserGroupService { get; set; } = default!;
-
+    
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    
     [Parameter] public int? ChatID { get; set; }
     public List<int?> WatchedIDs { get; set; } = [];
-    
     private Chat? Chat { get; set; }
     private User? Self { get; set; }
     private string ChatName { get; set; }
     private bool IsMod { get; set; }
-    
     private List<LinkedMessage> Messages { get; set; } = [];
 
     public AlertArguments AlertArguments { get; set; } = new();
@@ -211,39 +209,18 @@
         WatchedIDs = [ChatID];
         await GetChatData();   
         IsMod = IsModerator();
-        
-        await using var db = await Db.CreateDbContextAsync();
-        Chat = await db.Chats
-            .Include(c => c.Users)
-            .FirstOrDefaultAsync(c => c.ID == ChatID);
-        switch (Chat)
-        {
-            case null:
-                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
-            case GroupChat groupChat:
-                ChatName = groupChat.Name;
-                break;
-            default:
-            {
-                var self = await AuthService.GetUser();
-                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
-                ChatName = (string.IsNullOrEmpty(other.DisplayName) ? other.UserName : other.DisplayName)!;
-                break;
-            }
-        }
-
         await UpdateMessages();
     }
     
     private bool IsModerator()
     {
         if (Chat is not GroupChat)
-        {
             return false;
-        }
-
+        
         using var db = Db.CreateDbContext();
-        var gc = db.GroupChats.Include(i => i.Moderators).First(f => f.ID == ChatID);
+        var gc = db.GroupChats.Include(i => i.Moderators)
+            .AsNoTracking()
+                .First(f => f.ID == ChatID);
         return gc.OwnerID == Self.Id || gc.Moderators.Any(m => m.Id == Self.Id);
     }
 
@@ -252,23 +229,26 @@
         await using var db = await Db.CreateDbContextAsync();
         Chat = await db.Chats.Include(i => i.Users)
             .Include(i => i.Messages)
-            .FirstOrDefaultAsync(c => c.ID == ChatID);
+                .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.ID == ChatID);
         
         if (Self is null || Chat is null)
             return;
         
-        if (Chat is GroupChat groupChat)
+        switch (Chat)
         {
-            ChatName = groupChat.Name;
-        }
-        else if (Chat is not null)
-        {
-            var other = Chat.Users.FirstOrDefault(u => u.Id != Self.Id) ?? Self;
-            ChatName = (other.DisplayName ?? other.UserName)!;
-        }
-        else
-        {
-            throw new InvalidOperationException("Chat is null");
+            case null:
+                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
+            case GroupChat gc:
+                ChatName = gc.GetGroupName();
+                break;
+            default:
+            {
+                var self = await AuthService.GetUser();
+                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
+                ChatName = other.GetName();
+                break;
+            }
         }
 
         var messages = new List<Message>(Chat?.Messages ?? []);
@@ -281,6 +261,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await base.OnAfterRenderAsync(firstRender);
         if (!firstRender) return;
 
         await Connect();
@@ -463,7 +444,8 @@
 
     public List<GroupEvent> WatchedGroupEvents { get; } = 
     [
-        GroupEvent.GroupDisplayChange
+        GroupEvent.GroupDisplayChange,
+        GroupEvent.RemoveMember
     ];
     
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
