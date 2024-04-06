@@ -90,10 +90,13 @@
         
         await using var dbContext = await Db.CreateDbContextAsync();
 
-        Chat = dbContext.GroupChats.Where(c => c.ID == ChatID)
+        Chat = await dbContext.GroupChats.Where(c => c.ID == ChatID)
             .Include(c => c.Users).ThenInclude(u => u.ModeratedChats)
             .Include(c => c.Moderators)
-            .First();
+            .FirstOrDefaultAsync();
+
+        if (Chat is null)
+            return;
 
         var owner = await dbContext.Users.Where(u => u.Id == Chat.OwnerID).FirstOrDefaultAsync();
         MemberList = @<div id="memberList">
@@ -175,7 +178,7 @@
         await dbContext.DisposeAsync();
     }
     
-    private async Task DeleteAvatar()
+    public async Task DeleteAvatar()
     {
         if (Chat?.Avatar is null) 
             return;
@@ -202,7 +205,7 @@
         StateHasChanged();
     }
     
-    private async Task<bool> OnAvatarChange(byte[] newAvatar)
+    public async Task<bool> OnAvatarChange(byte[] newAvatar)
     {
         if (Chat is null) 
             return false;

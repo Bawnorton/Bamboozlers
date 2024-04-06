@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Tests;
+namespace Tests.AccountTests;
 
 public class AuthMiscTests : TestBase
 {

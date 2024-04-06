@@ -5,6 +5,8 @@ using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Components;
 using Bamboozlers.Components.MainVisual;
 using Bamboozlers.Components.Utility;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +14,7 @@ using Tests.Provider;
 using Xunit.Abstractions;
 using Assert = NUnit.Framework.Assert;
 
-namespace Tests;
+namespace Tests.CoreTests;
 
 public class UserProfileTests : AuthenticatedBlazoriseTestBase
 {
@@ -84,12 +86,11 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
         MockDatabaseProvider.GetMockAppDbContext().MockBlocks.AddMock(block0);
         MockDatabaseProvider.GetMockAppDbContext().MockBlocks.AddMock(block1);
 
-        var group1 = new GroupChat
+        var group1 = new GroupChat(0)
         {
             ID = 1,
             Name = "TestGroup1",
             Owner = users[0],
-            OwnerID = 0,
             Users = [users[0]],
             Moderators = []
         };
@@ -155,7 +156,7 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
             if (i != 0)
             {
                 var dropdown = component.Find("#profile-actions-dropdown");
-
+                
                 switch (i)
                 {
                     case 1:
@@ -183,5 +184,112 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
                 }
             }
         }
+    }
+
+    [Theory]
+    [InlineData("#unfriend-option")]
+    [InlineData("#block-option")]
+    public async void UserProfileTests_WarningOptionTest(string optionElementId)
+    {
+        var (users, friendships, friendRequests, blocks) = await BuildMockData();
+
+        AlertPopupArgs? returnedAlertPopupArgs = null;
+        var fauxAlertPopupCallback = EventCallback.Factory.Create<AlertPopupArgs>(
+            this,
+            args =>
+            {
+                returnedAlertPopupArgs = args;
+            } 
+        );
+        var focusUser = users[1];
+        var component = Ctx.RenderComponent<CompProfileView>(parameters =>
+        {
+            parameters.Add(p => p.FocusUser, UserRecord.From(focusUser));
+            parameters.Add(p => p.OpenAlertPopup, fauxAlertPopupCallback);
+        });
+
+        var unfriendButton = component.Find(optionElementId);
+        await unfriendButton.ClickAsync(new MouseEventArgs());
+        Assert.NotNull(returnedAlertPopupArgs);
+        Assert.NotNull(returnedAlertPopupArgs!.OnConfirmCallback);
+
+        await component.InvokeAsync(() => returnedAlertPopupArgs.OnConfirmCallback.InvokeAsync());
+    }
+
+    [Fact]
+    public async void UserProfileTests_OpenSettingsPopupTest()
+    {
+        var (users, friendships, friendRequests, blocks) = await BuildMockData();
+        KnownPopupArgs? returnedKnownPopupCallbackArgs = null;
+        var fauxOpenKnownPopupCallback = EventCallback.Factory.Create<KnownPopupArgs>(
+            this,
+            args =>
+            {
+                returnedKnownPopupCallbackArgs = args;
+            } 
+        );
+        var focusUser = users[0];
+        var component = Ctx.RenderComponent<CompProfileView>(parameters =>
+        {
+            parameters.Add(p => p.FocusUser, UserRecord.From(focusUser));
+            parameters.Add(p => p.OpenKnownPopup, fauxOpenKnownPopupCallback);
+        });
+        
+        var actionButton = component.Find("#profile-action-button");
+        await actionButton.ClickAsync(new MouseEventArgs());
+        Assert.NotNull(returnedKnownPopupCallbackArgs);
+        Assert.AreEqual(returnedKnownPopupCallbackArgs!.Type, PopupType.Settings);
+    }
+    
+    [Fact]
+    public async void UserProfileTests_OpenChatTest()
+    {
+        var (users, friendships, friendRequests, blocks) = await BuildMockData();
+
+        OpenChatArgs? returnedChatCallbackArgs = null;
+        var fauxOpenChatCallback = EventCallback.Factory.Create<OpenChatArgs>(
+            this,
+            args =>
+            {
+                returnedChatCallbackArgs = args;
+            } 
+        );
+        var focusUser = users[1];
+        var component = Ctx.RenderComponent<CompProfileView>(parameters =>
+        {
+            parameters.Add(p => p.FocusUser, UserRecord.From(focusUser));
+            parameters.Add(p => p.OpenChatCallback, fauxOpenChatCallback);
+        });
+
+        var actionButton = component.Find("#profile-action-button");
+        await actionButton.ClickAsync(new MouseEventArgs());
+        Assert.NotNull(returnedChatCallbackArgs);
+        Assert.AreEqual(returnedChatCallbackArgs!.Id, focusUser.Id);
+        Assert.AreEqual(returnedChatCallbackArgs.ChatType, ChatType.Dm);
+    }
+
+    [Fact]
+    public async Task UserProfileTests_OpenInvitePopupTest()
+    {
+        var (users, friendships, friendRequests, blocks) = await BuildMockData();
+        KnownPopupArgs? returnedKnownPopupCallbackArgs = null;
+        var fauxOpenKnownPopupCallback = EventCallback.Factory.Create<KnownPopupArgs>(
+            this,
+            args =>
+            {
+                returnedKnownPopupCallbackArgs = args;
+            } 
+        );
+        var focusUser = users[1];
+        var component = Ctx.RenderComponent<CompProfileView>(parameters =>
+        {
+            parameters.Add(p => p.FocusUser, UserRecord.From(focusUser));
+            parameters.Add(p => p.OpenKnownPopup, fauxOpenKnownPopupCallback);
+        });
+        
+        var actionButton = component.Find("#TestGroup1-invite-option");
+        await actionButton.ClickAsync(new MouseEventArgs());
+        Assert.NotNull(returnedKnownPopupCallbackArgs);
+        Assert.AreEqual(returnedKnownPopupCallbackArgs!.Type, PopupType.InviteGroupMembers);   
     }
 }

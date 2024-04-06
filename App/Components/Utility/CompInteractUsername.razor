@@ -4,7 +4,7 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bunit.Extensions
 
-<Div Class="message-username" Style="display: inline-block" onclick="@(async () => await OpenProfilePopup())">
+<Div id="interact-username" Class="message-username" Style="display: inline-block" onclick="@(async () => await OpenProfilePopup())">
     @if (User is not null)
     {
         @User.GetName()

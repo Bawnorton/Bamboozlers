@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit.Abstractions;
 
-namespace Tests;
+namespace Tests.CoreTests;
 
 public class NavLayoutTests : AuthenticatedBlazoriseTestBase
 {
@@ -30,7 +30,7 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         var dms = Self!.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
         var others = dms.SelectMany(c => c.Users).Where(u => u.Id != Self.Id).ToList();
         
-        var expectedCount = others.Count;
+        var expectedCount = others.Count + 2; // 2 non-Chat elements
         var dmDropdown = component.Find("#dms_dropdown");
         var actual = dmDropdown.ChildElementCount;
 
@@ -59,7 +59,7 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var groups = Self!.Chats.OfType<GroupChat>().ToList();
         
-        var expectedCount = groups.Count;
+        var expectedCount = groups.Count + 2; // 2 non-Chat elements
         var groupDropdown = component.Find("#groups_dropdown");
         var actual = groupDropdown.ChildElementCount;
         
@@ -78,16 +78,17 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
     }
 
     [Fact]
-    public async Task NavLayoutTests_FindAndOpenFriends()
+    public async Task NavLayoutTests_FindAndOpenHome()
     {
-        await SetUser((await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync())
-            .Users.First(u => u.Id == 0));
+        var user = (await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync())
+            .Users.First(u => u.Id == 0);
+        await SetUser(user);
         
         var component = Ctx.RenderComponent<NavLayout>();
         
-        component.Find("#friends").Click();
+        component.Find("#home").Click();
         var text = component.Find("#header-text");
-        var expected = $"Friends";
+        var expected = $"Hello, {user.UserName}!";
         
         // Assert
         Assert.Equal(expected, text.TextContent);

@@ -3,7 +3,7 @@ using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Classes.Utility.Observer;
 using Tests.Provider;
 
-namespace Tests;
+namespace Tests.ServicesTests;
 
 public class AuthServicesTests : AuthenticatedBlazoriseTestBase
 {

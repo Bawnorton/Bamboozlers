@@ -34,7 +34,7 @@
     
     [Parameter] public EventCallback OnDelete { get; set; }
     [Parameter] public EventCallback<AlertArguments> AlertCallback { get; set; }
-    [Parameter] public Func<byte[], Task<bool>> OnUpload { get; set; } = async _ => false;
+    [Parameter] public Func<byte[], Task<bool>> OnUpload { get; set; } = _ => Task.FromResult(false);
 
     public async Task SignalDeleteAvatar()
     {
@@ -81,8 +81,8 @@
                 "Image must be a PNG or JPG (JPEG) file."
             );
 
-        ArraySegment<byte> bytes; 
-        var success = false;
+        ArraySegment<byte> bytes;
+        bool success;
         using (var stream = new MemoryStream())
         {
             try
@@ -109,6 +109,7 @@
                 "Error occured while uploading image.",
                 "Unknown error occurred. Please try again."
             );
+        
         try
         {
             var result = await OnUpload.Invoke(image.ToArray());
@@ -128,7 +129,7 @@
                 Color.Danger,
                 true,
                 "Error occured while uploading image.",
-                "Unknown error occurred. Please try again."
+                "Unknown error occurred during upload. Please try again."
             );
         }
     }

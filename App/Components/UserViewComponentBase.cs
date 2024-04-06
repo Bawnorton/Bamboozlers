@@ -9,7 +9,7 @@ public class UserViewComponentBase : ComponentBase, IUserSubscriber
 {
     [Inject] protected IUserService UserService { get; set; } = default!;
     [Inject] protected IAuthService AuthService { get; set; } = default!;
-    protected UserRecord? UserData { get; set; }
+    public UserRecord? UserData { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -35,7 +35,7 @@ public class UserViewComponentBase : ComponentBase, IUserSubscriber
 
     void ISubscriber.OnUpdate()
     {
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     public async Task OnUpdate()

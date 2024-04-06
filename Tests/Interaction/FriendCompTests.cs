@@ -5,7 +5,7 @@ using Bamboozlers.Components;
 using Tests.Provider;
 using Microsoft.EntityFrameworkCore;
 
-namespace Tests;
+namespace Tests.Interaction;
 
 public class FriendCompTests : AuthenticatedBlazoriseTestBase
 {

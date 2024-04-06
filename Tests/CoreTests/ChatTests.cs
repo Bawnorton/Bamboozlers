@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tests.Provider;
 
-namespace Tests;
+namespace Tests.CoreTests;
 
 public class ChatTests : AuthenticatedBlazoriseTestBase
 {

@@ -4,6 +4,7 @@ using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Components.Settings;
 using Bamboozlers.Components.Settings.EditComponents.Bases;
 using Bamboozlers.Components.Settings.EditComponents.Fields;
+using Bamboozlers.Components.Utility;
 using Blazorise;
 using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
@@ -13,7 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tests.Provider;
 
-namespace Tests;
+namespace Tests.UserTests;
 
 public class UserSettingsTests : AuthenticatedBlazoriseTestBase
 {
@@ -715,9 +716,13 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
     {
         MockUserManager.ClearMockUsers();
         var user = MockUserManager.CreateMockUser(0);
+        user.Avatar = Array.Empty<byte>();
+        MockDatabaseProvider.GetMockAppDbContext().MockUsers.UpdateMock(user);
         await SetUser(user);
         
         AlertArguments? resultArgs = null;
+        UserDataRecord? dataRecord = null;
+        // Arrange: Data Change Function is present
         var component = Ctx.RenderComponent<CompEditAvatar>();
         component.SetParametersAndRender(parameters 
             =>
@@ -728,50 +733,56 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
 
             Task<bool> Value(UserDataRecord arg)
             {
+                dataRecord = arg;
                 return Task.FromResult(true);
             }
         });
+        
+        // Act & Assert
+        var toPass = new byte[] { 1 };
+        var res = await component.Instance.OnChange(toPass);
+        Assert.True(res);
+        Assert.NotNull(dataRecord);
+        Assert.Equal(UserDataType.Visual, dataRecord.DataType);
+        Assert.Equal(toPass, dataRecord.AvatarBytes);
+        dataRecord = null;
+        
+        // Act & Assert
+        await component.Instance.DeleteAvatar();
+        Assert.NotNull(dataRecord);
+        Assert.NotNull(resultArgs);
+        Assert.Equal(UserDataType.Visual, dataRecord.DataType);
+        Assert.Equal(Array.Empty<byte>(), dataRecord.AvatarBytes);
+        Assert.Equal("Success!", resultArgs.AlertMessage);
+        Assert.Equal("Your avatar has been removed.", resultArgs.AlertDescription);
+        
+        // Arrange : Data Change Function is not present
+        dataRecord = null;
+        component.Dispose();
+        component = Ctx.RenderComponent<CompEditAvatar>(parameters 
+            =>
+        {
+            parameters.Add(p => p.AlertEventCallback, arguments => resultArgs = arguments);
+        });
 
-        // Arrange: No file passed
-        var spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile>());
-        // Act
-        await component.Instance.OnFileUpload(spoofArgs);
-        // Assert
-        Assert.Equal("Error occured while uploading image.",resultArgs!.AlertMessage);
-        Assert.Equal("No file was uploaded.",resultArgs!.AlertDescription);
+        res = await component.Instance.OnChange(Array.Empty<byte>());
+        Assert.False(res);
         
-        // Arrange: Invalid file passed (not an image)
-        var fakeFile = new MockBrowserFile { ContentType = "file/csv" };
-        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
-        // Act
-        await component.Instance.OnFileUpload(spoofArgs);
-        // Assert
-        Assert.Equal("Uploaded file was not an image.",resultArgs!.AlertDescription);
+        await component.Instance.DeleteAvatar();
+        Assert.NotNull(resultArgs);
+        Assert.Equal(AlertArguments.DefaultErrorAlertArgs.AlertDescription, resultArgs.AlertDescription);
         
-        // Arrange: Invalid file passed (image, but not png)
-        fakeFile = new MockBrowserFile { ContentType = "image/gif" };
-        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
+        // Arrange: User's Avatar is null (can't delete something if it's non-existent)
+        user.Avatar = null;
+        dataRecord = null;
         // Act
-        await component.Instance.OnFileUpload(spoofArgs);
+        MockDatabaseProvider.GetMockAppDbContext().MockUsers.UpdateMock(user);
+        await SetUser(user);
+        await UserService.RebuildAndNotify(true);
+        await component.Instance.DeleteAvatar();
         // Assert
-        Assert.Equal("Image must be a PNG or JPG (JPEG) file.",resultArgs!.AlertDescription);
-        
-        // Arrange: Valid file passed, but image was empty
-        fakeFile = new MockBrowserFile { ContentType = "image/png", Bytes = Array.Empty<byte>()};
-        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
-        // Act
-        await component.Instance.OnFileUpload(spoofArgs);
-        // Assert
-        Assert.Equal("Unknown error occurred. Please try again.",resultArgs!.AlertDescription);
-
-        // Arrange: Valid file passed
-        fakeFile = new MockBrowserFile { ContentType = "image/png"};
-        spoofArgs = new InputFileChangeEventArgs(new List<IBrowserFile> { fakeFile });
-        // Act
-        await component.Instance.OnFileUpload(spoofArgs);
-        // Assert
-        Assert.Equal("Success!", resultArgs!.AlertMessage);
-        Assert.Equal("Image was successfully uploaded.",resultArgs!.AlertDescription);
+        Assert.Null(dataRecord);
+        Assert.Equal(AlertArguments.DefaultErrorAlertArgs.AlertDescription, resultArgs.AlertDescription);
     }
     
     /// <summary>

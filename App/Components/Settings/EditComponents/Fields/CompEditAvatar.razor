@@ -15,7 +15,11 @@
 {
     public async Task DeleteAvatar()
     {
-        if (UserData?.AvatarBytes is null) return;
+        if (UserData?.AvatarBytes is null)
+        {
+            await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
+            return;
+        }
     
         if (DataChangeFunction is null)
         {

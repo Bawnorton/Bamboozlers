@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Tests;
+namespace Tests.AccountTests;
 
 public class RegistrationTests: TestBase
 {

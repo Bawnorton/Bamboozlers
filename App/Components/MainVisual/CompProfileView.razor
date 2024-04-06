@@ -307,14 +307,18 @@
                                         </Div>
                                     </Div>
                                 }
-                                <Button ElementId="unfriend-option" Class="dropdown-option" TextColor="TextColor.Danger"
+                                <Button ElementId="unfriend-option" 
+                                        Class="dropdown-option" 
+                                        TextColor="TextColor.Danger"
                                         Clicked="@(async () => await OpenUnfriendConfirmation(FocusUser.Id))">
                                     Remove friend
                                 </Button>
                             }
                             @if (!IsBlocked)
                             {
-                                <Button ElementId="block-option" Class="dropdown-option" TextColor="TextColor.Danger"
+                                <Button ElementId="block-option" 
+                                        Class="dropdown-option" 
+                                        TextColor="TextColor.Danger"
                                         Clicked="@(async () => await OpenBlockConfirmation(FocusUser.Id))">
                                     Block user
                                 </Button>

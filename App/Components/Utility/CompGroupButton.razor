@@ -21,11 +21,11 @@
     [Parameter] public string? ButtonId { get; set; }
     [Parameter] public bool RightFloating { get; set; } = false;
 
-    private EventCallback GroupCallback { get; set; } = EventCallback.Empty;
-    private IconName IconName { get; set; }
-    private string? ButtonCaption { get; set; } = "";
-    private Color? Color { get; set; } = Color.Success;
-    private bool Disabled { get; set; } = false;
+    public EventCallback GroupCallback { get; set; } = EventCallback.Empty;
+    public IconName IconName { get; set; }
+    public string? ButtonCaption { get; set; } = "";
+    public Color? Color { get; set; } = Color.Success;
+    public bool Disabled { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -81,8 +81,6 @@
                     async () => await UserGroupService.RemoveGroupMember(GroupID, UserId)
                 );
                 break;    
-            default:
-                break;
         }
     }
 }
