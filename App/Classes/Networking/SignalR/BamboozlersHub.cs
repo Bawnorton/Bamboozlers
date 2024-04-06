@@ -27,12 +27,12 @@ public class BamboozlersHub : Hub
                 case JoinChatC2SPacket joinChat:
                     await Groups.AddToGroupAsync(Context.ConnectionId, joinChat.ChatId.ToString());
                     break;
-                case TellOthersToReadDatabaseC2SPacket tellOthersToReadDatabase:
-                    var readDatabase = new ReadDatabaseS2CPacket
+                case MessageSentC2SPacket messageSent:
+                    var messageSentResponse = new MessageSentS2CPacket
                     {
-                        DbEntry = tellOthersToReadDatabase.DbEntry
+                        MessageId = messageSent.MessageId
                     };
-                    await SendToChat(tellOthersToReadDatabase.ChatId, readDatabase);
+                    await SendToChat(messageSent.ChatId, messageSentResponse);
                     break;
                 case MessageEditedC2SPacket messageEdited:
                     var messageEditedResponse = new MessageEditedS2CPacket

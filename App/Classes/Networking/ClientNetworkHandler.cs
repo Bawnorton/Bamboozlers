@@ -8,7 +8,7 @@ public class ClientNetworkHandler : AbstractNetworkHandler
 
     private ClientNetworkHandler()
     {
-        PacketRegistry.RegisterPacket(ReadDatabaseS2CPacket.Type);
+        PacketRegistry.RegisterPacket(MessageSentS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageEditedS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageDeletedS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessagePinStatusS2CPacket.Type);

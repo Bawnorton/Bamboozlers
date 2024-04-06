@@ -22,6 +22,10 @@
         }
     </style>
     <Div ElementId="@("message_" + Message.ID)" Class=@MessageClass>
+        @if (Message.ReplyToID != null)
+        {
+            <CompMessageReplyView MessageId="@((int)Message.ReplyToID!)" />
+        }
         @if (Message.SenderID != PreviousMessage?.SenderID)
         {
             <CompMessageHeaderView Message="Message"/>
@@ -29,7 +33,7 @@
         <Div Class="message-content">
             @if (Editing)
             {
-                <Div Width="Width.Is100" >
+                <Div Width="Width.Is100">
                     <Div Display="Display.Flex" Overflow="Overflow.Hidden" Background="Background.Secondary" Style="border-radius: 5px" class="p-2 m-1">
                         <textarea id="message-edit" class="message-input" @bind="MessageEditInput" @bind:event="oninput">
                         </textarea>
@@ -48,7 +52,7 @@
                     @switch (ShowReply)
                     {
                         case true:
-                            <Button onclick="alert('Not Implemented')" class=@TooltipClassDir data-tooltip="Reply">
+                            <Button Clicked="async () => await ChatContext.SetReplying(Message)" class=@TooltipClassDir data-tooltip="Reply">
                                 <Icon Name="Icons.Reply"></Icon>
                             </Button>
                             break;

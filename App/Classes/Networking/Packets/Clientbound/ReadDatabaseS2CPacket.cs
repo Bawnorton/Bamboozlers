@@ -1,23 +1,22 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Bamboozlers.Classes.Data;
 
 namespace Bamboozlers.Classes.Networking.Packets.Clientbound;
 
-public class ReadDatabaseS2CPacket : IPacket
+public class MessageSentS2CPacket : IPacket
 {
-    public static readonly PacketType<ReadDatabaseS2CPacket> Type =
-        PacketType<ReadDatabaseS2CPacket>.Create("read_database_s2c", json => new ReadDatabaseS2CPacket(json));
+    public static readonly PacketType<MessageSentS2CPacket> Type =
+        PacketType<MessageSentS2CPacket>.Create("message_sent_s2c", json => new MessageSentS2CPacket(json));
 
-    internal DbEntry DbEntry;
-
-    internal ReadDatabaseS2CPacket()
+    internal int MessageId;
+    
+    internal MessageSentS2CPacket()
     {
     }
 
-    private ReadDatabaseS2CPacket(JsonElement json)
+    private MessageSentS2CPacket(JsonElement json)
     {
-        DbEntry = DbEntry.FromId(json.GetProperty("db_entry").GetString()!);
+        MessageId = json.GetProperty("message_id").GetInt32();
     }
 
     public PacketType PacketType()
@@ -27,6 +26,6 @@ public class ReadDatabaseS2CPacket : IPacket
 
     public void Write(JsonObject obj)
     {
-        obj["db_entry"] = DbEntry.GetId();
+        obj["message_id"] = MessageId;
     }
 }

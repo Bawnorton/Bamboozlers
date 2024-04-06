@@ -95,6 +95,23 @@
             }
         });
     }
+    
+    function highlightMessage(id) {
+        waitForElm(`#message_${id}`).then(message => {
+            if (message) {
+                message.classList.add('highlight');
+            }
+        });
+    }
+    
+    function unhighlightMessage(id) {
+        waitForElm(`#message_${id}`).then(message => {
+            if (message) {
+                message.classList.remove('highlight');
+            }
+        });
+    }
+    
 </script>
 
 <Layout>
@@ -144,7 +161,7 @@
                 <Div>
                     @if (ChatLoaded)
                     {
-                        <CascadingValue Value="new ChatContext(IsMod, SetLastEdit, DeleteMessage, StartEditMessage, EndEditMessage, PinMessage)">
+                        <CascadingValue Value="new ChatContext(IsMod,  SetReplying, DeleteMessage, StartEditMessage, SetLastEdit, EndEditMessage, PinMessage)">
                             @foreach (var message in Messages)
                             {
                                 <CompMessageView
@@ -160,10 +177,24 @@
         </Layout>
     </LayoutContent>
     <LayoutFooter>
-        <Div Position="Position.Sticky" Background="Background.Secondary" TextColor="TextColor.Light" Class="m-4" Style="bottom: 0; border-radius: 5px;">
-            <Div Display="Display.Flex" Overflow="Overflow.Hidden">
-                <textarea id="message-input" placeholder="@($"Message {ChatName}")" class="message-input p-3" @onkeyup="OnInput" @bind="MessageInput" @bind:event="oninput">
-                </textarea>
+        <Div Position="Position.Sticky" Class="m-4" Style="bottom: 0; border-radius: 5px;">
+            @if (_replyingTo != null)
+            {
+                <Div Background="Background.Dark" Padding="Padding.Is2">
+                    <Div class="text-muted" style="display: flex; flex-direction: row; align-items: center" Width="Width.Is100">
+                        Replying to
+                        <Div style="font-size: 16px; font-weight: bold; margin-left: 5px">
+                            @(_replyingTo.DbMessage.Sender!.DisplayName ?? _replyingTo.DbMessage.Sender.UserName)
+                        </Div>
+                        <Icon Name="Icons.CircleXmark" @onclick="() => _replyingTo = null" Style="margin-left: auto; margin-right: 5px; cursor: pointer;" Class="fa-lg"/>
+                    </Div>
+                </Div>
+            }
+            <Div Background="Background.Secondary" TextColor="TextColor.Light">
+                <Div Display="Display.Flex" Overflow="Overflow.Hidden">
+                    <textarea id="message-input" placeholder="@($"Message {ChatName}")" class="message-input p-3" @onkeyup="OnInput" @bind="MessageInput" @bind:event="oninput">
+                    </textarea>
+                </Div>
             </Div>
         </Div>
     </LayoutFooter>
@@ -250,11 +281,12 @@
     private List<MessageEntry> Messages { get; set; } = [];
     private Dictionary<int, int> MessageIdToIndex { get; set; } = new();
     private List<int> EphemeralMessages { get; set; } = [];
-    private DateTime? _lastMessageSentAt;
     private string MessageInput { get; set; }
     
     private MessageEntry? _editingMessage;
     private string? LastEdit { get; set; }
+    
+    private MessageEntry? _replyingTo;
     
     public AlertArguments AlertArguments { get; set; } = new();
 
@@ -281,10 +313,9 @@
             _ => (OtherUser!.DisplayName ?? OtherUser!.UserName)!
         };
 
-        await UpdateMessages();
+        await InitMessages();
         
         ChatLoaded = true;
-        await InvokeAsync(StateHasChanged);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -300,12 +331,9 @@
     {
         switch (packet)
         {
-            case ReadDatabaseS2CPacket readDatabase:
-                if (readDatabase.DbEntry == DbEntry.ChatMessage)
-                {
-                    await UpdateMessages();
-                    await InvokeAsync(StateHasChanged);
-                }
+            case MessageSentS2CPacket messageSent:
+                await RecieveMessage(messageSent.MessageId);
+                await InvokeAsync(StateHasChanged);
                 break;
             case MessageDeletedS2CPacket messageDeleted:
                 await RemoveClientMessage(messageDeleted.MessageId);
@@ -418,6 +446,20 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private async Task SetReplying(Message toMessage)
+    {
+        _replyingTo = Messages[MessageIdToIndex[toMessage.ID]];
+        await JsRuntime.InvokeVoidAsync("highlightMessage", toMessage.ID);
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private async Task StopReplying()
+    {
+        await JsRuntime.InvokeVoidAsync("unhighlightMessage", _replyingTo!.DbMessage.ID);
+        _replyingTo = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
     private Task SetLastEdit(string? lastEdit)
     {
         LastEdit = lastEdit;
@@ -489,14 +531,15 @@
         await JsRuntime.InvokeVoidAsync("scrollToMessage", message.ID, highlight);
     }
 
-    private async Task UpdateMessages()
+    private async Task InitMessages()
     {
-        var newMessages = await (await Db.CreateDbContextAsync()).Messages
-            .Where(m => m.ChatID == Chat!.ID && (_lastMessageSentAt == null || m.SentAt > _lastMessageSentAt))
+        await using var db = await Db.CreateDbContextAsync();
+        var messages = await db.Messages
+            .Include(m => m.Sender)
+            .Where(m => m.ChatID == Chat!.ID)
             .ToListAsync();
-        if (newMessages.Count == 0) return;
 
-        foreach (var message in newMessages)
+        foreach (var message in messages)
         {
             if (EphemeralMessages.Contains(message.ID))
             {
@@ -512,8 +555,25 @@
                 CreateMessageEntry(message);
             }
         }
+    }
 
-        _lastMessageSentAt = Messages[^1].DbMessage.SentAt;
+    private async Task RecieveMessage(int messageId)
+    {
+        if (EphemeralMessages.Contains(messageId))
+        {
+            EphemeralMessages.Remove(messageId);
+            Messages[MessageIdToIndex[messageId]].EchoRecieved = true;
+        }
+        else if (MessageIdToIndex.TryGetValue(messageId, out var messageIndex))
+        {
+            Messages[messageIndex].EchoRecieved = true;
+        }
+        else
+        {
+            await using var db = await Db.CreateDbContextAsync();
+            var message = await db.Messages.Include(m => m.Sender).FirstAsync(m => m.ID == messageId);
+            CreateMessageEntry(message);
+        }
     }
 
     private async Task SendMessage(string messageText)
@@ -531,22 +591,27 @@
             Content = messageText,
             SentAt = DateTime.Now
         };
+        if (_replyingTo != null)
+        {
+            message.ReplyToID = _replyingTo.DbMessage.ID;
+            await StopReplying();
+        }
+        
         await using var db = await Db.CreateDbContextAsync();
-
         db.Messages.Add(message);
         await db.SaveChangesAsync();
 
-        var readDatabaseRequest = new TellOthersToReadDatabaseC2SPacket
+        CreateMessageEntry(message, true);
+        await JumpToMessage(message, false);
+        StateHasChanged();
+        
+        var messageSent = new MessageSentC2SPacket
         {
             SenderId = self.Id,
             ChatId = (int)ChatID!,
-            DbEntry = DbEntry.ChatMessage
+            MessageId = message.ID
         };
-        await SendToServer.InvokeAsync(readDatabaseRequest);
-
-        CreateMessageEntry(message, true);
-        StateHasChanged();
-        await JumpToMessage(message, false);
+        await SendToServer.InvokeAsync(messageSent);
     }
 
     private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false)
@@ -593,6 +658,15 @@
                     await EndEditMessage(false);
                     break;
                 }
+            }
+        }
+        if (_replyingTo != null)
+        {
+            switch (keyEventArgs.Key)
+            {
+                case "Escape":
+                    await StopReplying();
+                    break;
             }
         }
     }
