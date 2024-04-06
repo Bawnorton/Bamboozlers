@@ -272,7 +272,7 @@ public class UserInteractionService(
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser(inclusionCallback);
-        var other = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == otherId);
+        var other = dbContext.Users.AsNoTracking().ToList().FirstOrDefault(u => u.Id == otherId);
         return (self, other);
     }
 

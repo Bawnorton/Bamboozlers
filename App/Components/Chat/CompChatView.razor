@@ -1,8 +1,8 @@
 @inherits UserViewComponentBase
 
 @implements IAsyncGroupSubscriber
-@implements IAsyncDisposable
 @implements IAsyncPacketSubscriber
+@implements IAsyncKeySubscriber
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Microsoft.AspNetCore.SignalR.Client
@@ -18,10 +18,10 @@
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.VisualUtility
+@using Bunit.Extensions
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IJSRuntime JsRuntime
-@inject IKeyPressService KeyPressService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <!--suppress JSVoidFunctionReturnValueUsed, JSUnresolvedReference -->
@@ -63,20 +63,22 @@
         });
     }
     
-    function resizeTextarea(textarea) {
-        textarea.style.height = '1px';
-        textarea.style.height = (textarea.scrollHeight) + 'px';
+    function resizeTextarea(elementId) {
+        waitForElm(`#${elementId}`).then(textarea => {
+            textarea.style.height = '1px';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+        });
     }
     
     waitForElm("#message-input").then(textarea => {
-        textarea.addEventListener('input', () => resizeTextarea(textarea));
+        textarea.addEventListener('input', () => resizeTextarea('message-input'));
         textarea.addEventListener('keydown', e => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 e.stopPropagation();
             }
         });
-        resizeTextarea(textarea);
+        resizeTextarea('message-input');
         textarea.focus();
     });
     
@@ -140,15 +142,19 @@
         <Layout>
             <LayoutContent>
                 <Div>
-                    <CascadingValue Value="new ChatContextData(IsShiftHeld, IsMod, DeleteMessage, EditMessage, PinMessage)">
-                        @foreach (var message in Messages)
-                        {
-                            <CompMessageView
-                                Message="message.DbMessage"
-                                PreviousMessage="@message.Previous?.DbMessage"
-                                EchoRecieved="@message.EchoRecieved"/>
-                        }
-                    </CascadingValue>
+                    @if (ChatLoaded)
+                    {
+                        <CascadingValue Value="new ChatContext(IsMod, DeleteMessage, StartEditMessage, EndEditMessage, PinMessage)">
+                            @foreach (var message in Messages)
+                            {
+                                <CompMessageView
+                                    Message="message.DbMessage"
+                                    PreviousMessage="@message.Previous?.DbMessage"
+                                    EchoRecieved="@message.EchoRecieved"
+                                    Editing="@message.DbMessage.ID.Equals(_editingMessage?.DbMessage.ID)"/>
+                            }
+                        </CascadingValue>
+                    }
                 </Div>
             </LayoutContent>
         </Layout>
@@ -214,10 +220,12 @@
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
     [CascadingParameter] public Func<IAsyncPacketSubscriber, bool> AddPacketSubscriber { get; set; }
+    [CascadingParameter] public Func<IAsyncKeySubscriber, bool> AddKeySubscriber { get; set; }
 
     [Parameter] public int? ChatID { get; set; }
     private Chat? Chat { get; set; }
     private string ChatName { get; set; }
+    private bool ChatLoaded { get; set; }
 
     private User? _otherUser;
     /// <summary>
@@ -243,21 +251,16 @@
     private Dictionary<int, int> MessageIdToIndex { get; set; } = new();
     private List<int> EphemeralMessages { get; set; } = [];
     private DateTime? _lastMessageSentAt;
-
-    public AlertArguments AlertArguments { get; set; } = new();
-
     private string MessageInput { get; set; }
-
-    private bool IsShiftHeld { get; set; }
-
+    
+    private MessageEntry? _editingMessage;
+    
+    public AlertArguments AlertArguments { get; set; } = new();
+    
     protected override async Task OnInitializedAsync()
     {
         UserGroupService.AddSubscriber(this);
         Self = (await AuthService.GetUser())!;
-
-        await KeyPressService.StartListeningAsync();
-        KeyPressService.KeyPressed += OnKeyPressed;
-        KeyPressService.KeyReleased += OnKeyReleased;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -278,6 +281,9 @@
         };
 
         await UpdateMessages();
+        
+        ChatLoaded = true;
+        await InvokeAsync(StateHasChanged);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -285,6 +291,7 @@
         if (!firstRender) return;
         
         AddPacketSubscriber.Invoke(this);
+        AddKeySubscriber.Invoke(this);
         await SendToServer.InvokeAsync(new JoinChatC2SPacket {ChatId = (int)ChatID!});
     }
 
@@ -296,6 +303,7 @@
                 if (readDatabase.DbEntry == DbEntry.ChatMessage)
                 {
                     await UpdateMessages();
+                    await InvokeAsync(StateHasChanged);
                 }
                 break;
             case MessageDeletedS2CPacket messageDeleted:
@@ -371,6 +379,7 @@
 
         await SendMessage(MessageInput);
         MessageInput = "";
+        await JsRuntime.InvokeVoidAsync("resizeTextarea", "message-input");
     }
 
     private async Task DeleteMessage(Message message)
@@ -408,29 +417,48 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task EditMessage(Message message, string newContent)
+    private async Task StartEditMessage(Message message)
     {
-        if (string.IsNullOrWhiteSpace(newContent)) return;
+        _editingMessage = Messages[MessageIdToIndex[message.ID]];
+        await InvokeAsync(StateHasChanged);
+    }
 
-        while (newContent.EndsWith("\n")) newContent = newContent[..^1];
-        while (newContent.StartsWith("\n")) newContent = newContent[1..];
-
-        message.Content = newContent;
-        Messages[MessageIdToIndex[message.ID]].EchoRecieved = false;
-
+    private async Task EndEditMessage(bool cancel)
+    {
+        var lastEdit = ChatContext.LastEdit;
+        if (cancel || _editingMessage == null || lastEdit == null || lastEdit == _editingMessage.DbMessage.Content)
+        {
+            await StopEditing();
+            return;
+        }
+        if (lastEdit.Equals(string.Empty))
+        {
+            await DeleteMessage(_editingMessage.DbMessage);
+            await StopEditing();
+            return;
+        }
+        
         await using var db = await Db.CreateDbContextAsync();
-        db.Messages.Update(message);
+        _editingMessage.DbMessage.Content = lastEdit;
+        _editingMessage.DbMessage.EditedAt = DateTime.Now;
+        db.Messages.Update(_editingMessage.DbMessage);
         await db.SaveChangesAsync();
-
-        var messageUpdated = new MessageEditedC2SPacket
+        
+        var messageEdited = new MessageEditedC2SPacket
         {
             SenderId = Self!.Id,
+            MessageId = _editingMessage.DbMessage.ID,
             ChatId = (int)ChatID!,
-            MessageId = message.ID,
-            NewContent = newContent,
+            NewContent = lastEdit
         };
-
-        await SendToServer.InvokeAsync(messageUpdated);
+        await SendToServer.InvokeAsync(messageEdited);
+        await StopEditing();
+    }
+    
+    private async Task StopEditing()
+    {
+        _editingMessage = null;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task PinMessage(Message message)
@@ -480,7 +508,6 @@
         }
 
         _lastMessageSentAt = Messages[^1].DbMessage.SentAt;
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SendMessage(string messageText)
@@ -541,33 +568,26 @@
         return messageEntry;
     }
 
-    private void OnKeyPressed(object? sender, KeyEventArgs e)
+    public async Task OnKeyPressed(KeyEventArgs keyEventArgs)
     {
-        if (!e.ShiftKey) return;
-
-        IsShiftHeld = true;
-        StateHasChanged();
+        await Task.CompletedTask;
     }
 
-    private void OnKeyReleased(object? sender, KeyEventArgs e)
+    public async Task OnKeyReleased(KeyEventArgs keyEventArgs)
     {
-        if (e.ShiftKey || !IsShiftHeld) return;
-
-        IsShiftHeld = false;
-        StateHasChanged();
-    }
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        try
+        if (_editingMessage != null)
         {
-            KeyPressService.KeyPressed -= OnKeyPressed;
-            KeyPressService.KeyReleased -= OnKeyReleased;
-            await KeyPressService.StopListeningAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            /* Ignore */
+            switch (keyEventArgs.Key)
+            {
+                case "Escape":
+                    await StopEditing();
+                    break;
+                case "Enter" when !keyEventArgs.ShiftKey:
+                {
+                    await EndEditMessage(false);
+                    break;
+                }
+            }
         }
     }
 

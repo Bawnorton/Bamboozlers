@@ -1,11 +1,10 @@
 @implements IAsyncDisposable 
-@implements IAsyncPublisher<IAsyncPacketSubscriber>
+@implements IAsyncSimplePublisher<IAsyncPacketSubscriber>
 
 @using Microsoft.AspNetCore.SignalR.Client
 @using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Networking.SignalR
 @using Bamboozlers.Classes.Networking
-@using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Utility.Observer
 
 @inject NavigationManager NavigationManager
@@ -85,7 +84,11 @@
     private async Task SendPacketToServer(IPacket packet)
     {
         if (_hubConnection is null) throw new InvalidOperationException("Hub connection is not initialized");
-        if (_hubConnection.State != HubConnectionState.Connected) throw new InvalidOperationException("Hub connection is not connected");
+        if (_hubConnection.State != HubConnectionState.Connected)
+        {
+            Console.WriteLine("Hub connection is not connected, trying to reconnect");
+            await _hubConnection.StartAsync();
+        }
         Console.WriteLine($"Sending packet to server: {packet.PacketType().GetId()}");
         await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());
     }
@@ -100,11 +103,6 @@
         _hubConnection = null;
 
         GC.SuppressFinalize(this);
-    }
-    
-    public Task NotifyAllAsync()
-    {
-        throw new NotImplementedException();
     }
 
 }

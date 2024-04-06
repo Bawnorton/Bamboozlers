@@ -53,3 +53,11 @@ public interface IAsyncPublisher<T>
     /// </summary>
     Task NotifyAllAsync();
 }
+
+public interface IAsyncSimplePublisher<T> : IAsyncPublisher<T>
+{
+    Task IAsyncPublisher<T>.NotifyAllAsync()
+    {
+        throw new NotImplementedException("Simple publishers do not notify all subscribers.");
+    }
+}

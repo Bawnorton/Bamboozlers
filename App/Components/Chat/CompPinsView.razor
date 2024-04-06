@@ -76,7 +76,6 @@
     {
         if(!firstRender) return Task.CompletedTask;
         
-        Console.WriteLine("Adding packet subscriber");
         AddPacketSubscriber.Invoke(this);
         return Task.CompletedTask;
     }

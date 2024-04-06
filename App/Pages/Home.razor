@@ -7,6 +7,7 @@
 @using Bamboozlers.Components.Settings
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Components.Chat
+@using Bamboozlers.Components.Hubs
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.AppDbContext
 
@@ -26,12 +27,14 @@
             <CascadingValue Value="_openPopupCallback">
                 <CascadingValue Value="_closePopupCallback">
                     <CascadingValue Value="_openChatCallback">
-                        <NetworkHub>
-                            <NavLayout @ref="_navLayout"/>
-                            <Modal @ref="_popupComponent" Closed="OnPopupClosed">
-                                @_popupContent
-                            </Modal>
-                        </NetworkHub>
+                        <KeyPressHub>
+                            <NetworkHub>
+                                <NavLayout @ref="_navLayout"/>
+                                <Modal @ref="_popupComponent" Closed="OnPopupClosed">
+                                    @_popupContent
+                                </Modal>
+                            </NetworkHub>
+                        </KeyPressHub>
                     </CascadingValue>
                 </CascadingValue>
             </CascadingValue>

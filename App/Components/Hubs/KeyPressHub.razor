@@ -1,0 +1,71 @@
+@implements IAsyncDisposable
+@implements IAsyncSimplePublisher<IAsyncKeySubscriber>
+
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.Services
+
+@inject IKeyPressService KeyPressService
+
+<CascadingValue Value="_addKeySubscriber">
+    @ChildContent
+</CascadingValue>
+
+@code {
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    
+    private Func<IAsyncKeySubscriber, bool> _addKeySubscriber;
+
+    public List<IAsyncKeySubscriber> Subscribers { get; } = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        
+        await KeyPressService.StartListeningAsync();
+        KeyPressService.KeyPressed += OnKeyPressed;
+        KeyPressService.KeyReleased += OnKeyReleased;
+    }
+    
+    protected override void OnInitialized()
+    {
+        _addKeySubscriber = AddSubscriber;
+    }
+    
+    public bool AddSubscriber(IAsyncKeySubscriber subscriber)
+    {
+        if (Subscribers.Contains(subscriber)) return false;
+        Subscribers.Add(subscriber);
+        return true;
+    }
+
+    private async void OnKeyPressed(object? sender, KeyEventArgs e)
+    {
+        foreach (var subscriber in Subscribers)
+        {
+            await subscriber.OnKeyPressed(e);
+        }
+    }
+    
+    private async void OnKeyReleased(object? sender, KeyEventArgs e)
+    {
+        foreach (var subscriber in Subscribers)
+        {
+            await subscriber.OnKeyReleased(e);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            KeyPressService.KeyPressed -= OnKeyPressed;
+            KeyPressService.KeyReleased -= OnKeyReleased;
+            await KeyPressService.StopListeningAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Ignored
+        }
+    }
+}

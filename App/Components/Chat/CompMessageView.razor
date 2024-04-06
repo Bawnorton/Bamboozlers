@@ -1,77 +1,131 @@
 @inherits UserViewComponentBase;
 
+@implements IAsyncKeySubscriber
+
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Utility.Observer
 
 @inject IDbContextFactory<AppDbContext> Db
+@inject IJSRuntime JsRuntime
 
 @if (Loaded)
 {
+    <style>
+        .edit-link {
+            color: #366cec;
+            cursor: pointer;
+        }
+    </style>
     <Div ElementId="@("message_" + Message.ID)" Class=@MessageClass>
         @if (Message.SenderID != PreviousMessage?.SenderID)
         {
             <CompMessageHeaderView Message="Message"/>
         }
         <Div Class="message-content">
-            <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
-                <CompMessageContentView Content=@Message.Content/>
-            </Div>
-            <Div Class="message-actions">
-                @switch (ShowEdit)
-                {
-                    case true:
-                        <Button Clicked="@(async () => await ChatContext.OnEdit(Message, Message.Content + " (edited)"))" class=@TooltipClassDir data-tooltip="Edit">
-                            <Icon Class="fa-pencil-alt"></Icon>
-                        </Button>
-                        break;
-                    case false:
-                        <Button onclick="alert('Not Implemented')" class=@TooltipClassDir data-tooltip="Reply">
-                            <Icon Name="Icons.Reply"></Icon>
-                        </Button>
-                        break;
-                }
-                <Button Clicked="async () => await ChatContext.OnPin(Message)" class=@TooltipClassDir data-tooltip=@(Message.IsPinned ? "Unpin" : "Pin")>
-                    <Icon Name="Icons.MapPin"></Icon>
-                </Button>
-                @if (ShowDelete)
-                {
-                    <Button Clicked="@(async () => await ChatContext.OnDelete(Message))" class=@TooltipClassDir data-tooltip="Delete">
-                        <Icon Name="Icons.Trash"></Icon>
+            @if (Editing)
+            {
+                <Div>
+                    <Div Display="Display.Flex" Overflow="Overflow.Hidden" Width="Width.Is100" Background="Background.Secondary" Style="border-radius: 5px" class="p-2 m-1">
+                        <textarea id="message-edit" class="message-input" @bind="MessageEditInput" @bind:event="oninput">
+                        </textarea>
+                    </Div>
+                    <Div Style="font-size: 14px; color: #acacac">
+                        Enter: <a class="edit-link" @onclick="async () => await OnEditEnd(MessageEditInput)">Save</a> | Escape: <a class="edit-link" @onclick="async () => await OnEditEnd(null)">Cancel</a>
+                    </Div>
+                </Div>
+            }
+            else
+            {
+                <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
+                    <CompMessageContentView Content=@Message.Content EditDate="@Message.EditedAt"/>
+                </Div>
+                <Div Class="message-actions">
+                    @switch (ShowReply)
+                    {
+                        case true:
+                            <Button onclick="alert('Not Implemented')" class=@TooltipClassDir data-tooltip="Reply">
+                                <Icon Name="Icons.Reply"></Icon>
+                            </Button>
+                            break;
+                        case false:
+                            <Button Clicked="@(async () => await OnEditStart())" class=@TooltipClassDir data-tooltip="Edit">
+                                <Icon Class="fa-pencil-alt"></Icon>
+                            </Button>
+                            break;
+                    }
+                    <Button Clicked="async () => await ChatContext.OnPin(Message)" class=@TooltipClassDir data-tooltip=@(Message.IsPinned ? "Unpin" : "Pin")>
+                        <Icon Name="Icons.MapPin"></Icon>
                     </Button>
-                }
-                else
-                {
-                    <Button Outline=false class=@TooltipClassDir data-tooltip="More">
-                        <Icon Name="Icons.Ellipsis"></Icon>
-                    </Button>
-                }
-            </Div>
+                    @if (ShowDelete)
+                    {
+                        <Button Clicked="@(async () => await ChatContext.OnDelete(Message))" class=@TooltipClassDir data-tooltip="Delete">
+                            <Icon Name="Icons.Trash"></Icon>
+                        </Button>
+                    }
+                    else
+                    {
+                        <Button Outline=false class=@TooltipClassDir data-tooltip="More">
+                            <Icon Name="Icons.Ellipsis"></Icon>
+                        </Button>
+                    }
+                </Div>
+            }
         </Div>
     </Div>
+    <!--suppress JSUnresolvedReference -->
+    <script>        
+        function startEdit() {
+            waitForElm("#message-edit").then(textarea => {
+                textarea.addEventListener('input', () => resizeTextarea('message-edit'));
+                textarea.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                });
+                resizeTextarea('message-edit');
+                textarea.focus();
+            });
+        }
+    </script>
 }
 
 @code {
     [Parameter] public Message Message { get; set; }
-
     [Parameter] public Message? PreviousMessage { get; set; }
-
     [Parameter] public bool EchoRecieved { get; set; }
+    [Parameter] public bool Editing { get; set; }
 
-    [CascadingParameter] private ChatContextData ChatContext { get; set; }
+    [CascadingParameter] private ChatContext ChatContext { get; set; }
+    [CascadingParameter] private EventCallback<IPacket> SendToServer { get; set; }
+    [CascadingParameter] private Func<IAsyncKeySubscriber, bool> AddKeySubscriber { get; set; }
 
     private bool Loaded { get; set; }
-
     private User? Self { get; set; }
 
+    private string _messageEditInput;
+    private string MessageEditInput
+    {
+        get => _messageEditInput;
+        set
+        {
+            _messageEditInput = value;
+            ChatContext.LastEdit = _messageEditInput;
+        }
+    }
+
+    private bool IsShiftHeld { get; set; }
+    
     private bool IsSelfMessage => Message.Sender!.Id == Self!.Id;
-
-    private bool ShowEdit => IsSelfMessage && ChatContext.IsShiftHelf;
-
-    private bool ShowDelete => ChatContext.IsShiftHelf && (IsSelfMessage || ChatContext.IsMod);
+    private bool ShowReply => IsShiftHeld || !IsSelfMessage;
+    private bool ShowDelete => IsShiftHeld && (IsSelfMessage || ChatContext.IsMod);
     
     private string TooltipClassDir => "button-tooltip " + (PreviousMessage == null ? "tooltip-down" : "tooltip-up");
-    
     private string MessageClass => "message " + (Message.SenderID != PreviousMessage?.SenderID ? "mt-2" : "");
 
     protected override async Task OnInitializedAsync()
@@ -86,6 +140,58 @@
         }
 
         Loaded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        
+        AddKeySubscriber(this);
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Editing)
+        {
+            MessageEditInput = Message.Content;
+            await JsRuntime.InvokeVoidAsync("resizeTextarea", "message-edit");
+        }
+    }
+
+    private async Task OnEditStart()
+    {
+        await ChatContext.OnEditStart(Message);
+        await JsRuntime.InvokeVoidAsync("startEdit");
+    }
+
+    private async Task OnEditEnd(string? newContent)
+    {
+        if (newContent == null || string.Equals(newContent, Message.Content))
+        {
+            await ChatContext.OnEditEnd(true);
+            return;
+        }
+
+        await ChatContext.OnEditEnd(false);
+    }
+
+    public async Task OnKeyPressed(KeyEventArgs keyEventArgs)
+    {
+        if(keyEventArgs.ShiftKey && !IsShiftHeld)
+        {
+            IsShiftHeld = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async Task OnKeyReleased(KeyEventArgs keyEventArgs)
+    {
+        if (!keyEventArgs.ShiftKey && IsShiftHeld)
+        {
+            IsShiftHeld = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
 }

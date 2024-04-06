@@ -1,11 +1,19 @@
 @using System.Net
 
-<Div class="word-break">
+<Div class="word-break" Style="min-height: 24px">
     @((MarkupString)SafelyFormatContentWithLineBreaks(Content))
+    @if (EditDate.HasValue)
+    {
+        <Div class="text-muted" Style="font-size: 0.8em">
+            Edited on @EditDate.Value.ToString("yyyy-MM-dd HH:mm:ss")
+        </Div>
+    }
 </Div>
 
 @code {
     [Parameter] public string Content { get; set; }
+    
+    [Parameter] public DateTime? EditDate { get; set; }
 
     private string SafelyFormatContentWithLineBreaks(string content)
     {

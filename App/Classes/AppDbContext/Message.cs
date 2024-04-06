@@ -13,6 +13,7 @@ public class Message
     public string Content { get; set; }
     public byte[]? Attachment { get; set; }
     public DateTime? PinnedAt { get; set; }
+    public DateTime? EditedAt { get; set; }
     public DateTime SentAt { get; set; }
     public bool IsPinned => PinnedAt != null;
 }
