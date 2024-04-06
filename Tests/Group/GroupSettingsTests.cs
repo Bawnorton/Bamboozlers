@@ -1,132 +1,77 @@
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Components.Group.Settings;
-using Bamboozlers.Components.MainVisual;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
 namespace Tests.Group;
 
-public class GroupSettingsTests : AuthenticatedBlazoriseTestBase
+public class GroupSettingsTests : GroupChatTestBase
 {
-    private (List<User>,List<Friendship>,List<GroupChat>,List<GroupInvite>) BuildTestCases()
+    private void GroupSettingsTests_CheckMemberDisplay(User subjectUser, User member, GroupChat subjectGroup, IRenderedFragment fragment)
     {
-        List<User> testUsers = [];
-        List<Friendship> testFriendships = [];
-        
-        for (var i = 0; i <= 8; i++)
+        var isMod = subjectGroup.Moderators.FirstOrDefault(u => u.Id == member.Id) is not null;
+        var subjectIsMod = subjectGroup.Moderators.FirstOrDefault(u => u.Id == subjectUser.Id) is not null;
+        var memberDiv = fragment.Find($"#{member.UserName}_section");
+        if (isMod || member.Id == subjectGroup.OwnerID)
         {
-            var user = MockUserManager.CreateMockUser(i);
-            testUsers.Add(user);
+            var badge = fragment.Find($"#{member.UserName}_badge");
+            Assert.Contains(
+                member.Id == subjectGroup.OwnerID 
+                    ? "OWNER" 
+                    : "MODERATOR", 
+                badge.TextContent
+            );
         }
 
-        for (var i = 1; i <= 4; i++)
+        if (subjectUser.Id == subjectGroup.OwnerID)
         {
-            var friendship1 = new Friendship(testUsers[0].Id,testUsers[i].Id)
+            if (member.Id != subjectUser.Id)
             {
-                User1 = testUsers[0],
-                User2 = testUsers[i]
-            };
-            var friendship2 = new Friendship(testUsers[8].Id,testUsers[8-i].Id)
+                var kickButton = fragment.Find($"#{member.UserName}_kickButton");
+                var permsButton = fragment.Find($"#{member.UserName}_permsButton");
+                if (isMod)
+                {
+                    Assert.Contains("Revoke permissions", permsButton.TextContent);
+                }
+                else
+                {
+                    Assert.Contains("Assign permissions", permsButton.TextContent);
+                }
+                Assert.Contains("Kick user", kickButton.TextContent);
+            }
+        } 
+        else if (subjectIsMod)
+        {
+            if (!isMod && member.Id != subjectGroup.OwnerID)
             {
-                User1 = testUsers[8],
-                User2 = testUsers[8-i]
-            };
-            testFriendships.AddRange([friendship1,friendship2]);
-            MockDatabaseProvider.GetMockAppDbContext().MockFriendships.AddMock(friendship1);
-            MockDatabaseProvider.GetMockAppDbContext().MockFriendships.AddMock(friendship2);
+                var kickButton = fragment.Find($"#{member.UserName}_kickButton");
+                Assert.Contains("Kick user", kickButton.InnerHtml);   
+            }
         }
-        
-        var groupChat1 = new GroupChat(testUsers[0].Id)
-        {
-            ID = 1,
-            Owner = testUsers[0],
-            Users = [
-                testUsers[0],
-                testUsers[1],
-                testUsers[2]
-            ],
-            Moderators = [
-                testUsers[1]
-            ]
-        };
-        
-        var groupChat2 = new GroupChat(testUsers[8].Id)
-        {
-            ID = 2,
-            Owner = testUsers[8],
-            Users = [
-                testUsers[6],
-                testUsers[7],
-                testUsers[8]
-            ],
-            Moderators = [
-                testUsers[7]
-            ]
-        };
-        
-        MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(groupChat1);
-        MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(groupChat2);
-
-        var invite = new GroupInvite(testUsers[0].Id,testUsers[4].Id, groupChat1.ID)
-        {
-            Recipient = testUsers[4],
-            Sender = testUsers[0],
-            Group = groupChat1
-        };
-        MockDatabaseProvider.GetMockAppDbContext().MockGroupInvites.AddMock(invite);
-        
-        return (
-            testUsers, 
-            testFriendships, 
-            [groupChat1, groupChat2], 
-            [invite]
-        );
     }
     
-    private void GroupSettingsTests_CheckMemberDisplay(
+    private void GroupSettingsTests_CheckModList(
+        User subjectUser, 
+        GroupChat subjectGroup, 
+        IRenderedFragment fragment)
+    {
+        var list = new List<User> {subjectGroup.Owner};
+        list.AddRange(subjectGroup.Moderators);
+        foreach (var member in list)
+        {
+            GroupSettingsTests_CheckMemberDisplay(subjectUser,member,subjectGroup,fragment);
+        }
+    }
+    
+    private void GroupSettingsTests_CheckMemberList(
         User subjectUser, 
         GroupChat subjectGroup, 
         IRenderedFragment fragment)
     {
         foreach (var member in subjectGroup.Users)
         {
-            var isMod = subjectGroup.Moderators.FirstOrDefault(u => u.Id == member.Id) is not null;
-            var memberDiv = fragment.Find($"#{member.UserName}_section");
-            if (isMod ||
-                member.Id == subjectGroup.OwnerID)
-            {
-                var badge = fragment.Find($"#{member.UserName}_badge");
-                Assert.Contains(
-                    member.Id == subjectGroup.OwnerID 
-                        ? "OWNER" 
-                        : "MODERATOR", 
-                    badge.TextContent
-                );
-            }
-
-            if (subjectUser.Id == subjectGroup.OwnerID)
-            {
-                if (member.Id != subjectUser.Id)
-                {
-                    var kickButton = fragment.Find($"#{member.UserName}_kickButton");
-                    var permsButton = fragment.Find($"#{member.UserName}_permsButton");
-                    if (isMod)
-                    {
-                        Assert.Contains("Revoke permissions", permsButton.TextContent);
-                    }
-                    else
-                    {
-                        Assert.Contains("Assign permissions", permsButton.TextContent);
-                    }
-                    Assert.Contains("Kick user", kickButton.TextContent);
-                }
-            } 
-            else if (!isMod)
-            {
-                var kickButton = fragment.Find($"#{member.UserName}_kickButton");
-                Assert.Contains("Kick user", kickButton.InnerHtml);
-            }
+            GroupSettingsTests_CheckMemberDisplay(subjectUser,member,subjectGroup,fragment);
         }
     }
     
@@ -134,8 +79,7 @@ public class GroupSettingsTests : AuthenticatedBlazoriseTestBase
     public async void GroupSettingsTests_CompChatSettings()
     {
         // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) 
-            = BuildTestCases();
+        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
         var subjectGroup = testGroups[0];
@@ -146,15 +90,67 @@ public class GroupSettingsTests : AuthenticatedBlazoriseTestBase
             parameters
                 => parameters.Add(p => p.ChatID, subjectGroup.ID)
         );
-
+        
         var modList = component.Find("#modList");
         var memberList = component.Find("#memberList");
         
         // Assert: Expected number of entries
+        Assert.Equal(subjectGroup.Moderators.Count+1, modList.Children.Length);
         Assert.Equal(subjectGroup.Users.Count, memberList.Children.Length);
         
         // Assert: That expected elements are present
-        GroupSettingsTests_CheckMemberDisplay(subjectUser,subjectGroup,component);
+        GroupSettingsTests_CheckMemberList(subjectUser,subjectGroup,component);
+        GroupSettingsTests_CheckModList(subjectUser, subjectGroup, component);
+        
+        // Assert: Check observed the observed Chats for component
+        Assert.Equal(subjectGroup.ID, component.Instance.WatchedIDs[0]);
+        
+        // Arrange: User is a Moderator
+        subjectUser = testUsers[2];
+        subjectGroup = testGroups[0];
+        await SetUser(subjectUser);
+        UserService.Invalidate();
+
+        component = Ctx.RenderComponent<CompGroupSettings>(
+            parameters
+                => parameters.Add(p => p.ChatID, subjectGroup.ID)
+        );
+        
+        modList = component.Find("#modList"); 
+        memberList = component.Find("#memberList");
+        
+        // Assert: Expected number of entries
+        Assert.Equal(subjectGroup.Moderators.Count+1, modList.Children.Length);
+        Assert.Equal(subjectGroup.Users.Count, memberList.Children.Length);
+        
+        // Assert: That expected elements are present
+        GroupSettingsTests_CheckMemberList(subjectUser,subjectGroup,component);
+        GroupSettingsTests_CheckModList(subjectUser, subjectGroup, component);
+        
+        // Assert: Check observed the observed Chats for component
+        Assert.Equal(subjectGroup.ID, component.Instance.WatchedIDs[0]);
+        
+        // Arrange: User is a Member
+        subjectUser = testUsers[1];
+        subjectGroup = testGroups[0];
+        await SetUser(subjectUser);
+        UserService.Invalidate();
+
+        component = Ctx.RenderComponent<CompGroupSettings>(
+            parameters
+                => parameters.Add(p => p.ChatID, subjectGroup.ID)
+        );
+        
+        modList = component.Find("#modList"); 
+        memberList = component.Find("#memberList");
+        
+        // Assert: Expected number of entries
+        Assert.Equal(subjectGroup.Moderators.Count+1, modList.Children.Length);
+        Assert.Equal(subjectGroup.Users.Count, memberList.Children.Length);
+        
+        // Assert: That expected elements are present
+        GroupSettingsTests_CheckMemberList(subjectUser,subjectGroup,component);
+        GroupSettingsTests_CheckModList(subjectUser, subjectGroup, component);
         
         // Assert: Check observed the observed Chats for component
         Assert.Equal(subjectGroup.ID, component.Instance.WatchedIDs[0]);
@@ -164,8 +160,7 @@ public class GroupSettingsTests : AuthenticatedBlazoriseTestBase
     public async void GroupSettingsTests_DeleteAvatarTest()
     {
         // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) 
-            = BuildTestCases();
+        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
         var subjectGroup = testGroups[0];
@@ -191,14 +186,26 @@ public class GroupSettingsTests : AuthenticatedBlazoriseTestBase
         Assert.NotNull(alertArgs);
         Assert.Equal("Success!",alertArgs.AlertMessage);
         Assert.Equal("Group avatar was deleted.",alertArgs.AlertDescription);
+        
+        subjectGroup.Avatar = new byte[1];
+        component = Ctx.RenderComponent<CompGroupSettings>(
+            parameters
+                => parameters.Add(p => p.ChatID, subjectGroup.ID)
+        );
+        await SetUser(null);
+        UserService.Invalidate();
+        await component.Instance.DeleteAvatar();
+        alertArgs = component.Instance.AlertArguments;
+        Assert.NotNull(alertArgs);
+        Assert.Equal("Unsuccessful attempt to delete avatar.",alertArgs.AlertMessage);
+        Assert.Equal("Issue occurred that prevented group changes from being saved.",alertArgs.AlertDescription);
     }
 
     [Fact]
     public async void GroupSettingsTests_ChangeAvatarTest()
     {
         // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) 
-            = BuildTestCases();
+        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
         var subjectGroup = testGroups[0];
@@ -231,8 +238,7 @@ public class GroupSettingsTests : AuthenticatedBlazoriseTestBase
     public async void GroupSettingsTests_KickWarningPopupTest()
     {
         // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) 
-            = BuildTestCases();
+        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
         var subjectGroup = testGroups[0];
@@ -258,5 +264,64 @@ public class GroupSettingsTests : AuthenticatedBlazoriseTestBase
         await actionButton.ClickAsync(new MouseEventArgs());
         Assert.NotNull(returnedAlertPopupArgs);
         await component.InvokeAsync(() => returnedAlertPopupArgs.OnConfirmCallback.InvokeAsync());
+    }
+
+    [Fact]
+    public async void GroupSettingsTests_CompEditGroupName()
+    {
+        // Arrange & Act: Set up test cases for Users and Group Chats
+        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
+        
+        var subjectUser = testUsers[0];
+        var subjectGroup = testGroups[0];
+        await SetUser(subjectUser);
+        UserService.Invalidate();
+
+        AlertArguments? returnedAlertArguments = null;
+        EventCallback<AlertArguments> fauxAlertCallback = EventCallback.Factory.Create<AlertArguments>(
+            this,
+            args =>
+            {
+                returnedAlertArguments = args;
+            }    
+        );
+        var component = Ctx.RenderComponent<CompEditGroupName>(
+            parameters=>
+            {
+                parameters.Add(p => p.ChatID, subjectGroup.ID);
+                parameters.Add(p => p.AlertCallback, fauxAlertCallback);
+            });
+        await component.Instance.OnSave();
+        Assert.NotNull(returnedAlertArguments);
+        Assert.Equal("Cannot change group name.", returnedAlertArguments.AlertMessage);
+        Assert.Equal("Specified new name is the same as the previous name.", returnedAlertArguments.AlertDescription);
+        returnedAlertArguments = null;
+
+        component.Instance.TypedName = "New Name";
+        await component.Instance.OnSave();
+        Assert.NotNull(returnedAlertArguments);
+        Assert.Equal("Success!", returnedAlertArguments.AlertMessage);
+        Assert.Equal("Group name was changed.", returnedAlertArguments.AlertDescription);
+        returnedAlertArguments = null;
+
+        await SetUser(null);
+        UserService.Invalidate();
+        component.Instance.TypedName = "New Name 2";
+        await component.Instance.OnSave();
+        Assert.NotNull(returnedAlertArguments);
+        Assert.Equal("Unsuccessful attempt to save changes.", returnedAlertArguments.AlertMessage);
+        Assert.Equal("Issue occurred that prevented group changes from being saved.", returnedAlertArguments.AlertDescription);
+        returnedAlertArguments = null;
+        
+        component = Ctx.RenderComponent<CompEditGroupName>(
+            parameters=>
+            {
+                parameters.Add(p => p.ChatID, -1);
+                parameters.Add(p => p.AlertCallback, fauxAlertCallback);
+            });
+        await component.Instance.OnSave();
+        Assert.NotNull(returnedAlertArguments);
+        Assert.Equal("An error occurred while saving changes.", returnedAlertArguments.AlertMessage);
+        Assert.Equal("An unknown error occurred. Please try again.", returnedAlertArguments.AlertDescription);
     }
 }

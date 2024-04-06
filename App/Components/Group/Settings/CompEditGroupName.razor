@@ -61,7 +61,7 @@
 
     private string SelectedTab { get; set; } = "view";
     private string ChatName { get; set; }  = "";
-    private string TypedName { get; set; } = "";
+    public string TypedName { get; set; } = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -84,7 +84,7 @@
         ChatName = Group.GetGroupName();
     }
 
-    private async Task OnSave()
+    public async Task OnSave()
     {
         if (Group is null)
         {
