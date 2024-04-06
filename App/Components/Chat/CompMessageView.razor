@@ -96,6 +96,12 @@
                 textarea.focus();
             });
         }
+        
+        function ensureInView(messageId) {
+            waitForElm(`#message_${messageId}`).then(elm => {
+                elm.scrollIntoView({behavior: "smooth", block: "center", inline: "nearest"});
+            });
+        }
     </script>
 }
 
@@ -167,6 +173,7 @@
     {
         await ChatContext.OnEditStart(Message);
         await JsRuntime.InvokeVoidAsync("startEdit");
+        await JsRuntime.InvokeVoidAsync("ensureInView", Message.ID);
     }
 
     private async Task OnEditEnd(string? newContent)

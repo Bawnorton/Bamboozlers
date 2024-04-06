@@ -96,6 +96,19 @@
         });
     }
     
+    function scrollToBottom() {
+        const messageContainer = document.getElementById('message-container');
+        messageContainer.scrollTop = messageContainer.scrollHeight;
+    }
+    
+    function scrollToElement(elementId) {
+        waitForElm(`#${elementId}`).then(element => {
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    }
+    
     function highlightMessage(id) {
         waitForElm(`#message_${id}`).then(message => {
             if (message) {
@@ -112,6 +125,9 @@
         });
     }
     
+    function focusInput() {
+        waitForElm('#message-input').then(input => input.focus());
+    }
 </script>
 
 <Layout>
@@ -325,6 +341,7 @@
         AddPacketSubscriber.Invoke(this);
         AddKeySubscriber.Invoke(this);
         await SendToServer.InvokeAsync(new JoinChatC2SPacket {ChatId = (int)ChatID!});
+        await JsRuntime.InvokeVoidAsync("setTimeout", "scrollToBottom()", 200);
     }
 
     public async Task OnPacket(IPacket packet)
@@ -450,6 +467,7 @@
     {
         _replyingTo = Messages[MessageIdToIndex[toMessage.ID]];
         await JsRuntime.InvokeVoidAsync("highlightMessage", toMessage.ID);
+        await JsRuntime.InvokeVoidAsync("focusInput");
         await InvokeAsync(StateHasChanged);
     }
     
@@ -573,6 +591,7 @@
             await using var db = await Db.CreateDbContextAsync();
             var message = await db.Messages.Include(m => m.Sender).FirstAsync(m => m.ID == messageId);
             CreateMessageEntry(message);
+            await JumpToMessage(message, false);
         }
     }
 
@@ -602,8 +621,8 @@
         await db.SaveChangesAsync();
 
         CreateMessageEntry(message, true);
-        await JumpToMessage(message, false);
         StateHasChanged();
+        await JumpToMessage(message, false);
         
         var messageSent = new MessageSentC2SPacket
         {
