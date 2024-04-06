@@ -74,11 +74,11 @@
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
     
-    [CascadingParameter] private EventCallback ClosePopupCallback { get; set; }
-    [CascadingParameter] private EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
+    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
     
-    private AlertArguments AlertArguments { get; set; } = new();
-    private byte[]? Avatar { get; set; }
+    public AlertArguments AlertArguments { get; set; } = new();
+    public byte[]? Avatar { get; set; }
     private string Name { get; set; } = "";
 
     private User Self { get; set; } = default!;
@@ -97,12 +97,12 @@
         }
     }
 
-    private void DeleteAvatar()
+    public void DeleteAvatar()
     {
         Avatar = null;
     }
     
-    private Task<bool> UploadAvatar(byte[] image)
+    public Task<bool> UploadAvatar(byte[] image)
     {
         if (image.IsNullOrEmpty()) 
             return Task.FromResult(false);
@@ -111,7 +111,7 @@
         return Task.FromResult(true);
     }
 
-    private async Task CreateGroup()
+    public async Task CreateGroup()
     {
         var toInvite = InviteList.Where(i => i.Invite).Select(i => i.Friend).ToList();
         var result = await UserGroupService.CreateGroup(Avatar, Name, toInvite);
@@ -124,6 +124,7 @@
                 "Could not create group at this time.",
                 "An error occurred preventing the creation of the group."
             );
+            return;
         }
 
         await ClosePopupCallback.InvokeAsync();
@@ -133,6 +134,7 @@
                     .LastOrDefault();
         if (group is null)
             return;
+        
         await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Group, group.ID));
     }
 

@@ -1,11 +1,4 @@
-using Bamboozlers.Classes.AppDbContext;
-using Bamboozlers.Classes.Services;
-using Bamboozlers.Classes.Services.UserServices;
-using Bamboozlers.Components;
-using Tests.Provider;
-using Microsoft.EntityFrameworkCore;
-
-namespace Tests.Interaction;
+namespace Tests.InteractionTests;
 
 public class FriendCompTests : AuthenticatedBlazoriseTestBase
 {

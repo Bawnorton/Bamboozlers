@@ -116,6 +116,7 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
             );
             if (i != 1 && i != 4 && i != 5)
             {
+                output.WriteLine($"{i} test case");
                 var actionButton = component.Find("#profile-action-button");
                 switch (i)
                 {

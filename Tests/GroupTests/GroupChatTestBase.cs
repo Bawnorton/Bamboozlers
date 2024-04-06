@@ -1,6 +1,6 @@
 using Bamboozlers.Classes.AppDbContext;
 
-namespace Tests.Group;
+namespace Tests.GroupTests;
 
 public class GroupChatTestBase : AuthenticatedBlazoriseTestBase
 {
@@ -59,10 +59,28 @@ public class GroupChatTestBase : AuthenticatedBlazoriseTestBase
                 testUsers[7]
             ]
         };
+
+        var groupChat3 = new GroupChat(testUsers[4].Id)
+        {
+            ID = 3,
+            Name = "NamedGroup",
+            Avatar = new byte[1],
+            Owner = testUsers[4],
+            Users =
+            [
+                testUsers[4],
+                testUsers[0]
+            ],
+            Moderators =
+            [
+                testUsers[0]
+            ],
+        };
         
         MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(groupChat1);
         MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(groupChat2);
-
+        MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(groupChat3);
+        
         var invite = new GroupInvite(testUsers[0].Id,testUsers[4].Id, groupChat1.ID)
         {
             Recipient = testUsers[4],
@@ -74,7 +92,7 @@ public class GroupChatTestBase : AuthenticatedBlazoriseTestBase
         return (
             testUsers, 
             testFriendships, 
-            [groupChat1, groupChat2], 
+            [groupChat1, groupChat2, groupChat3], 
             [invite]
         );
     }

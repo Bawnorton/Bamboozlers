@@ -65,21 +65,17 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
 
     public async Task<IdentityResult> CreateGroup(byte[]? avatar = null, string? name = null, List<User>? sendInvites = null)
     {
-        var self = await AuthService.GetUser(
-            query => 
+        var self = await AuthService.GetUser(query => 
                 query.Include(u => u.OwnedChats)
                     .Include(u => u.Chats)
             );
         if (self is null)
-            return IdentityResult.Failed([
-                new IdentityError { Description = "Could not create group. Database error occured." }
-            ]);
+            return IdentityResult.Failed();
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var entityEntry = dbContext.GroupChats.Add(new GroupChat(self.Id));
         await dbContext.SaveChangesAsync();
         var newChatId = entityEntry.Entity.ID;
-        dbContext.ChangeTracker.Clear();
         
         var group = dbContext.GroupChats.First(gc => gc.ID == newChatId);
         dbContext.AttachRange([self, group]);
@@ -98,7 +94,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         {
             foreach (var invite in sendInvites.Select(other => new GroupInvite(self.Id, other.Id, group.ID)))
             {
-                await dbContext.GroupInvites.AddAsync(invite);
+                dbContext.GroupInvites.Add(invite);
                 await dbContext.SaveChangesAsync();
             }
         }
@@ -342,7 +338,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         if (invite is null && (IsModerator(group, self) || IsOwner(group, self)))
         {
             invite = new GroupInvite(self.Id, other.Id, group.ID);
-            await dbContext.GroupInvites.AddAsync(invite);
+            dbContext.GroupInvites.Add(invite);
             await dbContext.SaveChangesAsync();
             await NotifySubscribersOf(group.ID, GroupEvent.SentInvite);
         }

@@ -124,7 +124,7 @@ public class MockUserManager
         string? description = null, 
         byte[]? avatar = null)
     {
-        var userList = _mockDatabaseProvider.GetMockAppDbContext().MockUsers.mockUsers.Object.ToList();
+        var userList = _mockDatabaseProvider.GetMockAppDbContext().MockUsers.MockDbSet.Object.ToList();
         var match = userList.FirstOrDefault(u => u.Id == idx);
         
         if (idx == -1) idx = userList.Count;

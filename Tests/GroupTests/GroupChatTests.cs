@@ -1,18 +1,12 @@
-using Bamboozlers.Classes.AppDbContext;
-using Bamboozlers.Components.Group;
-using Bamboozlers.Components.Group.Settings;
 using Blazorise;
 using Blazorise.Modules;
-using Bunit.Extensions.WaitForHelpers;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tests.Provider;
 using Xunit.Abstractions;
 
-namespace Tests.Group;
+namespace Tests.GroupTests;
 
 public class GroupChatTests : AuthenticatedBlazoriseTestBase
 {

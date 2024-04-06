@@ -4,7 +4,7 @@ using Bamboozlers.Components.Group.Settings;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
-namespace Tests.Group;
+namespace Tests.GroupTests;
 
 public class GroupSettingsTests : GroupChatTestBase
 {

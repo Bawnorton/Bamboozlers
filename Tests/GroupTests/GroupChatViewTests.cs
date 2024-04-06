@@ -1,4 +1,4 @@
-namespace Tests.Group;
+namespace Tests.GroupTests;
 
 public class GroupChatViewTests
 {

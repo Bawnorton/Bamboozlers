@@ -1,15 +1,14 @@
 using System.Linq.Expressions;
 using Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using MockQueryable.Moq;
 
 namespace Tests.Provider.MockAppDbContext;
 
 public class MockChats : AbstractMockDbSet<Chat>
 {
-    public Mock<DbSet<Chat>> mockChats;
-    
-    private readonly Func<Chat, Chat, bool> matchFunction = (c0, c1) => c0.ID == c1.ID;
+    protected override Func<Chat, Chat, bool> MatchPredicate { get; set; } = (c0, c1) => c0.ID == c1.ID;
     
     public MockChats(MockAppDbContext mockAppDbContext, DbSet<User> users) : base(mockAppDbContext)
     {
@@ -36,93 +35,88 @@ public class MockChats : AbstractMockDbSet<Chat>
             }
         ]);
 
+        SetupChatRelationships(chats);
+        MockDbSet = MockAppDbContext.SetupMockDbSet(chats);
+    }
+
+    public override void RebindMocks()
+    {
+        MockAppDbContext.MockDbContext.Setup(x => x.Chats).Returns(GetMocks());
+        MockAppDbContext.MockDbContext.Setup(x => x.GroupChats).Returns(GetGroups());
+    }
+    
+    private Mock<DbSet<GroupChat>> FilterGroups()
+    {
+        return MockDbSet.Object.OfType<GroupChat>().AsQueryable().BuildMockDbSet();
+    }
+
+    private void SetupChatRelationships(List<Chat> chats)
+    {
         foreach (var chat in chats)
         {
-            foreach (var user in chat.Users)
+            foreach (var user in MockAppDbContext.MockUsers.MockDbSet.Object.ToList())
             {
-                var userChat = user.Chats.FirstOrDefault(c => matchFunction(c, chat));
-                if (userChat is not null) continue;
-                user.Chats.Add(chat);
-                
                 if (chat is GroupChat groupChat)
                 {
-                    var isMod = groupChat.Moderators.FirstOrDefault(m => m.Id == user.Id) is not null;
-                    var isOwner = user.Id == groupChat.OwnerID;
-                    
-                    var ownerChat = user.OwnedChats.FirstOrDefault(gc => matchFunction(gc, groupChat));
-                    var moddedChat = user.ModeratedChats.FirstOrDefault(gc => matchFunction(gc, groupChat));
-                    
-                    if (ownerChat is not null && moddedChat is not null) continue;
-                    
-                    if (ownerChat is null && isOwner)
+                    var ownerChat = user.OwnedChats.FirstOrDefault(c => MatchPredicate(c, groupChat));
+                    var isOwner = groupChat.OwnerID == user.Id;
+                    if (ownerChat is not null && !isOwner)
+                    {
+                        user.OwnedChats.Remove(ownerChat);
+                    } 
+                    else if (ownerChat is null && isOwner)
+                    {
                         user.OwnedChats.Add(groupChat);
+                    }
                     
-                    if (moddedChat is null && isMod)
+                    var modChat = user.ModeratedChats.FirstOrDefault(c => MatchPredicate(c, groupChat));
+                    var chatMod = groupChat.Moderators.FirstOrDefault(m => m.Id == user.Id);
+                    if (chatMod is null && modChat is not null)
+                    {
+                        user.ModeratedChats.Remove(modChat);
+                    }
+                    else if (chatMod is not null && modChat is null)
+                    {
                         user.ModeratedChats.Add(groupChat);
+                    }
+                }
+                
+                var userChat = user.Chats.FirstOrDefault(c => MatchPredicate(c, chat));
+                var chatUser = chat.Users.FirstOrDefault(u => u.Id == user.Id);
+                if (chatUser is null && userChat is not null)
+                {
+                    user.Chats.Remove(chat);
+                }
+                else if (chatUser is not null && userChat is null)
+                {
+                    user.Chats.Add(chat);
                 }
                 MockAppDbContext.MockUsers.UpdateMock(user);
             }
         }
-        
-        mockChats = MockAppDbContext.SetupMockDbSet(chats);
-        UpdateMockSetup();
     }
-
-    public Mock<DbSet<GroupChat>> FilterGroups()
-    {
-        return mockChats.Object.OfType<GroupChat>().AsQueryable().BuildMockDbSet();
-    }
-
-    private void UpdateMockSetup()
-    {
-        foreach (var groupChat in mockChats.Object.OfType<GroupChat>())
-        {
-            foreach (var user in groupChat.Users)
-            {
-                var isMod = groupChat.Moderators.FirstOrDefault(m => m.Id == user.Id) is not null;
-                var isOwner = user.Id == groupChat.OwnerID;
-
-                var ownerChat = user.OwnedChats.FirstOrDefault(gc => matchFunction(gc, groupChat));
-                var moddedChat = user.ModeratedChats.FirstOrDefault(gc => matchFunction(gc, groupChat));
-
-                if (ownerChat is not null && moddedChat is not null) continue;
-
-                if (ownerChat is null && isOwner)
-                    user.OwnedChats.Add(groupChat);
-                else if (ownerChat is not null && !isOwner)
-                    user.OwnedChats.Remove(ownerChat);
-
-                if (moddedChat is null && isMod)
-                    user.ModeratedChats.Add(groupChat);
-                else if (moddedChat is not null && !isMod)
-                    user.OwnedChats.Remove(moddedChat);
-
-                MockAppDbContext.MockUsers.UpdateMock(user);
-            }
-        }
-        MockAppDbContext.MockDbContext.Setup(x => x.Chats).Returns(mockChats.Object);
-        MockAppDbContext.MockDbContext.Setup(x => x.GroupChats).Returns(FilterGroups().Object);
-    }
+    
     public override void AddMock(Chat chat)
     {
-        mockChats = base.AddMock(
-            chat,
-            mockChats,
-            matchFunction
-        );
-        
-        UpdateMockSetup();
+        if (chat.Users.IsNullOrEmpty())
+            chat.Users = [];
+        if (chat is GroupChat groupChat)
+        {
+            if (groupChat.Moderators.IsNullOrEmpty()) 
+                groupChat.Moderators = [];
+            base.AddMock(groupChat);
+        }
+        else
+        {
+            base.AddMock(chat);
+        }
+        SetupChatRelationships(MockDbSet.Object.ToList());
     }
     
     public override void RemoveMock(Chat chat)
     {
-        mockChats = base.RemoveMock(
-            chat,
-            mockChats,
-            matchFunction
-        );
-        
-        UpdateMockSetup();
+        base.RemoveMock(chat);
+        SetupChatRelationships(MockDbSet.Object.ToList());
     }
     
     public override void UpdateMock(Chat chat)
@@ -130,18 +124,9 @@ public class MockChats : AbstractMockDbSet<Chat>
         RemoveMock(chat);
         AddMock(chat);
     }
-    
-    public override Chat? FindMock(int idx)
+
+    public DbSet<GroupChat> GetGroups()
     {
-        return mockChats.Object.Skip(idx - 1).FirstOrDefault();
-    }
-    
-    public override void ClearAll()
-    {
-        var list = mockChats.Object.ToList();
-        foreach (var chat in list)
-        {
-            RemoveMock(chat);
-        }
+        return FilterGroups().Object;
     }
 }

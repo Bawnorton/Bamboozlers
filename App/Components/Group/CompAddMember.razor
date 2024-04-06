@@ -130,6 +130,7 @@
                                      Color="@(color ?? Color.Success)"
                                      IconName="@(iconName ?? null)"
                                      ColumnWrapped="@false"
+                                     ButtonId="@($"{user.UserName}-button")"
                                      ActionCallback="@(actionCallback ?? EventCallback.Empty)"
                                      Disabled="@disabled"/>
                </div>;

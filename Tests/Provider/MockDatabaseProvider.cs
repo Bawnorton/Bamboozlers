@@ -1,6 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,6 +14,7 @@ public class MockDatabaseProvider
 {
     private readonly Mock<IDbContextFactory<AppDbContext>> _mockDbContextFactory;
     private readonly MockAppDbContext.MockAppDbContext _mockAppDbContext;
+    [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.")]
     public MockDatabaseProvider(TestContextBase ctx)
     {
         _mockDbContextFactory = new Mock<IDbContextFactory<AppDbContext>>();
@@ -20,7 +25,7 @@ public class MockDatabaseProvider
         
         _mockAppDbContext = new MockAppDbContext.MockAppDbContext(mockContext);
         
-        mockContext.Setup(x => x.Database).Returns(mockFacade.Object);
+        mockContext.SetupGet(x => x.Database).Returns(mockFacade.Object);
         mockFacade.Setup(x => x.BeginTransactionAsync(default))
             .ReturnsAsync(() => new Mock<IDbContextTransaction>().Object);
         

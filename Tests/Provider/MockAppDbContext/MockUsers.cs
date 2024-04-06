@@ -7,12 +7,11 @@ namespace Tests.Provider.MockAppDbContext;
 
 public class MockUsers : AbstractMockDbSet<User>
 {
-    public Mock<DbSet<User>> mockUsers;
-    private readonly Func<User, User, bool> matchFunction = (u0, u1) => u0.Id == u1.Id;
+    protected override Func<User, User, bool> MatchPredicate { get; set; }  = (u0, u1) => u0.Id == u1.Id;
 
     public MockUsers(MockAppDbContext mockAppDbContext) : base(mockAppDbContext)
     {
-        mockUsers = MockAppDbContext.SetupMockDbSet<User>(
+        MockDbSet = MockAppDbContext.SetupMockDbSet<User>(
         [
             new User
             {
@@ -59,46 +58,10 @@ public class MockUsers : AbstractMockDbSet<User>
                 EmailConfirmed = true
             }
         ]);
-        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(mockUsers.Object);
     }
     
-    public override void AddMock(User user)
+    public override void RebindMocks()
     {
-        mockUsers = base.AddMock(
-            user,
-            mockUsers,
-            matchFunction
-        );
-        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(mockUsers.Object);
-    }
-    
-    public override void RemoveMock(User user)
-    {
-        mockUsers = base.RemoveMock(
-            user,
-            mockUsers,
-            matchFunction
-        );
-        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(mockUsers.Object);
-    }
-
-    public override void UpdateMock(User user)
-    {
-        RemoveMock(user);
-        AddMock(user);
-    }
-
-    public override User? FindMock(int idx)
-    {
-        return mockUsers.Object.Skip(idx - 1).FirstOrDefault();
-    }
-    
-    public override void ClearAll()
-    {
-        var list = mockUsers.Object.ToList();
-        foreach (var user in list)
-        {
-            RemoveMock(user);
-        }
+        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(GetMocks());
     }
 }
