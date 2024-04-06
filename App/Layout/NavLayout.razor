@@ -18,108 +18,112 @@
 @inject IUserGroupService UserGroupService;
 @inject IUserInteractionService UserInteractionService;
 
-<Layout Sider>
-    <LayoutSider>
-        <LayoutSiderContent>
-            <Div Background="Background.Secondary"
-                 Padding="Padding.Is3"
-                 TextSize="TextSize.Heading5">
-                <Icon Name="Icons.User"></Icon>
-                <Text>Bamboozlers</Text>
-            </Div>
-            <Bar Mode="BarMode.VerticalInline"
-                 CollapseMode="BarCollapseMode.Hide"
-                 ThemeContrast="ThemeContrast.Dark"
-                 Class="scrollbar-container">
-                <BarMenu>
-                    <BarItem>
-                        <BarLink ElementId="friends" @onclick="() => { CurrentView = View.Friends; CurrentChatId = -1; }">
-                            <BarIcon Class="fa-user-circle"></BarIcon>
-                            Friends
-                        </BarLink>
-                    </BarItem>
-                    <BarItem>
-                        <BarDropdown>
-                            <BarDropdownToggle>
-                                <BarIcon IconName="Icons.User"></BarIcon>
-                                Direct Messages
-                            </BarDropdownToggle>
-                            <BarDropdownMenu ElementId="dms_dropdown">
-                                @foreach (var chat in DmChats)
-                                {
-                                    <BarItem>
-                                        <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => OpenDm(chat.ID)">
-                                            @if (chat.Avatar is not null)
-                                            {
-                                                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
-                                            }
-                                            else
-                                            {
-                                                <BarIcon IconName="Icons.User"></BarIcon>
-                                            }
-                                            @(chat.User.DisplayName ?? chat.User.UserName)
-                                        </BarLink>
-                                    </BarItem>
-                                }
-                            </BarDropdownMenu>
-                        </BarDropdown>
-                    </BarItem>
-                    <BarItem>
-                        <BarDropdown>
-                            <BarDropdownToggle>
-                                <BarIcon IconName="Icons.Users"></BarIcon>
-                                Group Chats
-                            </BarDropdownToggle>
-                            <BarDropdownMenu ElementId="groups_dropdown">
-                                @foreach (var chat in GroupChats)
-                                {
-                                    <BarItem>
-                                        <BarLink ElementId="@("group_" + chat.ID)" @onclick="() => { CurrentView = View.Group; CurrentChatId = chat.ID; }">
-                                            @if (chat.Avatar is not null)
-                                            {
-                                                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
-                                            }
-                                            else
-                                            {
-                                                <BarIcon IconName="Icons.Users"></BarIcon>
-                                            }
-                                            @chat.Name
-                                        </BarLink>
-                                    </BarItem>
-                                }
-                            </BarDropdownMenu>
-                        </BarDropdown>
-                    </BarItem>
-                </BarMenu>
-            </Bar>
-            <Div Padding="Padding.Is3"
-                 TextSize="TextSize.Heading5"
-                 Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
-                 id="profile-button"
-                 @onclick="async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs(RecognizedPopupType.Settings))">
-                <Text>
-                    @(User is null ? UserRecord.Default.UserName : User.DisplayName.IsNullOrEmpty() ? User.UserName : User.DisplayName)
-                </Text>
-                @if (User?.Avatar is not null)
-                {
-                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(User.Avatar)}") Class="message-avatar" alt=""/>
-                }
-                else
-                {
-                    <Icon Name="Icons.User" IconSize="IconSize.Large"></Icon>
-                }
-            </Div>
-        </LayoutSiderContent>
-    </LayoutSider>
-    @if (CurrentView == View.Friends)
-    {
-        <CompFriendsView/>
-    }
-    else
-    {
-        <CompChatView ChatID="CurrentChatId"/>
-    }
-</Layout>
+@if (Loaded)
+{
+    
+    <Layout Sider>
+        <LayoutSider>
+            <LayoutSiderContent>
+                <Div Background="Background.Secondary"
+                     Padding="Padding.Is3"
+                     TextSize="TextSize.Heading5">
+                    <Icon Name="Icons.User"></Icon>
+                    <Text>Bamboozlers</Text>
+                </Div>
+                <Bar Mode="BarMode.VerticalInline"
+                     CollapseMode="BarCollapseMode.Hide"
+                     ThemeContrast="ThemeContrast.Dark"
+                     Class="scrollbar-container">
+                    <BarMenu>
+                        <BarItem>
+                            <BarLink ElementId="friends" @onclick="() => { CurrentView = View.Friends; CurrentChatId = -1; }">
+                                <BarIcon Class="fa-user-circle"></BarIcon>
+                                Friends
+                            </BarLink>
+                        </BarItem>
+                        <BarItem>
+                            <BarDropdown>
+                                <BarDropdownToggle>
+                                    <BarIcon IconName="Icons.User"></BarIcon>
+                                    Direct Messages
+                                </BarDropdownToggle>
+                                <BarDropdownMenu ElementId="dms_dropdown">
+                                    @foreach (var chat in DmChats)
+                                    {
+                                        <BarItem>
+                                            <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="() => OpenDm(chat.ID)">
+                                                @if (chat.Avatar is not null)
+                                                {
+                                                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
+                                                }
+                                                else
+                                                {
+                                                    <BarIcon IconName="Icons.User"></BarIcon>
+                                                }
+                                                @(chat.User.DisplayName ?? chat.User.UserName)
+                                            </BarLink>
+                                        </BarItem>
+                                    }
+                                </BarDropdownMenu>
+                            </BarDropdown>
+                        </BarItem>
+                        <BarItem>
+                            <BarDropdown>
+                                <BarDropdownToggle>
+                                    <BarIcon IconName="Icons.Users"></BarIcon>
+                                    Group Chats
+                                </BarDropdownToggle>
+                                <BarDropdownMenu ElementId="groups_dropdown">
+                                    @foreach (var chat in GroupChats)
+                                    {
+                                        <BarItem>
+                                            <BarLink ElementId="@("group_" + chat.ID)" @onclick="() => { CurrentView = View.Group; CurrentChatId = chat.ID; }">
+                                                @if (chat.Avatar is not null)
+                                                {
+                                                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
+                                                }
+                                                else
+                                                {
+                                                    <BarIcon IconName="Icons.Users"></BarIcon>
+                                                }
+                                                @chat.Name
+                                            </BarLink>
+                                        </BarItem>
+                                    }
+                                </BarDropdownMenu>
+                            </BarDropdown>
+                        </BarItem>
+                    </BarMenu>
+                </Bar>
+                <Div Padding="Padding.Is3"
+                     TextSize="TextSize.Heading5"
+                     Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
+                     id="profile-button"
+                     @onclick="async () => await OpenPopupCallback.InvokeAsync(new PopupCallbackArgs(RecognizedPopupType.Settings))">
+                    <Text>
+                        @(User is null ? UserRecord.Default.UserName : User.DisplayName.IsNullOrEmpty() ? User.UserName : User.DisplayName)
+                    </Text>
+                    @if (User?.Avatar is not null)
+                    {
+                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(User.Avatar)}") Class="message-avatar" alt=""/>
+                    }
+                    else
+                    {
+                        <Icon Name="Icons.User" IconSize="IconSize.Large"></Icon>
+                    }
+                </Div>
+            </LayoutSiderContent>
+        </LayoutSider>
+        @if (CurrentView == View.Friends)
+        {
+            <CompFriendsView/>
+        }
+        else
+        {
+            <CompChatView ChatID="CurrentChatId"/>
+        }
+    </Layout>
+}
 
 @code {
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
@@ -132,12 +136,16 @@
     private View CurrentView { get; set; } = View.Friends;
     private int CurrentChatId { get; set; } = -1;
     private int FriendCount { get; set; } = 0;
+    
+    private bool Loaded { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         UserGroupService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
         await Refresh();
+        
+        Loaded = true;
     }
 
     public async Task Refresh()

@@ -32,7 +32,7 @@
             {
                 <CompPinMessageView
                     Message="@message"
-                    CanUnpin="@CanUnpin(message)"
+                    CanUnpin="@CanUnpin"
                     OnUnpin="@UnpinMessage"
                     OnJump="@JumpToMessage"/>
             }
@@ -44,20 +44,17 @@
 @code {
 
     [Parameter] public int? ChatID { get; set; }
-    
     [Parameter] public bool IsMod { get; set; }
-    
     [Parameter] public AsyncConsumer<Message> OnMessageJump { get; set; }
     
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    
     [CascadingParameter] public Func<IAsyncPacketSubscriber, bool> AddPacketSubscriber { get; set; }
 
     private List<Message> PinnedMessages { get; set; } = [];
 
     private bool IsDm { get; set; }
 
-    private bool CanUnpin(Message message) => IsMod || (IsDm && message.SenderID == UserData!.Id);
+    private bool CanUnpin => IsMod || IsDm;
     
     protected override async Task OnParametersSetAsync()
     {
@@ -103,6 +100,16 @@
                     PinnedMessages.RemoveAt(index);
                     await InvokeAsync(StateHasChanged);
                 }
+                break;
+            }
+            case MessageEditedS2CPacket messageEdited:
+            {
+                var id = messageEdited.MessageId;
+                var message = PinnedMessages.FirstOrDefault(m => m.ID == id);
+                if (message == null) return;
+
+                message.Content = messageEdited.NewContent;
+                await InvokeAsync(StateHasChanged);
                 break;
             }
         }

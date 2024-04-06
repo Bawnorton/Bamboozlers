@@ -5,10 +5,8 @@ namespace Bamboozlers.Classes.Data;
 
 public record ChatContext(
     bool IsMod,
+    AsyncConsumer<string?> SetLastEdit,
     AsyncConsumer<Message> OnDelete,
     AsyncConsumer<Message> OnEditStart,
     AsyncConsumer<bool> OnEditEnd,
-    AsyncConsumer<Message> OnPin)
-{
-    public static string? LastEdit { get; set; }
-}
+    AsyncConsumer<Message> OnPin);

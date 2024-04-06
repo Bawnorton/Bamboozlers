@@ -29,8 +29,8 @@
         <Div Class="message-content">
             @if (Editing)
             {
-                <Div>
-                    <Div Display="Display.Flex" Overflow="Overflow.Hidden" Width="Width.Is100" Background="Background.Secondary" Style="border-radius: 5px" class="p-2 m-1">
+                <Div Width="Width.Is100" >
+                    <Div Display="Display.Flex" Overflow="Overflow.Hidden" Background="Background.Secondary" Style="border-radius: 5px" class="p-2 m-1">
                         <textarea id="message-edit" class="message-input" @bind="MessageEditInput" @bind:event="oninput">
                         </textarea>
                     </Div>
@@ -108,14 +108,14 @@
     private bool Loaded { get; set; }
     private User? Self { get; set; }
 
-    private string _messageEditInput;
-    private string MessageEditInput
+    private string? _messageEditInput;
+    private string? MessageEditInput
     {
         get => _messageEditInput;
         set
         {
             _messageEditInput = value;
-            ChatContext.LastEdit = _messageEditInput;
+            InvokeAsync(() => ChatContext.SetLastEdit.Invoke(value));
         }
     }
 
@@ -152,7 +152,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Editing)
+        if (Editing && MessageEditInput == null)
         {
             MessageEditInput = Message.Content;
             await JsRuntime.InvokeVoidAsync("resizeTextarea", "message-edit");

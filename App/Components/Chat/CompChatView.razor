@@ -144,7 +144,7 @@
                 <Div>
                     @if (ChatLoaded)
                     {
-                        <CascadingValue Value="new ChatContext(IsMod, DeleteMessage, StartEditMessage, EndEditMessage, PinMessage)">
+                        <CascadingValue Value="new ChatContext(IsMod, SetLastEdit, DeleteMessage, StartEditMessage, EndEditMessage, PinMessage)">
                             @foreach (var message in Messages)
                             {
                                 <CompMessageView
@@ -254,9 +254,10 @@
     private string MessageInput { get; set; }
     
     private MessageEntry? _editingMessage;
+    private string? LastEdit { get; set; }
     
     public AlertArguments AlertArguments { get; set; } = new();
-    
+
     protected override async Task OnInitializedAsync()
     {
         UserGroupService.AddSubscriber(this);
@@ -417,6 +418,12 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private Task SetLastEdit(string? lastEdit)
+    {
+        LastEdit = lastEdit;
+        return Task.CompletedTask;
+    }
+    
     private async Task StartEditMessage(Message message)
     {
         _editingMessage = Messages[MessageIdToIndex[message.ID]];
@@ -425,13 +432,12 @@
 
     private async Task EndEditMessage(bool cancel)
     {
-        var lastEdit = ChatContext.LastEdit;
-        if (cancel || _editingMessage == null || lastEdit == null || lastEdit == _editingMessage.DbMessage.Content)
+        if (cancel || _editingMessage == null || LastEdit == null || LastEdit == _editingMessage.DbMessage.Content)
         {
             await StopEditing();
             return;
         }
-        if (lastEdit.Equals(string.Empty))
+        if (LastEdit.Equals(string.Empty))
         {
             await DeleteMessage(_editingMessage.DbMessage);
             await StopEditing();
@@ -439,7 +445,7 @@
         }
         
         await using var db = await Db.CreateDbContextAsync();
-        _editingMessage.DbMessage.Content = lastEdit;
+        _editingMessage.DbMessage.Content = LastEdit;
         _editingMessage.DbMessage.EditedAt = DateTime.Now;
         db.Messages.Update(_editingMessage.DbMessage);
         await db.SaveChangesAsync();
@@ -449,7 +455,7 @@
             SenderId = Self!.Id,
             MessageId = _editingMessage.DbMessage.ID,
             ChatId = (int)ChatID!,
-            NewContent = lastEdit
+            NewContent = LastEdit
         };
         await SendToServer.InvokeAsync(messageEdited);
         await StopEditing();
