@@ -223,12 +223,11 @@ public class InteractionTests : InteractionTestBase
         
         var component = Ctx.RenderComponent<CompFriendRequests>();
         var incomingBadge = component.Find("#incoming-badge");
-        // TODO: Fails
-        /* Assert.Contains($"{incoming.Count}", incomingBadge.TextContent);
+        Assert.Contains($"{incoming.Count}", incomingBadge.TextContent);
         
         var outgoingBadge = component.Find("#outgoing-badge");
         Assert.Contains($"{outgoing.Count}", outgoingBadge.TextContent);
-        */
+        
         
         foreach (var invite in incoming)
         {

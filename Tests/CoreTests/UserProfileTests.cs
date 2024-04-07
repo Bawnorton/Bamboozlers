@@ -7,30 +7,29 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Tests.Provider;
 using Xunit.Abstractions;
-using Assert = NUnit.Framework.Assert;
 
 namespace Tests.CoreTests;
 
 public class UserProfileTests : AuthenticatedBlazoriseTestBase
 {
-    private readonly MockDatabaseProvider _mockDatabaseProvider;
+    private new MockDatabaseProvider MockDatabaseProvider { get; set; }
 
     private readonly ITestOutputHelper _output;
     public UserProfileTests(ITestOutputHelper outputHelper)
     {
         _output = outputHelper;
-        _mockDatabaseProvider = new MockDatabaseProvider(Ctx);
+        MockDatabaseProvider = new MockDatabaseProvider(Ctx);
         UserInteractionService = new UserInteractionService(AuthService, MockDatabaseProvider.GetDbContextFactory());
         Ctx.Services.AddSingleton<IUserInteractionService>(UserInteractionService);
     }
 
     private async Task<(List<User>, List<Friendship>, List<FriendRequest>, List<Block>)> BuildMockData()
     {
-        _mockDatabaseProvider.GetMockAppDbContext().MockUsers.ClearAll();
-        _mockDatabaseProvider.GetMockAppDbContext().MockFriendRequests.ClearAll();
-        _mockDatabaseProvider.GetMockAppDbContext().MockFriendships.ClearAll();
-        _mockDatabaseProvider.GetMockAppDbContext().MockBlocks.ClearAll();
-        _mockDatabaseProvider.GetMockAppDbContext().MockChats.ClearAll();
+        MockDatabaseProvider.GetMockAppDbContext().MockUsers.ClearAll();
+        MockDatabaseProvider.GetMockAppDbContext().MockFriendRequests.ClearAll();
+        MockDatabaseProvider.GetMockAppDbContext().MockFriendships.ClearAll();
+        MockDatabaseProvider.GetMockAppDbContext().MockBlocks.ClearAll();
+        MockDatabaseProvider.GetMockAppDbContext().MockChats.ClearAll();
 
         var users = new List<User>
         {
@@ -42,14 +41,14 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
             MockUserManager.CreateMockUser(5),
             MockUserManager.CreateMockUser(6)
         };
-        foreach (var user in users) _mockDatabaseProvider.GetMockAppDbContext().MockUsers.AddMock(user);
+        foreach (var user in users) MockDatabaseProvider.GetMockAppDbContext().MockUsers.AddMock(user);
 
         var friendship = new Friendship(users[0].Id, users[1].Id)
         {
             User1 = users[0],
             User2 = users[1]
         };
-        _mockDatabaseProvider.GetMockAppDbContext().MockFriendships.AddMock(friendship);
+        MockDatabaseProvider.GetMockAppDbContext().MockFriendships.AddMock(friendship);
 
         var request0 = new FriendRequest(users[0].Id, users[3].Id)
         {
@@ -62,8 +61,8 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
             Sender = users[2]
         };
 
-        _mockDatabaseProvider.GetMockAppDbContext().MockFriendRequests.AddMock(request0);
-        _mockDatabaseProvider.GetMockAppDbContext().MockFriendRequests.AddMock(request1);
+        MockDatabaseProvider.GetMockAppDbContext().MockFriendRequests.AddMock(request0);
+        MockDatabaseProvider.GetMockAppDbContext().MockFriendRequests.AddMock(request1);
 
         var block0 = new Block(users[0].Id, users[4].Id)
         {
@@ -75,8 +74,8 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
             Blocked = users[5],
             Blocker = users[0]
         };
-        _mockDatabaseProvider.GetMockAppDbContext().MockBlocks.AddMock(block0);
-        _mockDatabaseProvider.GetMockAppDbContext().MockBlocks.AddMock(block1);
+        MockDatabaseProvider.GetMockAppDbContext().MockBlocks.AddMock(block0);
+        MockDatabaseProvider.GetMockAppDbContext().MockBlocks.AddMock(block1);
 
         var group1 = new GroupChat(0)
         {
@@ -86,16 +85,15 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
             Users = [users[0]],
             Moderators = []
         };
-        _mockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(group1);
+        MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(group1);
 
         await SetUser(users[0]);
-        UserService.Invalidate();
 
         return (users, [friendship], [request0, request1], [block0, block1]);
     }
 
     // TODO: This fails and I'm not sure why, it works in dev
-    /*[Fact]
+    [Fact]
     public async void UserProfileTests_ProfilePopup()
     {
         var (users, _, _, _) = await BuildMockData();
@@ -107,23 +105,25 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
                 parameters
                     => parameters.Add(p => p.FocusUser, UserRecord.From(focusUser))
             );
-            if (i != 1 && i != 4 && i != 5)
+            if (i != 4 && i != 5)
             {
-                _output.WriteLine($"{i} test case");
                 var actionButton = component.Find("#profile-action-button");
                 switch (i)
                 {
                     case 0:
-                        Assert.True(actionButton.TextContent.Contains("Settings"));
+                        Assert.Contains("Settings", actionButton.TextContent);
+                        break;
+                    case 1:
+                        Assert.Contains("Send Message", actionButton.TextContent);
                         break;
                     case 2:
-                        Assert.True(actionButton.TextContent.Contains("Accept Friend Request"));
+                        Assert.Contains("Accept Friend Request", actionButton.TextContent);
                         break;
                     case 3:
-                        Assert.True(actionButton.TextContent.Contains("Pending"));
+                        Assert.Contains("Pending", actionButton.TextContent);
                         break;
                     case 6:
-                        Assert.True(actionButton.TextContent.Contains("Send Friend Request"));
+                        Assert.Contains("Send Friend Request", actionButton.TextContent);
                         break;
                 }
             }
@@ -135,13 +135,13 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
                 switch (i)
                 {
                     case 0:
-                        Assert.True(badge.TextContent.Contains("YOU"));
+                        Assert.Contains("YOU",badge.TextContent);
                         break;
                     case 1:
-                        Assert.True(badge.TextContent.Contains("FRIEND"));
+                        Assert.Contains("FRIEND",badge.TextContent);
                         break;
                     case 5:
-                        Assert.True(badge.TextContent.Contains("BLOCKED"));
+                        Assert.Contains("BLOCKED",badge.TextContent);
                         break;
                 }
             }
@@ -154,31 +154,31 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
                 switch (i)
                 {
                     case 1:
-                        Assert.DoesNotThrow(() => component.Find("#unfriend-option"));
-                        Assert.DoesNotThrow(() => component.Find("#block-option"));
-                        Assert.DoesNotThrow(() => component.Find("#TestGroup1-invite-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#unfriend-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#block-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#TestGroup1-invite-option"));
                         break;
                     case 2:
-                        Assert.DoesNotThrow(() => component.Find("#decline-request-option"));
-                        Assert.DoesNotThrow(() => component.Find("#block-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#decline-request-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#block-option"));
                         break;
                     case 3:
-                        Assert.DoesNotThrow(() => component.Find("#revoke-request-option"));
-                        Assert.DoesNotThrow(() => component.Find("#block-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#revoke-request-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#block-option"));
                         break;
                     case 4:
-                        Assert.DoesNotThrow(() => component.Find("#block-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#block-option"));
                         break;
                     case 5:
-                        Assert.DoesNotThrow(() => component.Find("#unblock-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#unblock-option"));
                         break;
                     case 6:
-                        Assert.DoesNotThrow(() => component.Find("#block-option"));
+                        NUnit.Framework.Assert.DoesNotThrow(() => component.Find("#block-option"));
                         break;
                 }
             }
         }
-    }*/
+    }
 
     [Theory]
     [InlineData("#unfriend-option")]
@@ -205,7 +205,6 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
         var unfriendButton = component.Find(optionElementId);
         await unfriendButton.ClickAsync(new MouseEventArgs());
         Assert.NotNull(returnedAlertPopupArgs);
-        Assert.NotNull(returnedAlertPopupArgs!.OnConfirmCallback);
 
         await component.InvokeAsync(() => returnedAlertPopupArgs.OnConfirmCallback.InvokeAsync());
     }
@@ -232,7 +231,7 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
         var actionButton = component.Find("#profile-action-button");
         await actionButton.ClickAsync(new MouseEventArgs());
         Assert.NotNull(returnedKnownPopupCallbackArgs);
-        Assert.AreEqual(returnedKnownPopupCallbackArgs!.Type, PopupType.Settings);
+        Assert.Equal(PopupType.Settings, returnedKnownPopupCallbackArgs!.Type);
     }
     
     [Fact]
@@ -258,8 +257,8 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
         var actionButton = component.Find("#profile-action-button");
         await actionButton.ClickAsync(new MouseEventArgs());
         Assert.NotNull(returnedChatCallbackArgs);
-        Assert.AreEqual(returnedChatCallbackArgs!.Id, focusUser.Id);
-        Assert.AreEqual(returnedChatCallbackArgs.ChatType, ChatType.Dm);
+        Assert.Equal(returnedChatCallbackArgs!.Id, focusUser.Id);
+        Assert.Equal(ChatType.Dm, returnedChatCallbackArgs.ChatType);
     }
 
     [Fact]
@@ -284,6 +283,6 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
         var actionButton = component.Find("#TestGroup1-invite-option");
         await actionButton.ClickAsync(new MouseEventArgs());
         Assert.NotNull(returnedKnownPopupCallbackArgs);
-        Assert.AreEqual(returnedKnownPopupCallbackArgs!.Type, PopupType.InviteGroupMembers);   
+        Assert.Equal(PopupType.InviteGroupMembers, returnedKnownPopupCallbackArgs!.Type);   
     }
 }

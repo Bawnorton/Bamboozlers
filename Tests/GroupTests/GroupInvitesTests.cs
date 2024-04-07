@@ -20,7 +20,7 @@ public class GroupInvitesTests(ITestOutputHelper helper) : GroupChatTestBase
     {
         try
         {
-            fragment.WaitForElement($"#{friend.UserName}-display");
+            fragment.WaitForElement($"#user-{friend.UserName}");
             var inGroup = chat.Users.FirstOrDefault(u => u.Id == friend.Id) is not null;
             var invited = invites.FirstOrDefault(i 
                 => i.SenderID == self.Id && i.RecipientID == friend.Id && i.GroupID == chat.ID) is not null;
@@ -73,8 +73,7 @@ public class GroupInvitesTests(ITestOutputHelper helper) : GroupChatTestBase
         
         foreach (var friend in friends)
         {
-            // TODO: Fails
-            // Assert.True(await CompAddMember_CheckInviteListEntry(subjectUser, friend, subjectGroup, testInvites, component));
+            Assert.True(await CompAddMember_CheckInviteListEntry(subjectUser, friend, subjectGroup, testInvites, component));
         }
         
         // Observer Pattern Test
