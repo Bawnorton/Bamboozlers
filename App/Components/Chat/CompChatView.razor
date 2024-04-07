@@ -317,7 +317,7 @@
         MessageInput = "";
     }
 
-    private async Task UpdateMessages()
+    public async Task UpdateMessages()
     {
         var newMessages = await (await Db.CreateDbContextAsync()).Messages
             .Where(m => m.ChatID == Chat!.ID && (_lastMessageSentAt == null || m.SentAt > _lastMessageSentAt))
