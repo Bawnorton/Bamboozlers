@@ -203,8 +203,6 @@
         WatchedIDs = [ChatID];
         await GetChatData();
         IsMod = IsModerator();
-
-        await UpdateMessages();
     }
 
     private bool IsModerator()
@@ -252,7 +250,7 @@
                 break;
             }
         }
-
+        
         var messages = new List<Message>(Chat?.Messages ?? []);
         messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
         var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
