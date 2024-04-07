@@ -12,45 +12,41 @@
 
 <PageTitle>Log in</PageTitle>
 
-<div class="d-flex min-vh-100 min-vw-100">
-    <div class="col-md-4 d-flex flex-grow-1 align-items-center justify-content-center">
-        <section class="w-50 p-5 shadow">
-            <StatusMessage Message="@ErrorMessage" Link="@ErrorLink" LinkText="@ErrorLinkText" ReturnUrl="@ReturnUrl"/>
-            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator/>
-                <h2>Welcome!</h2>
-                <hr/>
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.UserNameOrEmail" id="email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com or username"/>
-                    <label for="email" class="form-label">Email or Username</label>
-                    <ValidationMessage For="() => Input.UserNameOrEmail" class="text-danger"/>
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password"/>
-                    <label for="password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger"/>
-                    <p>
-                        @* ReSharper disable Html.PathError *@
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
-                    </p>
-                </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input"/>
-                        Remember me
-                    </label>
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <p class="mt-2">
-                    Need an Account?
-                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register</a>
-                </p>
-            </EditForm>
-        </section>
-    </div>
-</div>
+<CompAccountContainer>
+    <StatusMessage Message="@ErrorMessage" Link="@ErrorLink" LinkText="@ErrorLinkText" ReturnUrl="@ReturnUrl"/>
+    <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+        <DataAnnotationsValidator/>
+        <h2>Welcome!</h2>
+        <hr/>
+        <div class="form-floating mb-3">
+            <InputText @bind-Value="Input.UserNameOrEmail" id="email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com or username"/>
+            <label for="email" class="form-label">Email or Username</label>
+            <ValidationMessage For="() => Input.UserNameOrEmail" class="text-danger"/>
+        </div>
+        <div class="form-floating mb-3">
+            <InputText type="password" @bind-Value="Input.Password" id="password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password"/>
+            <label for="password" class="form-label">Password</label>
+            <ValidationMessage For="() => Input.Password" class="text-danger"/>
+            <p>
+                @* ReSharper disable Html.PathError *@
+                <a href="Account/ForgotPassword">Forgot your password?</a>
+            </p>
+        </div>
+        <div class="checkbox mb-3">
+            <label class="form-label">
+                <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input"/>
+                Remember me
+            </label>
+        </div>
+        <div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+        </div>
+        <p class="mt-2">
+            Need an Account?
+            <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register</a>
+        </p>
+    </EditForm>   
+</CompAccountContainer>
 
 @code {
     [SupplyParameterFromQuery] private string? ErrorMessage { get; set; }
