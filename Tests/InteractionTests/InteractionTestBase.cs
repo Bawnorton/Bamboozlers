@@ -6,6 +6,11 @@ public class InteractionTestBase : AuthenticatedBlazoriseTestBase
 {
     public (List<User>, List<Friendship>, List<FriendRequest>, List<Block>) BuildTestCases()
     {
+        MockDatabaseProvider.GetMockAppDbContext().MockUsers.ClearAll();
+        MockDatabaseProvider.GetMockAppDbContext().MockFriendRequests.ClearAll();
+        MockDatabaseProvider.GetMockAppDbContext().MockFriendships.ClearAll();
+        MockDatabaseProvider.GetMockAppDbContext().MockBlocks.ClearAll();
+        
         List<User> users = [];
         for (var i = 0; i < 10; i++)
         {

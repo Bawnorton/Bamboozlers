@@ -224,44 +224,43 @@
 
         var isOwner = Chat!.OwnerID == user.Id;
         var isMod = Chat.Moderators.Contains(user);
-
-        return @<div style="display: block" id="@($"{user.UserName}_section")">
-            <div style="display: inline-block">
-                <Image ElementId="@($"{user.UserName}_avatar")"
-                       Class="_32x32 message-avatar"
-                       Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
-                       alt=""/>
-                <CompInteractUsername User="@user"/>
-                @if (isOwner)
-                {
-                    <Badge ElementId="@($"{user.UserName}_badge")"
-                           Style="margin-left: 5px; margin-right: 5px;"
-                           Color="Color.Success">
-                        OWNER
-                    </Badge>
-                }
-                else if (isMod)
-                {
-                    <Badge ElementId="@($"{user.UserName}_badge")"
-                           Style="margin-left: 5px; margin-right: 5px;"
-                           Color="Color.Light">
-                        MODERATOR
-                    </Badge>
-                }
-            </div>
-            @if (!isOwner)
-            {
-                @if ((Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null && !isMod) || Chat.OwnerID == Self.Id)
-                {
-                    @GetKickButton(user)
-                }
-
-                @if (Chat.OwnerID == Self.Id)
-                {
-                    @GetPermsButton(user)
-                }
-            }
-        </div>;
+        
+        return @<div id="@($"{user.UserName}_section")">
+                   <div style="display: inline-block">
+                       <Image ElementId="@($"{user.UserName}_avatar")"
+                              Class="_32x32 message-avatar"
+                              Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
+                              alt=""/>
+                       <CompInteractUsername User="@user"/>
+                       @if (isOwner)
+                       {
+                           <Badge ElementId="@($"{user.UserName}_badge")"
+                                  Style="margin-left: 5px; margin-right: 5px;" 
+                                  Color="Color.Success">
+                               OWNER
+                           </Badge>
+                       }
+                       else if (isMod)
+                       {
+                           <Badge ElementId="@($"{user.UserName}_badge")"
+                                  Style="margin-left: 5px; margin-right: 5px;" 
+                                  Color="Color.Light">
+                               MODERATOR
+                           </Badge>
+                       }
+                   </div>
+                   @if (!isOwner)
+                   {
+                       @if ((Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null && !isMod) || Chat.OwnerID == Self.Id)
+                       {
+                           @GetKickButton(user)
+                       }
+                       @if (Chat.OwnerID == Self.Id)
+                       {
+                           @GetPermsButton(user)
+                       }
+                   }
+               </div>;
     }
 
     private RenderFragment? GetPermsButton(User user)

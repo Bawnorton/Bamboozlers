@@ -19,31 +19,39 @@
         <ModalTitle>Invite Friends to @(Chat is null ? "Group" : Chat.GetGroupName())</ModalTitle>
     </ModalHeader>
     <ModalBody>
-        <Div Style="display: block; width: 90%; margin: 10px;">
-            @foreach (var friend in FriendList)
-            {
-                var isInGroup = InGroupAlready.Contains(friend);
-                var isInvited = InvitedAlready.Contains(friend);
-                var buttonId = $"{friend.UserName}-action-button";
+        <Div Style="width: 90%; margin: 10px;">
+            @if (Chat is not null) {
+                using var dbContext = Db.CreateDbContext();
+                var invitesForGroup = dbContext.GroupInvites.Where(i => i.GroupID == ChatID);
                 
-                var evt = isInvited ? GroupEvent.SentInviteRevoked : GroupEvent.SentInvite;
-                RenderFragment button = @<CompGroupButton ButtonId="@buttonId"
-                                                          EventKind="@evt"
-                                                          GroupID="@ChatID"
-                                                          UserId="@friend.Id"/>;
-                if (isInGroup)
+                foreach (var friend in FriendList)
                 {
-                    button = @<CompActionButton ButtonId="@buttonId"
-                                                Color="Color.Dark" 
-                                                ButtonCaption="Already in group"
-                                                ColumnWrapped="@false"
-                                                Disabled="@true"/>;
+                    if (Chat is null)
+                        continue;
+
+                    var isInGroup = Chat.Users.FirstOrDefault(u => u.UserName == friend.UserName) is not null;
+                    var isInvited = invitesForGroup.FirstOrDefault(i => friend.Id == i.RecipientID) is not null;
+                    var buttonId = $"{friend.UserName}-action-button";
+
+                    var evt = isInvited ? GroupEvent.SentInviteRevoked : GroupEvent.SentInvite;
+                    RenderFragment button = @<CompGroupButton ButtonId="@buttonId"
+                                                              EventKind="@evt"
+                                                              GroupID="@ChatID"
+                                                              UserId="@friend.Id"/>;
+                    if (isInGroup)
+                    {
+                        button = @<CompActionButton ButtonId="@buttonId"
+                                                    Color="Color.Dark"
+                                                    ButtonCaption="Already in group"
+                                                    ColumnWrapped="@false"
+                                                    Disabled="@true"/>;
+                    }
+
+                    <CompUserTab @key=@friend
+                                 User="@friend"
+                                 Button="@button"/>
+                    <Divider/>
                 }
-                
-                <CompUserTab @key=@friend
-                             User="@friend"
-                             Button="@button"/>
-                <Divider/>
             }
         </Div>
     </ModalBody>
@@ -90,19 +98,6 @@
             return;
         
         FriendList = await UserInteractionService.GetAllFriends();
-        
-        InGroupAlready = FriendList.Where(
-                f => Chat.Users.FirstOrDefault(u => u.UserName == f.UserName) is not null
-            ).ToList();
-
-        var allInvites = await UserGroupService.GetAllOutgoingInvites();
-        var invitesForGroup = allInvites.Where(i => i.GroupID == ChatID);
-
-        InvitedAlready = invitesForGroup
-            .Select(i => FriendList.FirstOrDefault(u => u.Id == i.RecipientID))
-            .Where(u => u != null)
-            .Select(u => u!)
-            .ToList();
     }
     
     public List<GroupEvent> WatchedGroupEvents { get; set; } =
