@@ -14,7 +14,7 @@
         <Heading>Configure Group</Heading>
         <Divider/>
         <Container>
-            <Row>
+            <Row Class="centre-content">
                 <Column ColumnSize="ColumnSize.Is3">
                     <CompAvatarUploader DefaultSrc="images/default_group.png"
                                         Avatar="@Avatar"
@@ -45,7 +45,7 @@
             <Divider/>
             @foreach (var inv in InviteList)
             {
-                <Container Style="max-height: 15vh; margin-left: 10%; margin-right: 10%" Class="scrollbar-container">
+                <Container Style="max-height: 15vh; margin-left: 10px; margin-right: 10px" Class="scrollbar-container">
                     <Row Class="centre-content">
                         <Column ColumnSize="ColumnSize.Is1">
                             <Check TValue="bool" @bind-Checked="inv.Invite"/>
