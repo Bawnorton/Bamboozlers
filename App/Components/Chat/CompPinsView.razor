@@ -1,0 +1,38 @@
+@inherits UserViewComponentBase
+
+@using Bamboozlers.Classes.AppDbContext
+
+@inject IDbContextFactory<AppDbContext> Db;
+
+<ModalContent>
+    <ModalHeader>
+        <Div>
+            Pins
+        </Div>
+    </ModalHeader>
+    <ModalBody>
+        @foreach (var message in PinnedMessages)
+        {
+            <CompPinMessageView Message="@message"/>
+        }
+    </ModalBody>
+</ModalContent>
+
+@code {
+
+    [Parameter] public int? ChatID { get; set; }
+
+    private List<Message> PinnedMessages { get; set; } = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ChatID == null) throw new ArgumentNullException(nameof(ChatID));
+
+        await using var db = await Db.CreateDbContextAsync();
+        var chat = await db.Chats.Include(c => c.Messages).FirstOrDefaultAsync(c => c.ID == ChatID);
+        if (chat == null) throw new ArgumentNullException(nameof(chat));
+
+        PinnedMessages = chat.Messages?.Where(m => m.IsPinned).ToList() ?? [];
+    }
+
+}

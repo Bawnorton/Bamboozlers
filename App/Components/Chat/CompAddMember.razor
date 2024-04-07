@@ -1,15 +1,12 @@
 @inherits UserViewComponentBase
-@implements IAsyncGroupSubscriber
 
-@using Bamboozlers.Classes.AppDbContext
-@using AngleSharp.Diffing.Extensions
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Services
+@implements Bamboozlers.Classes.Utility.Observer.IAsyncGroupSubscriber
+
 @using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Components.VisualUtility
-@using Microsoft.IdentityModel.Tokens
-@using Bamboozlers.Classes.Utility.Observer
-@using Blazorise.Extensions
+
 @inject IDbContextFactory<AppDbContext> Db
 
 <ModalContent Centered>
@@ -27,52 +24,52 @@
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
-    
+
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
 
     [Parameter] public int? ChatID { get; set; }
     public List<int?> WatchedIDs { get; set; } = [];
-    
+
     private GroupChat? Chat { get; set; }
     public RenderFragment? InviteList { get; set; }
-    
+
     private User? Self { get; set; }
-    
+
     protected override async Task OnInitializedAsync()
     {
         UserGroupService.AddSubscriber(this);
         WatchedIDs = [ChatID];
         await LoadGroupData();
     }
-    
+
     public async Task LoadGroupData()
     {
         Self = await AuthService.GetUser();
-        if (Self is null) 
+        if (Self is null)
             return;
-        
+
         await using var db = await Db.CreateDbContextAsync();
-        
+
         Chat = db.GroupChats.Where(c => c.ID == ChatID)
             .Include(c => c.Users)
             .Include(c => c.Moderators)
             .FirstOrDefault();
-        
+
         if (Chat is null)
             return;
-        
+
         var friendList = await UserInteractionService.GetAllFriends();
-        
+
         var inGroup = friendList.Where(
-                f => Chat.Users.FirstOrDefault(u => u.UserName == f.UserName) is not null
-            ).ToList();
+            f => Chat.Users.FirstOrDefault(u => u.UserName == f.UserName) is not null
+        ).ToList();
 
         var allInvites = await UserGroupService.GetAllOutgoingInvites();
-        var invitesForGroup = allInvites is not null 
-            ? allInvites.Where(i => i.GroupID == ChatID) 
+        var invitesForGroup = allInvites is not null
+            ? allInvites.Where(i => i.GroupID == ChatID)
             : [];
-        
+
         var invitedFriends = invitesForGroup
             .Select(i => friendList.FirstOrDefault(u => u.Id == i.RecipientID))
             .Where(u => u != null)
@@ -120,22 +117,23 @@
                           }
                       </text>;
     }
-    
+
     private RenderFragment GetActionButton(User user, Color? color, string? caption, IconName? iconName, EventCallback? actionCallback, bool disabled = false)
     {
         return @<div id="@($"{user.UserName}-action-button")" style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
-                   <CompActionButton ButtonCaption="@caption"
-                                     Color="@(color ?? Color.Success)"
-                                     IconName="@(iconName ?? null)"
-                                     ColumnWrapped="@false"
-                                     ActionCallback="@(actionCallback ?? EventCallback.Empty)"
-                                     Disabled="@disabled"/>
-               </div>;
+            <CompActionButton ButtonCaption="@caption"
+                              Color="@(color ?? Color.Success)"
+                              IconName="@(iconName ?? null)"
+                              ColumnWrapped="@false"
+                              ActionCallback="@(actionCallback ?? EventCallback.Empty)"
+                              Disabled="@disabled"/>
+        </div>;
     }
-    
+
     public async Task OnGroupUpdate()
     {
         await LoadGroupData();
         StateHasChanged();
     }
+
 }

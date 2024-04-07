@@ -3,7 +3,7 @@ namespace Tests;
 public class TestBase : IDisposable
 {
     protected readonly TestContext Ctx;
-    
+
     protected TestBase()
     {
         Ctx = new TestContext();

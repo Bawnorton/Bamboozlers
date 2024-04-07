@@ -1,6 +1,6 @@
 namespace Bamboozlers.Classes.Events.Api;
 
-public abstract class Event<T> 
+public abstract class Event<T>
 {
     public const string DefaultPhase = "Default";
 
@@ -15,6 +15,5 @@ public abstract class Event<T>
 
     public virtual void AddPhaseOrdering(string firstPhase, string secondPhase)
     {
-        
     }
 }

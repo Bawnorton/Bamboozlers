@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.AppDbContext;
@@ -11,13 +10,15 @@ public class FriendRequest
         this.SenderID = SenderID;
         this.ReceiverID = ReceiverID;
     }
+
     public int SenderID { get; set; }
     public User Sender { get; set; }
-    
+
     public int ReceiverID { get; set; }
     public User Receiver { get; set; }
     public RequestStatus Status { get; set; }
 }
+
 public enum RequestStatus
 {
     Pending,

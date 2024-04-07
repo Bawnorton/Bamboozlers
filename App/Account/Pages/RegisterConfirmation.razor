@@ -1,7 +1,6 @@
 ﻿@page "/Account/RegisterConfirmation"
-
-@using Microsoft.AspNetCore.Identity
 @using Bamboozlers.Classes.AppDbContext
+@using Microsoft.AspNetCore.Identity
 
 @inject UserManager<User> UserManager
 @inject IdentityRedirectManagerWrapper RedirectManager
@@ -10,14 +9,15 @@
 
 <h1>Register confirmation</h1>
 
-<StatusMessage Message="@statusMessage"/>
+<StatusMessage Message="@_statusMessage"/>
 <p>Please check your email to confirm your account.</p>
 
 @code {
-    private string? statusMessage;
+    private string? _statusMessage;
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
+    // ReSharper disable once UnusedAutoPropertyAccessor.Local - Used by SupplyParameterFromQuery
     [SupplyParameterFromQuery] private string? Email { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -31,9 +31,8 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = "Error finding user for unspecified email";
+            _statusMessage = "Error finding user for unspecified email";
         }
-        
     }
 
 }

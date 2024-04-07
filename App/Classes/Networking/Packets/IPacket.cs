@@ -4,8 +4,8 @@ namespace Bamboozlers.Classes.Networking.Packets;
 
 public interface IPacket
 {
-    public PacketType PacketType(); 
-    
+    public PacketType PacketType();
+
     public void Write(JsonObject obj);
 
     public string Serialize()

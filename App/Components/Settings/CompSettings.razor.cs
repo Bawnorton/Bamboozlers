@@ -1,15 +1,6 @@
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using Bamboozlers.Classes;
-using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Services;
 using Blazorise;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.JSInterop;
 
 namespace Bamboozlers.Components.Settings;
@@ -19,20 +10,24 @@ public partial class CompSettings : SettingsComponentBase
     [Parameter] public EventCallback StateChangedCallback { get; set; }
     [Parameter] public bool Visible { get; set; }
     [Parameter] public string? SectionName { get; set; }
-    
+
+    [Parameter] public EventCallback<UserUpdateResult> UserUpdateCallback { get; set; }
+    public AlertArguments Arguments { get; private set; } = new();
+
     /*
     [Parameter] public string? SentStatusMessage { get; set; }
     [Parameter] public string? SentStatusDescription { get; set; }
     */
-    
+
     protected override void OnInitialized()
     {
         SectionName ??= "Account";
     }
 
     // TODO: Impl with events?
-    protected override async Task OnParametersSetAsync()
+    protected override Task OnParametersSetAsync()
     {
+        return Task.CompletedTask;
         /*
         if (!(SentStatusMessage is null || SentStatusDescription is null))
         {
@@ -46,15 +41,12 @@ public partial class CompSettings : SettingsComponentBase
         */
     }
 
-    [Parameter] public EventCallback<UserUpdateResult> UserUpdateCallback { get; set; }
-    public AlertArguments Arguments { get; private set; }  = new();
-
     public Task OnAlertChange(AlertArguments arguments)
     {
         Arguments = arguments;
-        
+
         StateHasChanged();
-        
+
         return Task.CompletedTask;
     }
 
@@ -63,7 +55,7 @@ public partial class CompSettings : SettingsComponentBase
         bool result;
         switch (userDataRecord.DataType)
         {
-            case UserDataType.Username: 
+            case UserDataType.Username:
                 result = await ChangeUsername(userDataRecord.UserName, userDataRecord.CurrentPassword);
                 break;
             case UserDataType.Password:
@@ -76,38 +68,38 @@ public partial class CompSettings : SettingsComponentBase
             case UserDataType.Email:
                 result = await ChangeEmail(userDataRecord.Email);
                 break;
-            case UserDataType.Visual:
-            case null:
             default:
                 var iResult = await UserService.UpdateUserAsync(userDataRecord);
-                
+
                 await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                    UserDataType.Visual, 
-                    iResult.Succeeded, 
-                    iResult.Succeeded ? "" : $"Error: {string.Join(",", iResult.Errors.Select(error => error.Description))}")
+                    UserDataType.Visual,
+                    iResult.Succeeded,
+                    iResult.Succeeded
+                        ? ""
+                        : $"Error: {string.Join(",", iResult.Errors.Select(error => error.Description))}")
                 );
-                
+
                 result = iResult.Succeeded;
                 break;
         }
-        
+
         StateHasChanged();
         await StateChangedCallback.InvokeAsync();
-        
+
         return result;
     }
-    
+
     private async Task<bool> ChangeUsername(string? input, string? pass)
     {
         UserData = await UserService.GetUserDataAsync();
         if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Username, 
-                false, 
+                UserDataType.Username,
+                false,
                 "User not found")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -116,15 +108,15 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
         if (string.IsNullOrEmpty(input))
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Username, 
-                false, 
+                UserDataType.Username,
+                false,
                 "Invalid Or Empty")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -133,32 +125,32 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
         if (input == UserData.UserName)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Username, 
-                false, 
+                UserDataType.Username,
+                false,
                 "Same Username")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
                 "Could not change your username.",
                 "New username was the same as current username."
             ));
-            return false;  
+            return false;
         }
-        
+
         if (pass is null)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Username, 
-                false, 
+                UserDataType.Username,
+                false,
                 "Empty Password")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -173,11 +165,11 @@ public partial class CompSettings : SettingsComponentBase
         {
             var errorString = $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}";
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Username, 
-                false, 
+                UserDataType.Username,
+                false,
                 errorString)
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -186,24 +178,24 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
         await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-            UserDataType.Username, 
-            true, 
+            UserDataType.Username,
+            true,
             "")
         );
-        
+
         Logger.LogInformation("User changed their username successfully.");
-        
+
         await OnAlertChange(new AlertArguments(
             Color.Success,
             true,
             "Success! ",
             "Your username has been changed successfully."
         ));
-        
+
         await JsRuntime.InvokeVoidAsync("settingsInterop.Reauthenticate");
-        
+
         return true;
     }
 
@@ -213,11 +205,11 @@ public partial class CompSettings : SettingsComponentBase
         if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Password, 
-                false, 
+                UserDataType.Password,
+                false,
                 "User not found")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -226,15 +218,15 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
         if (currentPassword is null || newPassword is null)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Password, 
-                false, 
+                UserDataType.Password,
+                false,
                 "Missing Input")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -243,17 +235,17 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
-        var result = await UserService.ChangePasswordAsync( currentPassword, newPassword);
+
+        var result = await UserService.ChangePasswordAsync(currentPassword, newPassword);
         if (!result.Succeeded)
         {
             var errorString = $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}";
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Password, 
-                false, 
+                UserDataType.Password,
+                false,
                 errorString)
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -262,24 +254,24 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
         await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-            UserDataType.Password, 
-            true, 
+            UserDataType.Password,
+            true,
             "")
         );
-        
+
         Logger.LogInformation("User changed their password successfully.");
-        
+
         await OnAlertChange(new AlertArguments(
             Color.Success,
             true,
             "Success! ",
             "Your password has been changed successfully."
         ));
-        
+
         await JsRuntime.InvokeVoidAsync("settingsInterop.Reauthenticate");
-        
+
         return true;
     }
 
@@ -289,11 +281,11 @@ public partial class CompSettings : SettingsComponentBase
         if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Email, 
-                false, 
+                UserDataType.Email,
+                false,
                 "User not found")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -302,15 +294,15 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
         if (newEmail is null || newEmail == UserData.Email)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Email, 
-                false, 
+                UserDataType.Email,
+                false,
                 "Email Invalid Or Same")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -321,11 +313,11 @@ public partial class CompSettings : SettingsComponentBase
         }
 
         await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-            UserDataType.Email, 
-            true, 
+            UserDataType.Email,
+            true,
             "")
         );
-        
+
         await JsRuntime.InvokeVoidAsync("settingsInterop.SendNewEmailConfirmation", UserData.Id, newEmail);
 
         await OnAlertChange(new AlertArguments(
@@ -334,7 +326,7 @@ public partial class CompSettings : SettingsComponentBase
             "Confirmation link was sent to new email.",
             "Please check your inbox to confirm changes."
         ));
-        
+
         return true;
     }
 
@@ -344,11 +336,11 @@ public partial class CompSettings : SettingsComponentBase
         if (UserData is null || UserData == UserRecord.Default)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Deletion, 
-                false, 
+                UserDataType.Deletion,
+                false,
                 "User not found")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -357,15 +349,15 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
         if (pass is null)
         {
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Deletion, 
-                false, 
+                UserDataType.Deletion,
+                false,
                 "Empty Password")
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -374,17 +366,17 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
         var result = await UserService.DeleteAccountAsync(pass);
         if (!result.Succeeded)
         {
             var errorString = $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}";
             await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-                UserDataType.Deletion, 
-                false, 
+                UserDataType.Deletion,
+                false,
                 errorString)
             );
-            
+
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
@@ -393,17 +385,17 @@ public partial class CompSettings : SettingsComponentBase
             ));
             return false;
         }
-        
+
         await UserUpdateCallback.InvokeAsync(new UserUpdateResult(
-            UserDataType.Deletion, 
-            true, 
+            UserDataType.Deletion,
+            true,
             "")
         );
-        
-        Logger.LogInformation("User with name '{user.UserName}' deleted their account.",UserData.UserName);
-        
+
+        Logger.LogInformation("User with name '{user.UserName}' deleted their account.", UserData.UserName);
+
         await JsRuntime.InvokeVoidAsync("settingsInterop.ForceLogout");
-        
+
         return true;
     }
 }

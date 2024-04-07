@@ -9,9 +9,12 @@
             </p>
             <Container Width="Width.Is75"
                        TextAlignment="TextAlignment.Center">
+                @* ReSharper disable Html.PathError *@
                 <Form action="Account/DownloadPersonalData"
                       method="post">
                     <AntiforgeryToken/>
+                    <!--suppress HtmlWrongAttributeValue -->
+                    @* ReSharper disable Html.AttributeValueNotResolved *@
                     <Button Color="Color.Light"
                             Type="ButtonType.Submit">
                         <Icon Name="IconName.InfoCircle"/>
@@ -73,6 +76,7 @@
                                 </Button>
                             </Column>
                             <Column>
+                                <!--suppress HtmlWrongAttributeValue -->
                                 <Button id="submit-button"
                                         Width="Width.Is100"
                                         Color="Color.Danger"
@@ -94,7 +98,7 @@
 
 @code {
     private DeleteAccountInputModel? Model { get; set; } = new();
-    
+
     public override async Task<bool> OnValidSubmitAsync()
     {
         await base.OnValidSubmitAsync();
@@ -103,13 +107,14 @@
             await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return false;
         }
-        
+
         var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Deletion,
             CurrentPassword = Model!.Password
         });
-        
+
         return result;
     }
+
 }

@@ -30,6 +30,7 @@
                     <label for="password" class="form-label">Password</label>
                     <ValidationMessage For="() => Input.Password" class="text-danger"/>
                     <p>
+                        @* ReSharper disable Html.PathError *@
                         <a href="Account/ForgotPassword">Forgot your password?</a>
                     </p>
                 </div>
@@ -43,7 +44,7 @@
                     <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
                 </div>
                 <p class="mt-2">
-                    Need an Account? 
+                    Need an Account?
                     <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register</a>
                 </p>
             </EditForm>
@@ -58,6 +59,8 @@
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
+    // ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
+    // ReSharper disable UnusedAutoPropertyAccessor.Local - Used by SupplyParameterFromQuery
     [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
@@ -79,7 +82,7 @@
             ErrorMessage = "Error: Invalid login attempt.";
             return;
         }
-        var result = await SignInManager.PasswordSignInAsync(user.UserName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        var result = await SignInManager.PasswordSignInAsync(user.UserName!, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
@@ -95,16 +98,15 @@
             }
             else
             {
-                ErrorMessage= "Error: Invalid login attempt.";
+                ErrorMessage = "Error: Invalid login attempt.";
             }
-            
         }
     }
 
     private sealed class InputModel
     {
-        [Required] 
-        [DataType(DataType.Text)] 
+        [Required]
+        [DataType(DataType.Text)]
         [Display(Name = "Email or Username")]
         public string UserNameOrEmail { get; set; } = "";
 

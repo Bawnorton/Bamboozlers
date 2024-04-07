@@ -1,18 +1,12 @@
 @inherits UserViewComponentBase
-@implements ICompImageUploader
-@implements IAsyncGroupSubscriber
 
-@using Bamboozlers.Classes.AppDbContext
-@using AngleSharp.Diffing.Extensions
-@using Bamboozlers.Classes.Services
-@using Microsoft.IdentityModel.Tokens
-@using Bamboozlers.Components.VisualUtility
-@using System.Xml.Schema
-@using Bamboozlers.Classes.Data
+@implements ICompImageUploader
+@implements Bamboozlers.Classes.Utility.Observer.IAsyncGroupSubscriber
+
 @using Bamboozlers.Classes.Services.UserServices
-@using Bamboozlers.Classes.Utility.Observer
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore.ChangeTracking
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Components.VisualUtility
 
 @inject IDbContextFactory<AppDbContext> Db
 
@@ -25,10 +19,10 @@
         <Alert ElementId="settings-alert" Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
             <AlertMessage>
                 @AlertArguments.AlertMessage
-                <CloseButton Clicked="@(() => AlertArguments = new AlertArguments())" 
-                             Style="--bs-btn-close-white-filter: black;" 
-                             VerticalAlignment="VerticalAlignment.Middle" 
-                             Float="Float.End" 
+                <CloseButton Clicked="@(() => AlertArguments = new AlertArguments())"
+                             Style="--bs-btn-close-white-filter: black;"
+                             VerticalAlignment="VerticalAlignment.Middle"
+                             Float="Float.End"
                              TextColor="TextColor.Warning"/>
             </AlertMessage>
             <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
@@ -38,7 +32,7 @@
         </Div>
         <CompSimpleDivider/>
         <Div style="margin-left: 5dvw; margin-right: 5dvw;">
-            <Div ElementId = "mod-heading" Size="HeadingSize.Is4">Group Moderators</Div>
+            <Div ElementId="mod-heading" Size="HeadingSize.Is4">Group Moderators</Div>
             @ModList
             <CompSimpleDivider/>
             <Heading ElementId="member-heading" Size="HeadingSize.Is4">Group Members</Heading>
@@ -60,19 +54,19 @@
 
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
-    
+
     [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
-    
+
     [Parameter] public int? ChatID { get; set; }
-    
+
     public List<int?> WatchedIDs { get; set; } = [];
-    
+
     private GroupChat? Chat { get; set; }
     private User? Self { get; set; }
-    
+
     public AlertArguments AlertArguments { get; set; } = new();
-    
+
     private RenderFragment? GroupDisplay { get; set; }
     private RenderFragment? ModList { get; set; }
     private RenderFragment? MemberList { get; set; }
@@ -89,16 +83,16 @@
         WatchedIDs = [ChatID];
         await LoadGroupData();
     }
-    
+
     public void DeleteAvatar()
     {
         AlertArguments = new AlertArguments();
         Chat!.Avatar = null;
     }
-    
+
     public async Task OnFileUpload(InputFileChangeEventArgs args)
     {
-        AlertArguments = await ((ICompImageUploader) this).OnFileUpload(args, async bytes =>
+        AlertArguments = await ((ICompImageUploader)this).OnFileUpload(args, async bytes =>
         {
             return await Task.Run(() =>
                 {
@@ -108,13 +102,13 @@
             );
         });
     }
-    
+
     private async Task LoadGroupData()
     {
         Self = await AuthService.GetUser();
-        if (Self is null) 
+        if (Self is null)
             return;
-        
+
         await using var db = await Db.CreateDbContextAsync();
 
         Chat = db.GroupChats.Where(c => c.ID == ChatID)
@@ -127,8 +121,8 @@
                          @foreach (var user in Chat.Users)
                          {
                              <div id="@($"{Chat.Name}_memberDisplay")">
-                                  @GetUserFragment(user)
-                                  <Divider/>
+                                 @GetUserFragment(user)
+                                 <Divider/>
                              </div>
                          }
                      </div>;
@@ -180,7 +174,9 @@
                                                        TextSize="TextSize.Small" Display="Display.Inline"
                                                        role="button"
                                                        Class="text-decoration-underline mb-0 text-danger-emphasis"
-                                                       @onclick="@DeleteAvatar">Delete Avatar</Paragraph>
+                                                       @onclick="@DeleteAvatar">
+                                                Delete Avatar
+                                            </Paragraph>
                                         }
                                     </Row>
                                 </Div>
@@ -211,13 +207,13 @@
                                 <TextEdit Class="w-50"
                                           Text="@(Chat is null ? "Chat" : Chat.Name)"
                                           ElementId="chat-name"
-                                          Placeholder="Chat Name" 
+                                          Placeholder="Chat Name"
                                           Disabled/>
-                                
+
                             </text>;
         }
     }
-    
+
     private async Task SaveChanges()
     {
         try
@@ -240,11 +236,11 @@
                     Color.Danger,
                     true,
                     "Unsuccessful attempt to make changes.",
-                    $"{string.Join(",",result.Errors.Select(s => s.Description))}"
+                    $"{string.Join(",", result.Errors.Select(s => s.Description))}"
                 );
                 return;
             }
-            
+
             await LoadGroupData();
         }
         catch (Exception ex)
@@ -266,76 +262,78 @@
 
         var isOwner = Chat!.OwnerID == user.Id;
         var isMod = Chat.Moderators.Contains(user);
-        
+
         return @<div style="display: block" id="@($"{user.UserName}_section")">
-                   <div style="display: inline-block">
-                       <Image ElementId="@($"{user.UserName}_avatar")"
-                              Class="_32x32 message-avatar"
-                              Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
-                              alt=""/>
-                       <CompInteractUsername User="@user"/>
-                       @if (isOwner)
-                       {
-                           <Badge ElementId="@($"{user.UserName}_badge")"
-                                  Style="margin-left: 5px; margin-right: 5px;" 
-                                  Color="Color.Success">
-                               OWNER
-                           </Badge>
-                       }
-                       else if (isMod)
-                       {
-                           <Badge ElementId="@($"{user.UserName}_badge")"
-                                  Style="margin-left: 5px; margin-right: 5px;" 
-                                  Color="Color.Light">
-                               MODERATOR
-                           </Badge>
-                       }
-                   </div>
-                   @if (!isOwner)
-                   {
-                       @if ((Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null && !isMod) || Chat.OwnerID == Self.Id)
-                       {
-                           @GetKickButton(user)
-                       }
-                       @if (Chat.OwnerID == Self.Id)
-                       {
-                           @GetPermsButton(user)
-                       }
-                   }
-               </div>;
+            <div style="display: inline-block">
+                <Image ElementId="@($"{user.UserName}_avatar")"
+                       Class="_32x32 message-avatar"
+                       Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
+                       alt=""/>
+                <CompInteractUsername User="@user"/>
+                @if (isOwner)
+                {
+                    <Badge ElementId="@($"{user.UserName}_badge")"
+                           Style="margin-left: 5px; margin-right: 5px;"
+                           Color="Color.Success">
+                        OWNER
+                    </Badge>
+                }
+                else if (isMod)
+                {
+                    <Badge ElementId="@($"{user.UserName}_badge")"
+                           Style="margin-left: 5px; margin-right: 5px;"
+                           Color="Color.Light">
+                        MODERATOR
+                    </Badge>
+                }
+            </div>
+            @if (!isOwner)
+            {
+                @if ((Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null && !isMod) || Chat.OwnerID == Self.Id)
+                {
+                    @GetKickButton(user)
+                }
+
+                @if (Chat.OwnerID == Self.Id)
+                {
+                    @GetPermsButton(user)
+                }
+            }
+        </div>;
     }
-    
+
     private RenderFragment? GetPermsButton(User user)
     {
-        if (Chat is null) 
+        if (Chat is null)
             return null;
-        
+
         var isMod = Chat.Moderators.Contains(user);
         return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
-                   <CompActionButton ButtonId="@($"{user.UserName}_permsButton")"
-                                     ButtonCaption="@(isMod ? "Revoke permissions" : "Assign permissions")"
-                                     Color="@(isMod ? Color.Warning : Color.Success)"
-                                     IconName="@(isMod ? IconName.Ban : IconName.ShieldAlt)"
-                                     ColumnWrapped="@false"
-                                     ActionCallback="@(isMod ? async () => await UserGroupService.RevokePermissions(ChatID, user.Id) : async () => await UserGroupService.AssignPermissions(ChatID, user.Id))"/>
-               </div>;
+            <CompActionButton ButtonId="@($"{user.UserName}_permsButton")"
+                              ButtonCaption="@(isMod ? "Revoke permissions" : "Assign permissions")"
+                              Color="@(isMod ? Color.Warning : Color.Success)"
+                              IconName="@(isMod ? IconName.Ban : IconName.ShieldAlt)"
+                              ColumnWrapped="@false"
+                              ActionCallback="@(isMod ? async () => await UserGroupService.RevokePermissions(ChatID, user.Id) : async () => await UserGroupService.AssignPermissions(ChatID, user.Id))"/>
+        </div>;
     }
-    
+
     private RenderFragment GetKickButton(User user)
     {
         return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
-                   <CompActionButton ButtonId="@($"{user.UserName}_kickButton")"
-                                     ButtonCaption="Kick user"
-                                     Color="Color.Danger"
-                                     IconName="IconName.Ban"
-                                     ColumnWrapped="@false"
-                                     ActionCallback="@(async () => await UserGroupService.RemoveGroupMember(ChatID, user.Id))"/>
-                </div>;
+            <CompActionButton ButtonId="@($"{user.UserName}_kickButton")"
+                              ButtonCaption="Kick user"
+                              Color="Color.Danger"
+                              IconName="IconName.Ban"
+                              ColumnWrapped="@false"
+                              ActionCallback="@(async () => await UserGroupService.RemoveGroupMember(ChatID, user.Id))"/>
+        </div>;
     }
-    
+
     public async Task OnGroupUpdate()
     {
         await LoadGroupData();
         StateHasChanged();
     }
+
 }

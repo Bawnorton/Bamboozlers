@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,15 +5,16 @@ namespace Tests.Provider.MockAppDbContext;
 
 public class MockMessages : AbstractMockDbSet<Message>
 {
-    public Mock<DbSet<Message>> mockMessages;
-    private readonly Func<Message, Message, bool> matchFunction = (m0, m1) => m0.ID == m1.ID;
+    private readonly Func<Message, Message, bool> _matchFunction = (m0, m1) => m0.ID == m1.ID;
+    private Mock<DbSet<Message>> _mockMessages;
 
-    public MockMessages(MockAppDbContext mockAppDbContext, DbSet<User> users, DbSet<Chat> chats) : base(mockAppDbContext)
+    public MockMessages(MockAppDbContext mockAppDbContext, IQueryable<User> users, IQueryable<Chat> chats) : base(
+        mockAppDbContext)
     {
-         var user1 = users.First();
-         var user2 = users.Skip(1).First();
-         var dm = chats.First();
-            
+        var user1 = users.First();
+        var user2 = users.Skip(1).First();
+        var dm = chats.First();
+
         var messages = new List<Message>
         {
             new()
@@ -68,9 +68,8 @@ public class MockMessages : AbstractMockDbSet<Message>
                 SentAt = DateTime.Now.Subtract(TimeSpan.FromMinutes(2))
             }
         };
-        
+
         for (var i = 6; i < 100; i++)
-        {
             messages.Add(new Message
             {
                 ID = i,
@@ -81,45 +80,44 @@ public class MockMessages : AbstractMockDbSet<Message>
                 Content = "Test Message " + i,
                 SentAt = DateTime.Now.Subtract(TimeSpan.FromSeconds(101 - i))
             });
-        }
-        
+
         dm.Messages = messages;
 
-        mockMessages = MockAppDbContext.SetupMockDbSet(messages);
-        MockAppDbContext.MockDbContext.Setup(x => x.Messages).Returns(mockMessages.Object);
+        _mockMessages = MockAppDbContext.SetupMockDbSet(messages);
+        MockAppDbContext.MockDbContext.Setup(x => x.Messages).Returns(_mockMessages.Object);
     }
-    
+
     public override void AddMock(Message message)
     {
-        mockMessages = base.AddMock(
+        _mockMessages = base.AddMock(
             message,
-            mockMessages,
-            matchFunction
+            _mockMessages,
+            _matchFunction
         );
-        
-        MockAppDbContext.MockDbContext.Setup(x => x.Messages).Returns(mockMessages.Object);
-        
+
+        MockAppDbContext.MockDbContext.Setup(x => x.Messages).Returns(_mockMessages.Object);
+
         if (message.Chat?.Messages is null) return;
         var chat = message.Chat;
-        var match = chat.Messages.FirstOrDefault(m => matchFunction(m, message));
+        var match = chat.Messages.FirstOrDefault(m => _matchFunction(m, message));
         if (match is not null) return;
         chat.Messages.Add(message);
         MockAppDbContext.MockChats.UpdateMock(chat);
     }
-    
+
     public override void RemoveMock(Message message)
     {
-        mockMessages = base.RemoveMock(
+        _mockMessages = base.RemoveMock(
             message,
-            mockMessages,
-            matchFunction
+            _mockMessages,
+            _matchFunction
         );
-        
-        MockAppDbContext.MockDbContext.Setup(x => x.Messages).Returns(mockMessages.Object);
-        
+
+        MockAppDbContext.MockDbContext.Setup(x => x.Messages).Returns(_mockMessages.Object);
+
         if (message.Chat?.Messages is null) return;
         var chat = message.Chat;
-        var match = chat.Messages.FirstOrDefault(m => matchFunction(m, message));
+        var match = chat.Messages.FirstOrDefault(m => _matchFunction(m, message));
         if (match is null) return;
         chat.Messages.Remove(message);
         MockAppDbContext.MockChats.UpdateMock(chat);
@@ -130,18 +128,15 @@ public class MockMessages : AbstractMockDbSet<Message>
         RemoveMock(message);
         AddMock(message);
     }
-    
+
     public override Message? FindMock(int idx)
     {
-        return mockMessages.Object.Skip(idx - 1).FirstOrDefault();
+        return _mockMessages.Object.Skip(idx - 1).FirstOrDefault();
     }
-    
+
     public override void ClearAll()
     {
-        var list = mockMessages.Object.ToList();
-        foreach (var message in list)
-        {
-            RemoveMock(message);
-        }
+        var list = _mockMessages.Object.ToList();
+        foreach (var message in list) RemoveMock(message);
     }
 }

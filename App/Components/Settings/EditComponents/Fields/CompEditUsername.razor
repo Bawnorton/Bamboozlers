@@ -4,36 +4,33 @@
     ViewPanelContent =
         @<ViewPanelBase DisplayData="@UserData?.UserName"
                         FieldName="Username"
-                        Button="ToggleEditButton"
-                        />;
+                        Button="ToggleEditButton"/>;
 
-    List<RenderFragment> formFields = [];
-    formFields.Add(
+    List<RenderFragment> formFields =
+    [
         @<Div Class="form-floating mb-3">
-            <InputText id="username-field" 
-                       @bind-Value="Model!.Username" 
-                       class="form-control" 
-                       autocomplete="new-username" 
-                       aria-required="true" 
+            <InputText id="username-field"
+                       @bind-Value="Model.Username"
+                       class="form-control"
+                       autocomplete="new-username"
+                       aria-required="true"
                        placeholder="Please enter new username."/>
             <Label for="username-field" class="form-label">New Username</Label>
             <ValidationMessage For="() => Model.Username" class="text-danger"/>
-        </Div>
-    );
-    formFields.Add(
+        </Div>,
         @<Div Class="form-floating mb-3">
-            <InputText id="password-field" 
-                       type="password" 
-                       @bind-Value="Model!.Password" 
-                       class="form-control" 
-                       autocomplete="current-password" 
-                       aria-required="true" 
+            <InputText id="password-field"
+                       type="password"
+                       @bind-Value="Model.Password"
+                       class="form-control"
+                       autocomplete="current-password"
+                       aria-required="true"
                        placeholder="Please confirm your password."/>
             <Label for="password-field" class="form-label">Password</Label>
             <ValidationMessage For="() => Model.Password" class="text-danger"/>
         </Div>
-    );
-    
+    ];
+
     EditPanelContent =
         @<EditPanelBase
              SubmitCallback="OnValidSubmitAsync"
@@ -49,7 +46,7 @@
 
 @code {
     private UsernameInputModel Model { get; set; } = new();
-    
+
     public override async Task OnValidSubmitAsync()
     {
         await base.OnValidSubmitAsync();
@@ -58,12 +55,13 @@
             await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return;
         }
-        
+
         await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Username,
-            UserName = Model!.Username,
+            UserName = Model.Username,
             CurrentPassword = Model.Password
         });
     }
+
 }

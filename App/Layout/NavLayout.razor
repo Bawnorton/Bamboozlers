@@ -1,24 +1,17 @@
-@inherits UserViewComponentBase;
-@implements IAsyncGroupSubscriber
-@implements IAsyncInteractionSubscriber
-
-@using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes.Events
-@using Bamboozlers.Classes
-@using AngleSharp.Diffing.Extensions
-@using Bamboozlers.Classes.Events
-@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Networking
-@using Bamboozlers.Classes.Services
-@using Bamboozlers.Components.Settings
-@using Bamboozlers.Classes.Utility.Observer
-@using Bamboozlers.Classes.Services
-@using Bamboozlers.Classes.Services.UserServices
-@using Bamboozlers.Components.Chat
-@using Blazorise.Extensions
-
 @rendermode InteractiveServer
+
+@inherits UserViewComponentBase;
+
+@implements Bamboozlers.Classes.Utility.Observer.IAsyncGroupSubscriber
+@implements Bamboozlers.Classes.Utility.Observer.IAsyncInteractionSubscriber
+
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
+@using Blazorise.Extensions
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Components.Friend
+@using Bamboozlers.Components.Chat
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject AuthenticationStateProvider AuthStateProvider;
@@ -40,7 +33,7 @@
                  Class="scrollbar-container">
                 <BarMenu>
                     <BarItem>
-                        <BarLink ElementId="friends" @onclick="() => {CurrentView = View.Friends; CurrentChatId = -1; }">
+                        <BarLink ElementId="friends" @onclick="() => { CurrentView = View.Friends; CurrentChatId = -1; }">
                             <BarIcon Class="fa-user-circle"></BarIcon>
                             Friends
                         </BarLink>
@@ -118,14 +111,14 @@
             </Div>
         </LayoutSiderContent>
     </LayoutSider>
-        @if(CurrentView == View.Friends)
-        {
-            <CompFriendsView />
-        }
-        else
-        {
-            <CompChatView ChatID="CurrentChatId"/>
-        }
+    @if (CurrentView == View.Friends)
+    {
+        <CompFriendsView/>
+    }
+    else
+    {
+        <CompChatView ChatID="CurrentChatId"/>
+    }
 </Layout>
 
 @code {
@@ -139,19 +132,19 @@
     private View CurrentView { get; set; } = View.Friends;
     private int CurrentChatId { get; set; } = -1;
     private int FriendCount { get; set; } = 0;
-    
+
     protected override async Task OnInitializedAsync()
     {
         UserGroupService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
         await Refresh();
     }
-    
+
     public async Task Refresh()
     {
         await GetDataAsync();
     }
-    
+
     private async Task GetDataAsync()
     {
         await GetUserDataAsync();
@@ -177,9 +170,9 @@
     {
         if (User?.Chats is null)
             throw new InvalidOperationException("User and/or chats were not found.");
-        
+
         GroupChats = User.Chats.OfType<GroupChat>().ToList();
-        WatchedIDs = GroupChats.Select(s => (int?) s.ID).ToList();
+        WatchedIDs = GroupChats.Select(s => (int?)s.ID).ToList();
 
         if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
         CurrentChatId = -1;
@@ -190,20 +183,20 @@
     {
         if (User is null)
             throw new InvalidOperationException("User and/or chats were not found.");
-        
+
         DmChats = User.Chats.Except(GroupChats)
             .Select(chat => new DmChat(
-                chat.ID, 
-                chat.Users.First(u => u.Id != User.Id), 
+                chat.ID,
+                chat.Users.First(u => u.Id != User.Id),
                 chat.Users.First(u => u.Id != User.Id).Avatar)
             ).ToList();
     }
-    
+
     private async Task GetFriendData()
     {
         if (User is null)
             throw new InvalidOperationException("User and/or chats were not found.");
-        
+
         await using var db = await Db.CreateDbContextAsync();
         FriendCount = 0;
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
@@ -220,29 +213,29 @@
     {
         if (DmChats.FirstOrDefault(d => d.ID == chatId) is null)
             return;
-        
-        CurrentView = View.Dm; 
-        CurrentChatId = chatId; 
+
+        CurrentView = View.Dm;
+        CurrentChatId = chatId;
     }
-    
+
     private void OpenGroup(int chatId)
     {
         if (GroupChats.FirstOrDefault(g => g.ID == chatId) is null)
             return;
-        
-        CurrentView = View.Group; 
-        CurrentChatId = chatId; 
+
+        CurrentView = View.Group;
+        CurrentChatId = chatId;
     }
-    
+
     public List<int?> WatchedIDs { get; set; } = [];
-    
+
     public async Task OnGroupUpdate()
     {
         await GetUserDataAsync();
         GetGroupData();
         StateHasChanged();
     }
-    
+
     public async Task OnInteractionUpdate()
     {
         await GetUserDataAsync();
@@ -250,13 +243,14 @@
         await GetFriendData();
         StateHasChanged();
     }
-    
+
     private enum View
     {
         Dm,
         Group,
         Friends
     }
-    
+
     private record DmChat(int ID, User User, byte[]? Avatar);
+
 }

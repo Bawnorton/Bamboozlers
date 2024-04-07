@@ -1,4 +1,3 @@
-@using Microsoft.AspNetCore.Components
 @using System.Net
 
 <Div class="word-break">
@@ -6,8 +5,7 @@
 </Div>
 
 @code {
-    [Parameter]
-    public string Content { get; set; }
+    [Parameter] public string Content { get; set; }
 
     private string SafelyFormatContentWithLineBreaks(string content)
     {
@@ -15,4 +13,5 @@
         var encodedContent = WebUtility.HtmlEncode(content);
         return encodedContent.Replace("\n", "<br />");
     }
+
 }

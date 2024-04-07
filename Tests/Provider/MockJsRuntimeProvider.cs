@@ -19,10 +19,10 @@ public class MockJsRuntimeProvider
         _mockJsRuntime.Setup(x
             => x.InvokeAsync<IJSVoidResult>(It.IsAny<string>(), It.IsAny<object[]>())
         ).Returns(new ValueTask<IJSVoidResult>());
-        
-        _mockJsRuntime.Setup(js => js.InvokeAsync<bool>("showConfirmDialog",It.IsAny<object[]>())
-        ).Returns(ValueTask.FromResult(true));
-        
+
+        _mockJsRuntime.Setup(js => js.InvokeAsync<bool>("showConfirmDialog", It.IsAny<object[]>())
+        ).ReturnsAsync(true);
+
         ctx.JSInterop.Mode = JSRuntimeMode.Strict;
         ctx.Services.AddSingleton(GetJsRuntime());
     }
@@ -31,5 +31,4 @@ public class MockJsRuntimeProvider
     {
         return _mockJsRuntime.Object;
     }
-
 }

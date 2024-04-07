@@ -6,24 +6,20 @@
                         FieldName="Email"
                         Button="ToggleEditButton"/>;
 
-    List<RenderFragment> formFields = [];
-    formFields.Add(
+    List<RenderFragment> formFields = [
         @<Div Class="form-floating mb-3">
-            <InputText id="email-field" 
-                       @bind-Value="Model!.Email" 
-                       class="form-control" 
-                       autocomplete="email" 
-                       aria-required="true" 
+            <InputText id="email-field"
+                       @bind-Value="Model!.Email"
+                       class="form-control"
+                       autocomplete="email"
+                       aria-required="true"
                        placeholder="Please enter new email."/>
             <Label for="email-field" class="form-label">
                 New Email
             </Label>
             <ValidationMessage For="() => Model!.Email" class="text-danger"/>
         </Div>
-    );
-
-    List<RenderFragment> buttons = []; 
-    buttons.Add(EditPanelButtons);
+    ];
     
     EditPanelContent =
         @<EditPanelBase
@@ -49,14 +45,17 @@
             await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return;
         }
-    
-        var result = await DataChangeFunction.Invoke(new UserDataRecord 
-        { 
-            DataType = UserDataType.Email, 
-            Email = Model!.Email 
+
+        var result = await DataChangeFunction.Invoke(new UserDataRecord
+        {
+            DataType = UserDataType.Email,
+            Email = Model!.Email
         });
-    
+
         if (result)
+        {
             await Toggle();
+        }
     }
+
 }

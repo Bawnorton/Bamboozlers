@@ -1,12 +1,6 @@
 @inherits SettingsComponentBase
 @implements ICompImageUploader
 
-@using Bamboozlers.Classes.Events
-@using System.Diagnostics
-@using Azure.Core
-@using Bamboozlers.Classes
-@using Blazorise.Extensions
-
 
 <Row>
     <Label Width="@Width.Px(256)" Height="@Height.Px(256)" Class="overlay-wrapper" for="input-file">
@@ -23,32 +17,32 @@
     @if (UserData?.AvatarBytes is not null)
     {
         <CompActionButton Color="Color.Danger"
-                                  IconName="IconName.Delete"
-                                  ActionCallback="DeleteAvatar"/>
+                          IconName="IconName.Delete"
+                          ActionCallback="DeleteAvatar"/>
     }
 </Row>
 
 @code
 {
-    private static readonly string[] Allowed_Formats = ["png", "jpeg", "jpeg"];
+    private static readonly string[] AllowedFormats = ["png", "jpeg", "jpeg"];
 
     public async Task DeleteAvatar()
     {
         if (UserData?.AvatarBytes is null) return;
-    
+
         if (DataChangeFunction is null)
         {
             await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return;
-        } 
-                                  
+        }
+
         var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Visual,
             AvatarBytes = Array.Empty<byte>()
         });
-                                  
-        if (result) 
+
+        if (result)
         {
             await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Success,
@@ -58,7 +52,7 @@
             ));
         }
     }
-    
+
     public async Task OnFileUpload(InputFileChangeEventArgs args)
     {
         if (DataChangeFunction is null)
@@ -68,15 +62,15 @@
         }
 
         await AlertEventCallback.InvokeAsync(
-            await ((ICompImageUploader) this).OnFileUpload(args, 
-                async (bytes) => 
+            await ((ICompImageUploader)this).OnFileUpload(args,
+                async bytes =>
                     await DataChangeFunction!.Invoke(new UserDataRecord
                         {
                             DataType = UserDataType.Visual,
-                            AvatarBytes = bytes,
+                            AvatarBytes = bytes
                         }
-                        )
-                )
+                    )
+            )
         );
     }
 }

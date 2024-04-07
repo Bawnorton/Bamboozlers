@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Bamboozlers.Classes.Data;
 using Blazorise;
 using Blazorise.Extensions;
@@ -9,7 +8,7 @@ namespace Bamboozlers.Components;
 public interface ICompImageUploader
 {
     private static readonly string[] AllowedFormats = ["png", "jpeg", "jpeg"];
-    
+
     public async Task<AlertArguments> OnFileUpload(InputFileChangeEventArgs args, Func<byte[], Task<bool>> setCallback)
     {
         IBrowserFile? upload;
@@ -26,7 +25,7 @@ public interface ICompImageUploader
                 "No file was uploaded."
             );
         }
-        
+
         if (!upload.ContentType.Contains("image/"))
             return new AlertArguments(
                 Color.Danger,
@@ -34,7 +33,7 @@ public interface ICompImageUploader
                 "Error occured while uploading image.",
                 "Uploaded file was not an image."
             );
-        
+
         var imageType = upload.ContentType[6..];
         if (!AllowedFormats.Contains(imageType))
             return new AlertArguments(
@@ -44,8 +43,8 @@ public interface ICompImageUploader
                 "Image must be a PNG or JPG (JPEG) file."
             );
 
-        ArraySegment<byte> bytes; 
-        var success = false;
+        ArraySegment<byte> bytes;
+        bool success;
         using (var stream = new MemoryStream())
         {
             try

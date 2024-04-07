@@ -8,7 +8,7 @@ public record KeyData(string key, string code, bool ctrl, bool shift, bool alt, 
     {
         return new KeyData(key, code, false, false, false, false);
     }
-    
+
     public static KeyData FromChar(char c)
     {
         var key = c.ToString().ToLower();

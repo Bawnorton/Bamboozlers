@@ -1,7 +1,5 @@
-@using System.Data
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Components.VisualUtility
 @using Bamboozlers.Components.Settings.EditComponents.Fields
+@using Bamboozlers.Components.VisualUtility
 @inherits SettingsComponentBase
 
 @inject ILogger<CompSettings> Logger
@@ -31,7 +29,7 @@
                 <Tab Name="Privacy">Privacy</Tab>
             </Items>
             <Content>
-                <TabPanel Name="Account" 
+                <TabPanel Name="Account"
                           Class="settings-tab scrollbar-container">
                     <Container Class="settings-container">
                         <Row Class="settings-row">
@@ -79,12 +77,12 @@
                         </Row>
                     </Container>
                 </TabPanel>
-                <TabPanel Name="Privacy" 
+                <TabPanel Name="Privacy"
                           Class="settings-tab scrollbar-container">
                     <h3>Not implemented</h3>
                     <p>This feature is not part of the requirements and is thus not mandatory to complete, but if there is spare time...</p>
                 </TabPanel>
-                <TabPanel Name="Accessibility" 
+                <TabPanel Name="Accessibility"
                           Class="settings-tab scrollbar-container">
                     <h3>Not implemented</h3>
                     <p>This feature is not part of the requirements and is thus not mandatory to complete, but if there is spare time...</p>
@@ -93,10 +91,13 @@
         </Tabs>
     </ModalBody>
     <ModalFooter>
+        @* ReSharper disable Html.PathError *@
         <Form id="logout-form" action="Account/Logout" method="post">
             <AntiforgeryToken/>
             <input id="loginRedirectMessage" type="hidden" value="You have been logged out."/>
-            <Button Color="Color.Dark"
+            @* ReSharper disable Html.AttributeValueNotResolved *@
+            <!--suppress HtmlWrongAttributeValue -->
+                <Button Color="Color.Dark"
                     Border="Border.White"
                     Type="ButtonType.Submit">
                 <Icon Name="IconName.Running"/>

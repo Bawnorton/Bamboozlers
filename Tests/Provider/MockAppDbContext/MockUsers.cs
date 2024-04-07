@@ -1,5 +1,3 @@
-using System.Linq.Expressions;
-using System.Reflection;
 using Bamboozlers.Classes.AppDbContext;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,12 +5,12 @@ namespace Tests.Provider.MockAppDbContext;
 
 public class MockUsers : AbstractMockDbSet<User>
 {
-    public Mock<DbSet<User>> mockUsers;
-    private readonly Func<User, User, bool> matchFunction = (u0, u1) => u0.Id == u1.Id;
+    private readonly Func<User, User, bool> _matchFunction = (u0, u1) => u0.Id == u1.Id;
+    public Mock<DbSet<User>> MockUsersSet;
 
     public MockUsers(MockAppDbContext mockAppDbContext) : base(mockAppDbContext)
     {
-        mockUsers = MockAppDbContext.SetupMockDbSet<User>(
+        MockUsersSet = MockAppDbContext.SetupMockDbSet<User>(
         [
             new User
             {
@@ -59,27 +57,27 @@ public class MockUsers : AbstractMockDbSet<User>
                 EmailConfirmed = true
             }
         ]);
-        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(mockUsers.Object);
+        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(MockUsersSet.Object);
     }
-    
+
     public override void AddMock(User user)
     {
-        mockUsers = base.AddMock(
+        MockUsersSet = base.AddMock(
             user,
-            mockUsers,
-            matchFunction
+            MockUsersSet,
+            _matchFunction
         );
-        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(mockUsers.Object);
+        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(MockUsersSet.Object);
     }
-    
+
     public override void RemoveMock(User user)
     {
-        mockUsers = base.RemoveMock(
+        MockUsersSet = base.RemoveMock(
             user,
-            mockUsers,
-            matchFunction
+            MockUsersSet,
+            _matchFunction
         );
-        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(mockUsers.Object);
+        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(MockUsersSet.Object);
     }
 
     public override void UpdateMock(User user)
@@ -90,12 +88,12 @@ public class MockUsers : AbstractMockDbSet<User>
 
     public override User? FindMock(int idx)
     {
-        return mockUsers.Object.Skip(idx - 1).FirstOrDefault();
+        return MockUsersSet.Object.Skip(idx - 1).FirstOrDefault();
     }
-    
+
     public override void ClearAll()
     {
-        var list = mockUsers.Object.ToList();
+        var list = MockUsersSet.Object.ToList();
         foreach (var user in list)
         {
             RemoveMock(user);

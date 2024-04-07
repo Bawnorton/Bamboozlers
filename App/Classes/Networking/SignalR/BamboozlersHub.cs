@@ -16,7 +16,7 @@ namespace Bamboozlers.Classes.Networking.SignalR;
 public class BamboozlersHub : Hub
 {
     public const string HubUrl = "/bamboozlers_chat";
-    
+
     public async Task ReceivePacketOnServer(string packetJson)
     {
         await ServerNetworkHandler.Instance.Handle(packetJson, async packet =>
@@ -28,7 +28,24 @@ public class BamboozlersHub : Hub
                     {
                         DbEntry = tellOthersToReadDatabaseC2SPacket.DbEntry
                     };
-                    await Clients.Groups(tellOthersToReadDatabaseC2SPacket.ChatId.ToString()).SendAsync("RecievePacketOnClient", ((IPacket)readDatabaseS2CPacket).Serialize());
+                    await Clients.Groups(tellOthersToReadDatabaseC2SPacket.ChatId.ToString())
+                        .SendAsync("RecievePacketOnClient", ((IPacket)readDatabaseS2CPacket).Serialize());
+                    break;
+                case MessageUpdatedC2SPacket messageUpdatedC2SPacket:
+                    IPacket response;
+                    if (messageUpdatedC2SPacket.Deleted)
+                        response = new MessageDeletedS2CPacket
+                        {
+                            MessageId = messageUpdatedC2SPacket.MessageId
+                        };
+                    else
+                        response = new MessageEditedS2CPacket
+                        {
+                            MessageId = messageUpdatedC2SPacket.MessageId,
+                            NewContent = messageUpdatedC2SPacket.NewContent!
+                        };
+                    await Clients.Groups(messageUpdatedC2SPacket.ChatId.ToString())
+                        .SendAsync("RecievePacketOnClient", response.Serialize());
                     break;
             }
         });
@@ -39,13 +56,13 @@ public class BamboozlersHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, chatId.ToString());
         Console.WriteLine($"User {Context.ConnectionId} joined chat {chatId}");
     }
-    
+
     public override Task OnConnectedAsync()
     {
         Console.WriteLine($"Client connected: {Context.ConnectionId}");
         return base.OnConnectedAsync();
     }
-    
+
     public override Task OnDisconnectedAsync(Exception? exception)
     {
         Console.WriteLine($"Client disconnected: {Context.ConnectionId}");

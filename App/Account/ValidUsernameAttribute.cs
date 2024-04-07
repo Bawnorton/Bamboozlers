@@ -1,6 +1,7 @@
-namespace Bamboozlers.Account;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
+
+namespace Bamboozlers.Account;
 
 public class ValidUsernameAttribute : ValidationAttribute
 {

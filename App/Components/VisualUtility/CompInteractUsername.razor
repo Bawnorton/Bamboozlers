@@ -1,6 +1,6 @@
+@using Bunit.Extensions
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
-@using Bunit.Extensions
 
 <Div Class="message-username" Style="display: inline-block" onclick="@(async () => await OpenProfilePopup())">
     @if (User is not null)
@@ -34,4 +34,5 @@
             );
         }
     }
+
 }

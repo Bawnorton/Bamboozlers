@@ -11,12 +11,6 @@ public class UserViewComponentBase : ComponentBase, IAsyncUserSubscriber
     [Inject] protected IAuthService AuthService { get; set; } = default!;
     protected UserRecord? UserData { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        UserService.AddSubscriber(this);
-    }
-    
     public virtual async Task OnUserUpdate()
     {
         UserData = await UserService.GetUserDataAsync();
@@ -27,5 +21,11 @@ public class UserViewComponentBase : ComponentBase, IAsyncUserSubscriber
     {
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        UserService.AddSubscriber(this);
     }
 }

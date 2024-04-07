@@ -8,7 +8,7 @@
                   Name="view">
             @ViewPanelContent
         </TabPanel>
-        <TabPanel ElementId="edit-panel" 
+        <TabPanel ElementId="edit-panel"
                   Name="edit">
             @EditPanelContent
         </TabPanel>
@@ -42,14 +42,15 @@
         EditPanelButtons = @<CompEditButtons Toggle="Toggle"/>;
         SetViewContext();
     }
-    
-    public virtual async Task OnValidSubmitAsync()
+
+    public virtual Task OnValidSubmitAsync()
     {
-        return;
+        return Task.CompletedTask;
     }
 
     private void SetViewContext()
     {
         InteractionMode = Editing ? "edit" : "view";
     }
+
 }
