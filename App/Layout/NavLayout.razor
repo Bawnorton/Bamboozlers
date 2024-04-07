@@ -206,20 +206,20 @@
         );
     }
 
-    private void GetGroupData()
+    public void GetGroupData()
     {
-        if (Self?.Chats is null)
-            throw new InvalidOperationException("User and/or chats were not found.");
+        if (Self?.Chats is null) throw new InvalidOperationException("User and/or chats were not found.");
         
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         WatchedIDs = GroupChats.Select(s => (int?) s.ID).ToList();
 
         if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
+        
         CurrentChatId = -1;
         CurrentView = View.Home;
     }
 
-    private void GetDmData()
+    public void GetDmData()
     {
         if (Self is null)
             throw new InvalidOperationException("User and/or chats were not found.");
@@ -232,11 +232,12 @@
             ).ToList();
         
         if (CurrentView != View.Dm || DmChats.FirstOrDefault(c => c.User.Id == CurrentChatId) is not null) return;
+        
         CurrentChatId = -1;
         CurrentView = View.Home;
     }
-
-    private async Task GetFriendData()
+    
+    public async Task GetFriendData()
     {
         if (Self is null)
             throw new InvalidOperationException("User and/or chats were not found.");

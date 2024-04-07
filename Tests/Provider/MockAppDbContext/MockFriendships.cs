@@ -13,7 +13,8 @@ public class MockFriendships : AbstractMockDbSet<Friendship>
         var user0 = users.First();
         var user1 = users.Skip(1).First();
         var user2 = users.Skip(2).First();
-
+        var user3 = users.Skip(3).First();
+            
         MockDbSet = MockAppDbContext.SetupMockDbSet(new List<Friendship>
         {
             new(user0.Id,user1.Id)
@@ -25,6 +26,11 @@ public class MockFriendships : AbstractMockDbSet<Friendship>
             {
                 User1 = user1,
                 User2 = user2
+            },
+            new(user0.Id,user3.Id)
+            {
+                User1 = user0,
+                User2 = user3
             },
         });
     }

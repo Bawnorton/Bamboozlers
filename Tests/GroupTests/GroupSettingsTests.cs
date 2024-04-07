@@ -8,11 +8,11 @@ namespace Tests.GroupTests;
 
 public class GroupSettingsTests : GroupChatTestBase
 {
-    private void GroupSettingsTests_CheckMemberDisplay(User subjectUser, User member, GroupChat subjectGroup, IRenderedFragment fragment)
+    private static void GroupSettingsTests_CheckMemberDisplay(User subjectUser, User member, GroupChat subjectGroup, IRenderedFragment fragment)
     {
         var isMod = subjectGroup.Moderators.FirstOrDefault(u => u.Id == member.Id) is not null;
         var subjectIsMod = subjectGroup.Moderators.FirstOrDefault(u => u.Id == subjectUser.Id) is not null;
-        var memberDiv = fragment.Find($"#{member.UserName}_section");
+        fragment.Find($"#{member.UserName}_section");
         if (isMod || member.Id == subjectGroup.OwnerID)
         {
             var badge = fragment.Find($"#{member.UserName}_badge");
@@ -26,32 +26,21 @@ public class GroupSettingsTests : GroupChatTestBase
 
         if (subjectUser.Id == subjectGroup.OwnerID)
         {
-            if (member.Id != subjectUser.Id)
-            {
-                var kickButton = fragment.Find($"#{member.UserName}_kickButton");
-                var permsButton = fragment.Find($"#{member.UserName}_permsButton");
-                if (isMod)
-                {
-                    Assert.Contains("Revoke permissions", permsButton.TextContent);
-                }
-                else
-                {
-                    Assert.Contains("Assign permissions", permsButton.TextContent);
-                }
-                Assert.Contains("Kick user", kickButton.TextContent);
-            }
+            if (member.Id == subjectUser.Id) return;
+            var kickButton = fragment.Find($"#{member.UserName}_kickButton");
+            var permsButton = fragment.Find($"#{member.UserName}_permsButton");
+            Assert.Contains(isMod ? "Revoke permissions" : "Assign permissions", permsButton.TextContent);
+            Assert.Contains("Kick user", kickButton.TextContent);
         } 
         else if (subjectIsMod)
         {
-            if (!isMod && member.Id != subjectGroup.OwnerID)
-            {
-                var kickButton = fragment.Find($"#{member.UserName}_kickButton");
-                Assert.Contains("Kick user", kickButton.InnerHtml);   
-            }
+            if (isMod || member.Id == subjectGroup.OwnerID) return;
+            var kickButton = fragment.Find($"#{member.UserName}_kickButton");
+            Assert.Contains("Kick user", kickButton.InnerHtml);
         }
     }
     
-    private void GroupSettingsTests_CheckModList(
+    private static void GroupSettingsTests_CheckModList(
         User subjectUser, 
         GroupChat subjectGroup, 
         IRenderedFragment fragment)
@@ -64,7 +53,7 @@ public class GroupSettingsTests : GroupChatTestBase
         }
     }
     
-    private void GroupSettingsTests_CheckMemberList(
+    private static void GroupSettingsTests_CheckMemberList(
         User subjectUser, 
         GroupChat subjectGroup, 
         IRenderedFragment fragment)
@@ -79,16 +68,17 @@ public class GroupSettingsTests : GroupChatTestBase
     public async void GroupSettingsTests_CompChatSettings()
     {
         // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
+        var (testUsers, _, testGroups, _) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
         var subjectGroup = testGroups[0];
         await SetUser(subjectUser);
         UserService.Invalidate();
 
+        var group1 = subjectGroup;
         var component = Ctx.RenderComponent<CompGroupSettings>(
             parameters
-                => parameters.Add(p => p.ChatID, subjectGroup.ID)
+                => parameters.Add(p => p.ChatID, group1.ID)
         );
         
         var modList = component.Find("#modList");
@@ -111,9 +101,10 @@ public class GroupSettingsTests : GroupChatTestBase
         await SetUser(subjectUser);
         UserService.Invalidate();
 
+        var group = subjectGroup;
         component = Ctx.RenderComponent<CompGroupSettings>(
             parameters
-                => parameters.Add(p => p.ChatID, subjectGroup.ID)
+                => parameters.Add(p => p.ChatID, group.ID)
         );
         
         modList = component.Find("#modList"); 
@@ -160,7 +151,7 @@ public class GroupSettingsTests : GroupChatTestBase
     public async void GroupSettingsTests_DeleteAvatarTest()
     {
         // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
+        var (testUsers, _, testGroups, _) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
         var subjectGroup = testGroups[0];
@@ -205,7 +196,7 @@ public class GroupSettingsTests : GroupChatTestBase
     public async void GroupSettingsTests_ChangeAvatarTest()
     {
         // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
+        var (testUsers, _, testGroups, _) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
         var subjectGroup = testGroups[0];
@@ -238,7 +229,7 @@ public class GroupSettingsTests : GroupChatTestBase
     public async void GroupSettingsTests_KickWarningPopupTest()
     {
         // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
+        var (testUsers, _, testGroups, _) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
         var subjectGroup = testGroups[0];
@@ -270,7 +261,7 @@ public class GroupSettingsTests : GroupChatTestBase
     public async void GroupSettingsTests_CompEditGroupName()
     {
         // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
+        var (testUsers, _, testGroups, _) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
         var subjectGroup = testGroups[0];

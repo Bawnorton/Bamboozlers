@@ -25,30 +25,27 @@
                           EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
                           Placeholder="Find users by their username or display name"/>
                 <div style="display: inline-flex">
-                    <CompActionButton ActionCallback="@(async () => await PerformSearch())"
+                    <CompActionButton ButtonId="search-button"
+                                      ActionCallback="@(async () => await PerformSearch())"
                                       IconName="@IconName.Search"
                                       ColumnWrapped="@false"/>
                 </div>
             </div>
-            <div style="display: block; margin-left: 5px; margin-right: 5px;" class="settings-container scrollbar-container">
+            <div id="scrollbar-container" style="display: block; margin-left: 5px; margin-right: 5px;" class="settings-container scrollbar-container">
                 <Divider/>
-                @if (CurrentSearchResults.Count > 0)
+                @foreach (var user in CurrentSearchResults)
                 {
-                    foreach (var user in CurrentSearchResults)
-                    {
-                        if (IncomingRequests.FirstOrDefault(u => u.SenderID == user.Id) is not null)
-                        {
-                            @GetUserFragment(user, true);
-                        }
-                        else if (OutgoingRequests.FirstOrDefault(u => u.ReceiverID == user.Id) is not null)
-                        {
-                            @GetUserFragment(user, receivedFr: true);
-                        }
-                        else
-                        {
-                            @GetUserFragment(user);
-                        }
-                    }
+                    var eventType = InteractionEvent.RequestSent;
+                    if (IncomingRequests.FirstOrDefault(u => u.SenderID == user.Id) is not null) eventType = InteractionEvent.RequestAccepted;
+                    else if (OutgoingRequests.FirstOrDefault(u => u.ReceiverID == user.Id) is not null) eventType = InteractionEvent.RequestPending;
+                    RenderFragment button = @<CompInteractionButton EventKind="@eventType"
+                                                                    UserId="@user.Id"
+                                                                    FullText="@true"
+                                                                    ButtonId="interact-button"/>;
+                    <CompUserTab @key=@user
+                                 User="@user" 
+                                 Button="@button"/>
+                    <Divider/>
                 }
             </div>
         </Div>
@@ -66,7 +63,7 @@
     private List<FriendRequest> OutgoingRequests { get; set;} = [];
     private List<User> CurrentSearchResults { get; set; } = [];
 
-    private string SearchQuery { get; set; } = "";
+    public string SearchQuery { get; set; } = "";
 
     private User Self { get; set; } = default!;
     private List<User> Ignore { get; set;} = [];
@@ -81,7 +78,10 @@
     private async Task PerformSearch()
     {
         if (SearchQuery.Length == 0)
+        {
+            CurrentSearchResults = [];
             return;
+        }
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
@@ -104,23 +104,6 @@
         IncomingRequests = await UserInteractionService.GetAllIncomingRequests();
         OutgoingRequests = await UserInteractionService.GetAllOutgoingRequests();
     }
-    
-    private RenderFragment GetUserFragment(User user, bool sentFr = false, bool receivedFr = false)
-    {
-        var eventType = InteractionEvent.RequestSent;
-        if (sentFr) eventType = InteractionEvent.RequestAccepted;
-        else if (receivedFr) eventType = InteractionEvent.RequestPending;
-        RenderFragment button = @<text>
-                                     <CompInteractionButton EventKind="@eventType"
-                                                            UserId="@user.Id"
-                                                            ButtonId="interact-button"/>
-                                 </text>;
-        return @<text>
-                    <CompUserTab User="@user" Button="@button"/>
-                    <Divider/>
-                </text>;
-    }
-
 
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
     [
@@ -132,6 +115,7 @@
     public async Task OnUpdate(InteractionEvent evt)
     {
         await GetInteractionData();
+        await PerformSearch();
         await InvokeAsync(StateHasChanged);
     }
 }

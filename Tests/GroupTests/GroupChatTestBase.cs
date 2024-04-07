@@ -8,6 +8,7 @@ public class GroupChatTestBase : AuthenticatedBlazoriseTestBase
     {
         List<User> testUsers = [];
         List<Friendship> testFriendships = [];
+        List<GroupInvite> testInvites = [];
         
         for (var i = 0; i <= 8; i++)
         {
@@ -81,19 +82,55 @@ public class GroupChatTestBase : AuthenticatedBlazoriseTestBase
         MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(groupChat2);
         MockDatabaseProvider.GetMockAppDbContext().MockChats.AddMock(groupChat3);
         
-        var invite = new GroupInvite(testUsers[0].Id,testUsers[4].Id, groupChat1.ID)
+        testInvites.AddRange(new []
         {
-            Recipient = testUsers[4],
-            Sender = testUsers[0],
-            Group = groupChat1
-        };
-        MockDatabaseProvider.GetMockAppDbContext().MockGroupInvites.AddMock(invite);
+            new GroupInvite(testUsers[0].Id,testUsers[4].Id, groupChat1.ID)
+            {
+                Recipient = testUsers[4],
+                Sender = testUsers[0],
+                Group = groupChat1
+            },
+            new(testUsers[0].Id,testUsers[5].Id, groupChat1.ID)
+            {
+                Recipient = testUsers[5],
+                Sender = testUsers[0],
+                Group = groupChat1
+            },
+            new(testUsers[0].Id,testUsers[6].Id, groupChat1.ID)
+            {
+                Recipient = testUsers[6],
+                Sender = testUsers[0],
+                Group = groupChat1
+            },
+            new(testUsers[4].Id,testUsers[0].Id, groupChat1.ID)
+            {
+                Recipient = testUsers[0],
+                Sender = testUsers[4],
+                Group = groupChat2
+            },
+            new(testUsers[5].Id,testUsers[0].Id, groupChat1.ID)
+            {
+                Recipient = testUsers[0],
+                Sender = testUsers[5],
+                Group = groupChat2
+            },
+            new(testUsers[6].Id,testUsers[0].Id, groupChat1.ID)
+            {
+                Recipient = testUsers[0],
+                Sender = testUsers[6],
+                Group = groupChat2
+            },
+        });
+        foreach (var invite in testInvites)
+        {
+            MockDatabaseProvider.GetMockAppDbContext().MockGroupInvites.AddMock(invite);
+        }
         
         return (
             testUsers, 
             testFriendships, 
             [groupChat1, groupChat2, groupChat3], 
-            [invite]
+            testInvites
         );
     }
 }

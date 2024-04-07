@@ -59,16 +59,6 @@ public class AuthService : IAuthService
         UserClaims = null;
     }
 
-    public virtual async Task<string?> GetAccessToken()
-    {
-        var claims = await GetClaims();
-        if (!(claims.Identity?.IsAuthenticated ?? false)) return null;
-
-        var token = claims.FindFirstValue("access_token");
-        Console.WriteLine($"Access token: {token}");
-        return token ?? null;
-    }
-
     public bool HasClaims()
     {
         return UserClaims is not null;

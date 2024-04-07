@@ -1,11 +1,6 @@
-using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
-using Bamboozlers.Classes.Func;
-using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Components.Group;
-using Blazorise.Extensions;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Tests.GroupTests;
 
@@ -68,8 +63,7 @@ public class GroupCreateTests : GroupChatTestBase
         var res = await component.Instance.UploadAvatar(new byte[1]);
         Assert.True(res);
         Assert.Equal(new byte[1], component.Instance.Avatar);
-        res = false;
-        
+
         component.Instance.DeleteAvatar();
         Assert.Null(component.Instance.Avatar);
 

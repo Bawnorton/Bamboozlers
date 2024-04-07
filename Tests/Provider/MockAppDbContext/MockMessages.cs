@@ -9,9 +9,9 @@ public class MockMessages : AbstractMockDbSet<Message>
 
     public MockMessages(MockAppDbContext mockAppDbContext, DbSet<User> users, DbSet<Chat> chats) : base(mockAppDbContext)
     {
-         var user1 = users.First();
-         var user2 = users.Skip(1).First();
-         var dm = chats.First();
+        var user1 = users.First();
+        var user2 = users.Skip(1).First();
+        var dm = chats.First();
             
         var messages = new List<Message>
         {

@@ -33,7 +33,7 @@
         <Content>
             <TabPanel Name="Incoming">
                 <Divider/>
-                <div style="display: inline-block; margin: 10px; width: 90%;">
+                <div id="incoming-invites" style="display: inline-block; margin: 10px; width: 90%;">
                     @if (IncomingGroupInvites.Count > 0)
                     {
                         foreach (var invite in IncomingGroupInvites)
@@ -75,7 +75,7 @@
             </TabPanel>
             <TabPanel Name="Outgoing">
                 <Divider/>
-                <div style="display: inline-block; margin: 10px; width: 90%;">
+                <div id="outgoing-invites" style="display: inline-block; margin: 10px; width: 90%;">
                     @if (OutgoingGroupInvites.Count > 0)
                     {
                         foreach (var invite in OutgoingGroupInvites)

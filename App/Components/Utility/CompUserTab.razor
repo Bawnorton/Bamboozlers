@@ -3,32 +3,32 @@
 
 <Div id="@($"user-{UserData.UserName}")" class="user-container">
     <Span class="inner" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User))">
-        <Image Source="@(IsBlockedBy ? "images/default_profile.png" : UserData.Avatar)" Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
+        <Image id="avatar" Source="@(IsBlockedBy ? "images/default_profile.png" : UserData.Avatar)" Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
         @if (IsBlocked || IsBlockedBy || string.IsNullOrEmpty(UserData.DisplayName))
         {
-            <Div class="message-username">
+            <Div id="username" class="message-username">
                 @UserData.UserName
             </Div>
         }
         else
         {
-            <Div class="message-username">
+            <Div id="display-name" class="message-username">
                 @UserData.DisplayName
             </Div>
-            <Div style="margin-left: 0.5em">
+            <Div id="username" style="margin-left: 0.5em">
                 (@UserData.UserName)
             </Div>
         }
     </Span>
     @if (ExtraInnerContent is not null)
     {
-        <Div style="margin-left: auto">
+        <Div id="inner-content-div" style="margin-left: auto">
             @ExtraInnerContent 
         </Div>
     }
     @if (Button is not null)
     {
-        <Div class="action-button">
+        <Div id="action-button-div" class="action-button">
             @Button
         </Div>   
     }
