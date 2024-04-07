@@ -2,7 +2,7 @@
 @using Bamboozlers.Classes.AppDbContext
 
 <Div id="@($"user-{User.UserName}")" class="user-container">
-    <Span class="inner" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User))">
+    <Div style="flex-grow: 1;" class="inner" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User))">
         <Image id="avatar" Source="@(IsBlockedBy ? "images/default_profile.png" : User.GetAvatar())" Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
         @if (IsBlocked || IsBlockedBy || string.IsNullOrEmpty(User.DisplayName))
         {
@@ -19,7 +19,7 @@
                 (@User.UserName)
             </Div>
         }
-    </Span>
+    </Div>
     @if (ExtraInnerContent is not null)
     {
         <Div id="inner-content-div" style="margin-left: auto">
