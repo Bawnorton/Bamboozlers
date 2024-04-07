@@ -12,13 +12,14 @@
 
 <h1>Confirm email change</h1>
 
-<StatusMessage Message="@message"/>
+<StatusMessage Message="@_message"/>
 
 @code {
-    private string? message;
+    private string? _message;
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
+    // ReSharper disable UnusedAutoPropertyAccessor.Local - Used by SupplyParameterFromQuery
     [SupplyParameterFromQuery] private string? UserId { get; set; }
 
     [SupplyParameterFromQuery] private string? Email { get; set; }
@@ -33,23 +34,23 @@
                 "Account/Login", "Error: Invalid email change confirmation link.", HttpContext);
         }
 
-        var user = await UserManager.FindByIdAsync(UserId);
+        var user = await UserManager.FindByIdAsync(UserId!);
         if (user is null)
         {
-            message = "Unable to find user with Id '{userId}'";
+            _message = "Unable to find user with Id '{userId}'";
             return;
         }
 
-        var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
-        var result = await UserManager.ChangeEmailAsync(user, Email, code);
+        var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code!));
+        var result = await UserManager.ChangeEmailAsync(user, Email!, code);
         if (!result.Succeeded)
         {
-            message = $"Error: {string.Join(", ", result.Errors.Select(error => error.Description))}";
+            _message = $"Error: {string.Join(", ", result.Errors.Select(error => error.Description))}";
             return;
         }
-        
+
         await SignInManager.RefreshSignInAsync(user);
-        message = "Thank you for confirming your email change.";
+        _message = "Thank you for confirming your email change.";
     }
 
 }

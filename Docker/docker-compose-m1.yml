@@ -2,11 +2,40 @@ version: '3.8'
 
 services:
   sqlserver:
-    platform: linux/amd64
+    platform: linux/amd64/v8
     image: mcr.microsoft.com/mssql/server:2019-latest
-    container_name: mssql_m1_container
+    container_name: bamboozlers-mssql-server
     environment:
-      SA_PASSWORD: "Password_123"
+      SA_PASSWORD: "B@mB00ZlErS_"
       ACCEPT_EULA: "Y"
     ports:
       - "1433:1433"
+    volumes:
+      - container_volume:/var/lib/mssql
+      - ./scripts:/scripts
+    networks:
+      network-bamboozlers:
+    command:
+      - /bin/bash
+      - -c
+      - |
+        /opt/mssql/bin/sqlservr &
+        pid=$$!
+        echo "Waiting for MS SQL to be available"
+        /opt/mssql-tools/bin/sqlcmd -l 30 -S localhost -h-1 -V1 -U sa -P $$SA_PASSWORD -Q "SET NOCOUNT ON SELECT \"YAY WE ARE UP\" , @@servername"
+        is_up=$$?
+        while [ $$is_up -ne 0 ] ; do 
+          echo -e $$(date) 
+          /opt/mssql-tools/bin/sqlcmd -l 30 -S localhost -h-1 -V1 -U sa -P $$SA_PASSWORD -Q "SET NOCOUNT ON SELECT \"YAY WE ARE UP\" , @@servername"
+          is_up=$$?
+          sleep 1
+        done
+        /opt/mssql-tools/bin/sqlcmd -U sa -P $$SA_PASSWORD -l 30 -e -i /scripts/initdb.ddl
+        trap "kill -15 $$pid" SIGTERM
+        wait $$pid
+        exit 0
+volumes:
+  container_volume:
+networks:
+  network-bamboozlers:
+

@@ -1,15 +1,15 @@
-using System.Diagnostics;
-using System.Text.RegularExpressions;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Utility.Observer;
-using Blazorise;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Bamboozlers.Classes.Services.UserServices;
 
-public class UserGroupService(IAuthService authService, IUserInteractionService userInteractionService, IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory) : IUserGroupService
+public class UserGroupService(
+    IAuthService authService,
+    IUserInteractionService userInteractionService,
+    IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory) : IUserGroupService
 {
     private IAuthService AuthService { get; } = authService;
     private IUserInteractionService UserInteractionService { get; } = userInteractionService;
@@ -68,10 +68,9 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         var self = await AuthService.GetUser(query => 
                 query.Include(u => u.OwnedChats)
                     .Include(u => u.Chats)
-            );
-        if (self is null)
-            return IdentityResult.Failed();
-        
+        );
+        if (self is null) return IdentityResult.Failed();
+
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var entityEntry = dbContext.GroupChats.Add(new GroupChat(self.Id));
         await dbContext.SaveChangesAsync();
@@ -84,8 +83,6 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         group.Avatar = avatar;
         
         group.Users = [self];
-        self.OwnedChats.Add(group);
-        self.Chats.Add(group);
 
         dbContext.GroupChats.Update(group);
         await dbContext.SaveChangesAsync();
@@ -123,8 +120,10 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         var (self, group) = await GetUserAndGroup(chatId);
         
         if (!ExistsAndHasPerms(self,group))
+        {
             return IdentityResult.Failed([new IdentityError{Description = "Issue occurred that prevented group changes from being saved."}]);
-        
+        }
+
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         group = dbContext.GroupChats.First(gc => gc.ID == chatId);
         avatar = avatar.IsNullOrEmpty() ? null : avatar;
@@ -141,8 +140,10 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         var (self, group) = await GetUserAndGroup(chatId);
 
         if (!ExistsAndHasPerms(self,group))
+        {
             return IdentityResult.Failed([new IdentityError{Description = "Issue occurred that prevented group changes from being saved."}]);
-        
+        }
+
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         group = dbContext.GroupChats.Include(gc => gc.Owner)
                     .First(gc => gc.ID == chatId);
@@ -150,6 +151,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         await dbContext.SaveChangesAsync();
         
         await NotifySubscribersOf(group.ID, GroupEvent.GroupDisplayChange);
+
         return IdentityResult.Success;
     }
 
@@ -159,8 +161,10 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
         if (self is null || group is null)
+        {
             return null;
-        
+        }
+
         return await dbContext.GroupInvites.AsNoTracking().FirstOrDefaultAsync(
             i => i.GroupID == group.ID && i.RecipientID == self.Id && i.SenderID == senderId
         );
@@ -172,8 +176,10 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
         if (self is null || group is null)
+        {
             return null;
-        
+        }
+
         return await dbContext.GroupInvites.AsNoTracking().FirstOrDefaultAsync(
             i => i.GroupID == group.ID && i.RecipientID == recipientId && i.SenderID == self.Id
         );
@@ -182,15 +188,13 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
     public async Task AcceptGroupInvite(int? chatId, int? senderId)
     {
         var invite = await FindIncomingGroupInvite(chatId, senderId);
-        if (invite is null) 
-            return;
-        
+        if (invite is null) return;
+
         var (self, group) = await GetUserAndGroup(chatId);
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
-        if (self is null || group is null)
-            return;
-        
+        if (self is null || group is null) return;
+
         dbContext.GroupInvites.Remove(invite);
         
         var id = self.Id;
@@ -209,13 +213,11 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
     public async Task DeclineGroupInvite(int? chatId, int? senderId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
-        if (self is null || group is null)
-            return;
-        
+        if (self is null || group is null) return;
+
         var invite = await FindIncomingGroupInvite(chatId, senderId);
-        if (invite is null) 
-            return;
-        
+        if (invite is null) return;
+
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         dbContext.GroupInvites.Remove(invite);
         await dbContext.SaveChangesAsync();
@@ -225,9 +227,8 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
     public async Task RemoveGroupMember(int? chatId, int? memberId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
-        if (self is null || group is null)
-            return;
-        
+        if (self is null || group is null) return;
+
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var other = await dbContext.Users.Where(u => u.Id == memberId)
             .Include(u => u.Chats)
@@ -236,11 +237,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         if (other is null || !IsMemberOf(group, other)) return;
 
         var skipChecks = other.Id == self.Id;
-        if (!skipChecks)
-        {
-            if (!Outranks(self, other, group))
-                return;
-        }
+        if (!skipChecks && !Outranks(self, other, group)) return;
 
         var isMod = IsModerator(group, other);
         other = dbContext.Users.First(u => u.Id == memberId);
@@ -277,10 +274,9 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         if (mod is null || !IsMemberOf(group, mod)) return;
         
         var selfOutranks = Outranks(self, mod, group);
-        
-        if (!selfOutranks || IsModerator(group, mod))
-            return;
-        
+
+        if (!selfOutranks || IsModerator(group, mod)) return;
+
         group.Moderators.Add(mod);
         await dbContext.SaveChangesAsync();
 
@@ -304,8 +300,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         if (mod is null || !IsMemberOf(group, mod)) return;
 
         var selfOutranks = Outranks(self, mod, group);
-        if (!selfOutranks || !IsModerator(group, mod))
-            return;
+        if (!selfOutranks || !IsModerator(group, mod)) return;
         
         // Re-query to avoid Change Tracker issues
         mod = dbContext.Users.First(u => u.Id == modId);
@@ -326,13 +321,11 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         var (self, group) = await GetUserAndGroup(chatId);
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var friendship = await UserInteractionService.FindFriendship(recipientId);
-        
-        if (self is null || group is null || friendship is null)
-            return;
+
+        if (self is null || group is null || friendship is null) return;
 
         var other = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == recipientId);
-        if (other is null)
-            return;
+        if (other is null) return;
         
         var invite = await FindOutgoingGroupInvite(chatId,recipientId);
         if (invite is null && (IsModerator(group, self) || IsOwner(group, self)))
@@ -343,19 +336,18 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             await NotifySubscribersOf(-1, GroupEvent.SentInvite);
         }
     }
-    
+
     public async Task RevokeGroupInvite(int? chatId, int? recipientId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
-        
-        if (self is null || group is null || recipientId is null)
-            return;
-        
+
+        if (self is null || group is null || recipientId is null) return;
+
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var invite = await dbContext.GroupInvites.FirstOrDefaultAsync(
-            i => i.SenderID == self.Id && i.RecipientID == recipientId && i.GroupID == group.ID    
+            i => i.SenderID == self.Id && i.RecipientID == recipientId && i.GroupID == group.ID
         );
-        
+
         if (invite is not null)
         {
             dbContext.Remove(invite);
@@ -378,45 +370,45 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser(
-            query => 
+            query =>
                 query.Include(u => u.ModeratedChats).ThenInclude(c => c.Users)
-                        .Include(u => u.OwnedChats).ThenInclude(c => c.Users)
+                    .Include(u => u.OwnedChats).ThenInclude(c => c.Users)
         );
-        
+
         if (self is null) return [];
         var list = self.ModeratedChats.ToList();
         list.AddRange(self.OwnedChats.ToList());
         return list;
     }
-    
+
     public async Task<List<GroupInvite>> GetAllIncomingInvites()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
-        return self is not null ? 
-            dbContext.GroupInvites.AsNoTracking()
-                .Where(i => i.RecipientID == self.Id)
-                    .Include(i => i.Sender)
-                        .Include(i => i.Recipient)
-                            .Include(i => i.Group)
-                                .ThenInclude(g => g.Owner)
-                                    .ToList() 
-            : [];
+        if (self is null) return [];
+        
+        return dbContext.GroupInvites.AsNoTracking()
+            .Where(i => i.RecipientID == self.Id)
+            .Include(i => i.Sender)
+            .Include(i => i.Recipient)
+            .Include(i => i.Group)
+            .ThenInclude(g => g.Owner)
+            .ToList();
     }
-    
+
     public async Task<List<GroupInvite>> GetAllOutgoingInvites()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
-        return self is not null 
-            ? dbContext.GroupInvites.AsNoTracking()
-                .Where(i => i.SenderID == self.Id)
-                    .Include(i => i.Sender)
-                        .Include(i => i.Recipient)
-                            .Include(i => i.Group)
-                                .ThenInclude(g => g.Owner)
-                                    .ToList()
-            : [];
+        if (self is null) return [];
+
+        return dbContext.GroupInvites.AsNoTracking()
+            .Where(i => i.SenderID == self.Id)
+            .Include(i => i.Sender)
+            .Include(i => i.Recipient)
+            .Include(i => i.Group)
+            .ThenInclude(g => g.Owner)
+            .ToList();
     }
 
     public List<IGroupSubscriber> Subscribers { get; } = [];
@@ -447,7 +439,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             }
         }
     }
-    
+
     public async Task NotifyAllAsync()
     {
         foreach (var sub in Subscribers)

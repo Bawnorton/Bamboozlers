@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.AppDbContext;
@@ -12,6 +11,7 @@ public class GroupInvite
         this.RecipientID = RecipientID;
         this.GroupID = GroupID;
     }
+
     public int SenderID { get; set; }
     public User Sender { get; set; }
     public int RecipientID { get; set; }

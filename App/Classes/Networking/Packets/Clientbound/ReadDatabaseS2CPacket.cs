@@ -10,9 +10,11 @@ public class ReadDatabaseS2CPacket : IPacket
         PacketType<ReadDatabaseS2CPacket>.Create("read_database_s2c", json => new ReadDatabaseS2CPacket(json));
 
     internal DbEntry DbEntry;
-    
-    internal ReadDatabaseS2CPacket() { }
-    
+
+    internal ReadDatabaseS2CPacket()
+    {
+    }
+
     private ReadDatabaseS2CPacket(JsonElement json)
     {
         DbEntry = DbEntry.FromId(json.GetProperty("db_entry").GetString()!);

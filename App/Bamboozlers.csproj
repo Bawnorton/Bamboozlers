@@ -1,72 +1,64 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-      <TargetFramework>net8.0</TargetFramework>
-      <Nullable>enable</Nullable>
-      <ImplicitUsings>enable</ImplicitUsings>
-      <UserSecretsId>f4893ed3-d04a-4482-a557-95280a99eb12</UserSecretsId>
-    
-      <!--Avoid Build Errors-->
-      <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
-  </PropertyGroup>
-  
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>f4893ed3-d04a-4482-a557-95280a99eb12</UserSecretsId>
+
+        <!--Avoid Build Errors-->
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    </PropertyGroup>
+
     <ItemGroup>
-      <PackageReference Include="Blazorise" Version="1.5.0-preview1" />
-      <PackageReference Include="Blazorise.Components" Version="1.5.0-preview1" />
-      <PackageReference Include="Blazorise.Bootstrap5" Version="1.5.0-preview1" />
-      <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.5.0-preview1" />
-      <PackageReference Include="Blazorise.Tests.bUnit" Version="1.5.0-preview1" />
-      <PackageReference Include="bunit" Version="1.27.17" />
-      <PackageReference Include="bunit.core" Version="1.27.17" />
-      <PackageReference Include="HttpContextMoq" Version="1.6.0" />
-      <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.2" />
-      <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.3" />
-      <PackageReference Include="Microsoft.AspNetCore.SignalR.Client.Core" Version="8.0.3" />
-      <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="8.0.2" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.2" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.2">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-      <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.1" />
-      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-      <PackageReference Include="Microsoft.Playwright" Version="1.42.0" />
-      <PackageReference Include="Microsoft.Playwright.NUnit" Version="1.42.0" />
-      <PackageReference Include="Moq" Version="4.20.70" />
-      <PackageReference Include="MockQueryable.Core" Version="7.0.0" />
-      <PackageReference Include="MockQueryable.Moq" Version="7.0.0" />
-      <PackageReference Include="SendGrid" Version="9.29.2" />
-      <PackageReference Include="Websocket.Client" Version="5.1.1" />
-      <PackageReference Include="xunit" Version="2.7.0" />
-      <PackageReference Include="xunit.runner.visualstudio" Version="2.5.7">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
+        <PackageReference Include="Blazorise" Version="1.5.0-preview1"/>
+        <PackageReference Include="Blazorise.Components" Version="1.5.0-preview1"/>
+        <PackageReference Include="Blazorise.Bootstrap5" Version="1.5.0-preview1"/>
+        <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.5.0-preview1"/>
+        <PackageReference Include="Blazorise.Tests.bUnit" Version="1.5.0-preview1"/>
+        <PackageReference Include="bunit" Version="1.27.17"/>
+        <PackageReference Include="bunit.core" Version="1.27.17"/>
+        <PackageReference Include="HttpContextMoq" Version="1.6.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.3"/>
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client.Core" Version="8.0.3"/>
+        <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.2">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.1"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0"/>
+        <PackageReference Include="Microsoft.Playwright" Version="1.42.0"/>
+        <PackageReference Include="Microsoft.Playwright.NUnit" Version="1.42.0"/>
+        <PackageReference Include="Moq" Version="4.20.70"/>
+        <PackageReference Include="MockQueryable.Core" Version="7.0.0"/>
+        <PackageReference Include="MockQueryable.Moq" Version="7.0.0"/>
+        <PackageReference Include="SendGrid" Version="9.29.2"/>
+        <PackageReference Include="Websocket.Client" Version="5.1.1"/>
+        <PackageReference Include="xunit" Version="2.7.0"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.5.7">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Migrations\" />
-      <Folder Include="wwwroot\images\" />
+        <Folder Include="Migrations\"/>
+        <Folder Include="wwwroot\images\"/>
     </ItemGroup>
-    
+
     <ItemGroup>
-      <Content Update="Tests\bin\Debug\net8.0\images\default_profile.png">
-        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      </Content>
-    </ItemGroup>
-    
-    <ItemGroup>
-      <_ContentIncludedByDefault Remove="Components\Settings\VisualUtility\CompEditButtons.razor" />
-    </ItemGroup>
-    
-    <ItemGroup>
-      <AdditionalFiles Include="Components\Settings\EditComponents\VisualUtility\CompEditButtons.razor" />
+        <Content Update="Tests\bin\Debug\net8.0\images\default_profile.png">
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

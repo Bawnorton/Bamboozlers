@@ -1,4 +1,5 @@
 @inherits UserViewComponentBase
+
 @implements IGroupSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
@@ -10,6 +11,7 @@
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.Utility.Observer
 @using Blazorise.Extensions
+
 @inject IDbContextFactory<AppDbContext> Db
 
 <ModalContent Centered>
@@ -95,12 +97,12 @@
 
         var allInvites = await UserGroupService.GetAllOutgoingInvites();
         var invitesForGroup = allInvites.Where(i => i.GroupID == ChatID);
-        
+
         InvitedAlready = invitesForGroup
             .Select(i => FriendList.FirstOrDefault(u => u.Id == i.RecipientID))
-                .Where(u => u != null)
-                    .Select(u => u!)
-                        .ToList();
+            .Where(u => u != null)
+            .Select(u => u!)
+            .ToList();
     }
     
     public List<GroupEvent> WatchedGroupEvents { get; set; } =

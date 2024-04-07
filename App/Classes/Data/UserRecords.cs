@@ -3,8 +3,10 @@ using Bamboozlers.Classes.AppDbContext;
 namespace Bamboozlers.Classes.Data;
 
 /// <summary>
-/// Record that stores the current user's display details. Used to form a model of the user to be displayed without directly interfering with its database representation.
-/// Use of UserDisplayRecord avoids EntityFramework tracking, which can cause exceptions and interfere when changing the User's database representation.
+///     Record that stores the current user's display details. Used to form a model of the user to be displayed without
+///     directly interfering with its database representation.
+///     Use of UserDisplayRecord avoids EntityFramework tracking, which can cause exceptions and interfere when changing
+///     the User's database representation.
 /// </summary>
 
 public record UserRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes)
@@ -13,7 +15,7 @@ public record UserRecord(int? Id, string? UserName, string? Email, string? Displ
     public string Avatar => GetDisplayableAvatar(AvatarBytes);
 
     /// <summary>
-    /// Converts a raw byte array of data into a Base64 encoded string for image display.
+    ///     Converts a raw byte array of data into a Base64 encoded string for image display.
     /// </summary>
     /// <param name="image">The image to be converted.</param>
     /// <returns>The encoded image string or, if image is null, the default avatar.</returns>
@@ -38,12 +40,12 @@ public record UserRecord(int? Id, string? UserName, string? Email, string? Displ
 }
 
 /// <summary>
-/// Enum for what User data has been changed (see UserDataRecord.cs)
+///     Enum for what User data has been changed (see UserDataRecord.cs)
 /// </summary>
 public enum UserDataType { Password, Username, Deletion, Email, Visual }
 
 /// <summary>
-/// Record type used to pass changes in user data between components.
+///     Record type used to pass changes in user data between components.
 /// </summary>
 /// <param name="UserName">If set, the username value to pass.</param>
 /// <param name="Email">If set, the email value to pass.</param>
@@ -60,7 +62,7 @@ public record UserDataRecord(int? Id, string? UserName, string? Email, string? D
 }
 
 /// <summary>
-/// Record used to pass information about attempted User changes.
+///     Record used to pass information about attempted User changes.
 /// </summary>
 /// <param name="DataType">The User attribute that was changed. (Visual category for non-login details)</param>
 /// <param name="Success">If the action was successful.</param>
@@ -68,7 +70,7 @@ public record UserDataRecord(int? Id, string? UserName, string? Email, string? D
 public record UserUpdateResult(UserDataType DataType, bool Success, string Reason);
 
 /// <summary>
-/// Record used to store ONLY User visual data.
+///     Record used to store ONLY User visual data.
 /// </summary>
 /// <param name="UserName">The user's username.</param>
 /// <param name="DisplayName">The user's username, if any.</param>

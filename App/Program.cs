@@ -1,7 +1,6 @@
 using Bamboozlers;
 using Bamboozlers.Account;
 using Bamboozlers.Classes.AppDbContext;
-using Bamboozlers.Classes.Networking;
 using Bamboozlers.Classes.Networking.SignalR;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.UserServices;
@@ -20,10 +19,7 @@ var configuration = builder.Configuration;
 
 // Add services to the container.
 builder.Services
-    .AddBlazorise( options =>
-    {
-        options.Immediate = true;
-    })
+    .AddBlazorise(options => options.Immediate = true)
     .AddBootstrap5Providers()
     .AddFontAwesomeIcons();
 
@@ -44,17 +40,15 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
 {
-    options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING"), sqlServerOptions =>
-    {
-        sqlServerOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-    });
+    options.UseSqlServer(configuration.GetConnectionString("CONNECTION_STRING"),
+        sqlServerOptions => { sqlServerOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery); });
 });
 
 builder.Services.AddIdentityCore<User>(options =>
-                        {
-                            options.SignIn.RequireConfirmedAccount = true;
-                            options.User.RequireUniqueEmail = true;
-                        })
+    {
+        options.SignIn.RequireConfirmedAccount = true;
+        options.User.RequireUniqueEmail = true;
+    })
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
@@ -69,10 +63,7 @@ builder.Services.AddScoped<IUserGroupService, UserGroupService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IKeyPressService, KeyPressService>();
 
-builder.Services.AddSignalR(e =>
-{
-    e.MaximumReceiveMessageSize = 1024 * 1024;
-});
+builder.Services.AddSignalR(e => { e.MaximumReceiveMessageSize = 1024 * 1024; });
 builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
 
 string[] urls = builder.Environment.IsDevelopment() 
@@ -85,7 +76,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseExceptionHandler("/Error", true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
@@ -108,7 +99,4 @@ app.MapRazorComponents<App>()
 app.MapAdditionalIdentityEndpoints();
 app.Run();
 
-namespace Bamboozlers
-{
-    public partial class Program;
-}
+public partial class Program;

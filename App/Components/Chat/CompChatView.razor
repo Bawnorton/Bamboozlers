@@ -1,8 +1,11 @@
 @inherits UserViewComponentBase
+
 @implements IGroupSubscriber
 @implements IAsyncDisposable
 
-@using Bamboozlers.Classes.AppDbContext
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
+@using Microsoft.AspNetCore.SignalR.Client
+@using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Networking
 @using Bamboozlers.Classes.Networking.Packets
@@ -18,6 +21,7 @@
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.Utility
+@using Bamboozlers.Classes.AppDbContext
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject NavigationManager NavigationManager
@@ -78,9 +82,9 @@
             {
                 <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}") Class="message-avatar" alt=""/>
             }
-            else if (Chat is not null && Chat is not GroupChat && Chat.Users.First(f => f.Id != Self.Id).Avatar != null)
+            else if (Chat is not null && Chat is not GroupChat && Chat.Users.First(f => f.Id != Self!.Id).Avatar != null)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.First(f => f.Id != Self.Id).Avatar!)}") Class="message-avatar" alt=""/>
+                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.First(f => f.Id != Self!.Id).Avatar!)}") Class="message-avatar" alt=""/>
             }
             <Text ElementId="header-text">@ChatName</Text>
         </Div>
@@ -188,7 +192,7 @@
     private DateTime? _lastMessageSentAt;
     
     private string MessageInput { get; set; }
-    
+
     private string _hubUrl;
     private HubConnection? _hubConnection;
 
@@ -198,7 +202,7 @@
     {
         UserGroupService.AddSubscriber(this);
         Self = (await AuthService.GetUser())!;
-        
+
         await KeyPressService.StartListeningAsync();
         KeyPressService.KeyPressed += OnKeyPressed;
         KeyPressService.KeyReleased += OnKeyReleased;
@@ -207,11 +211,12 @@
     protected override async Task OnParametersSetAsync()
     {
         WatchedIDs = [ChatID];
-        await GetChatData();   
+        await GetChatData();
         IsMod = IsModerator();
+
         await UpdateMessages();
     }
-    
+
     private bool IsModerator()
     {
         if (Chat is not GroupChat)
@@ -221,7 +226,7 @@
         var gc = db.GroupChats.Include(i => i.Moderators)
             .AsNoTracking()
                 .First(f => f.ID == ChatID);
-        return gc.OwnerID == Self.Id || gc.Moderators.Any(m => m.Id == Self.Id);
+        return gc.OwnerID == Self!.Id || gc.Moderators.Any(m => m.Id == Self.Id);
     }
 
     private async Task GetChatData()
@@ -287,7 +292,7 @@
             })
             .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)])
             .Build();
-        
+
         _hubConnection.On("RecievePacketOnClient", async (string packetJson) =>
         {
             await ClientNetworkHandler.Instance.Handle(packetJson, async packet =>
@@ -371,7 +376,7 @@
         var self = await AuthService.GetUser();
         var message = new Message
         {
-            ChatID = (int) ChatID!,
+            ChatID = (int)ChatID!,
             SenderID = self!.Id,
             Content = messageText,
             SentAt = DateTime.Now,
@@ -385,7 +390,7 @@
         var readDatabaseRequest = new TellOthersToReadDatabaseC2SPacket
         {
             SenderId = self.Id,
-            ChatId = (int) ChatID!,
+            ChatId = (int)ChatID!,
             DbEntry = DbEntry.ChatMessage
         };
         await SendToServer(readDatabaseRequest);

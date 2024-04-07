@@ -1,6 +1,7 @@
+@inherits SettingsComponentBase
+
 @using Bamboozlers.Components.Utility
 @using Bamboozlers.Components.Settings.EditComponents.VisualUtility
-@inherits SettingsComponentBase
 
 <Tabs @bind-SelectedTab="InteractionMode">
     <Content>
@@ -8,7 +9,7 @@
                   Name="view">
             @ViewPanelContent
         </TabPanel>
-        <TabPanel ElementId="edit-panel" 
+        <TabPanel ElementId="edit-panel"
                   Name="edit">
             @EditPanelContent
         </TabPanel>
@@ -45,11 +46,11 @@
     
     public virtual async Task OnValidSubmitAsync()
     {
-        return;
     }
 
     private void SetViewContext()
     {
         InteractionMode = Editing ? "edit" : "view";
     }
+
 }

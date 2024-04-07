@@ -1,5 +1,5 @@
 window.settingsInterop = {
-    ForceLogout: function() {
+    ForceLogout: function () {
         fetch("/Account/DeAuth", {
             method: "POST",
             headers: {
@@ -10,8 +10,8 @@ window.settingsInterop = {
             .then((result) => window.location.href = result.url)
             .catch((err) => console.error(err))
     },
-    
-    Reauthenticate : function() {
+
+    Reauthenticate: function () {
         fetch("/Account/ReAuth", {
             method: "POST",
             headers: {
@@ -19,11 +19,14 @@ window.settingsInterop = {
             },
         })
             .then(async (response) => response)
-            .then((result) => { console.log(result); window.location.href = result.url;})
+            .then((result) => {
+                console.log(result);
+                window.location.href = result.url;
+            })
             .catch((err) => console.error(err))
     },
-    
-    SendNewEmailConfirmation: function(userId, email) {
+
+    SendNewEmailConfirmation: function (userId, email) {
         let data = {
             "Id": userId,
             "Email": email

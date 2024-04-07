@@ -1,17 +1,14 @@
 @inherits UserViewComponentBase
+
 @implements IInteractionSubscriber
 
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Components.Utility
 @using Blazorise.Extensions
-@using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes.Services
-@using Microsoft.Playwright
-@using Bamboozlers.Classes.Utility.Observer
-@using System.Diagnostics
+@using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Components.Utility
 
-@inject IDbContextFactory<AppDbContext> DbContextFactory;
 @inject IUserInteractionService UserInteractionService
 @inject IUserGroupService UserGroupService
 
@@ -66,53 +63,53 @@
 <ModalContent Centered>
     <ModalBody>
         <div>
-           <div class="opt-bar">
-               <div class="opt-bar left">
-                   <div class="item left" style="margin-right: 15px">
-                       <Image ElementId="avatar-display"
-                              Class="border-mask fit _128x128"
-                              Source="@(IsBlocked || IsBlockedBy ? "images/default_profile.png" : FocusUser.Avatar)"/>
-                   </div>
-                   <div id="content-div" class="item left" style="vertical-align: middle;">
-                       @StatusBadge
-                       <div class="clip-to-bottom">
-                           @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
-                           {
-                               <h4 id="display-name">@(FocusUser.DisplayName)</h4>
-                               <p id="username">@FocusUser.UserName</p>
-                           }
-                           else
-                           {
-                               <h4 id="username">@FocusUser.UserName</h4>
-                           }
-                       </div>
-                   </div>
-               </div>
-               <div class="opt-bar right">
-                   <div id="action-options-div" class="item right">
-                       @ActionOptions
-                   </div>
-                   <div id="action-button-div" class="item right">
-                       @ActionButton
-                   </div>
-               </div>
-           </div> 
-           @if (!IsBlockedBy && !IsBlocked)
-           {
-               <div id="desc-div" style="float: left; width: 100%; display: block">
-                   <Divider/>
-                   <h4>Description</h4>
-                   <Divider/>
-                   <textarea name="bio" 
+            <div class="opt-bar">
+                <div class="opt-bar left">
+                    <div class="item left" style="margin-right: 15px">
+                        <Image ElementId="avatar-display"
+                               Class="border-mask fit _128x128"
+                               Source="@(IsBlocked || IsBlockedBy ? "images/default_profile.png" : FocusUser.Avatar)"/>
+                    </div>
+                    <div id="content-div" class="item left" style="vertical-align: middle;">
+                        @StatusBadge
+                        <div class="clip-to-bottom">
+                            @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
+                            {
+                                <h4 id="display-name">@(FocusUser.DisplayName)</h4>
+                                <p id="username">@FocusUser.UserName</p>
+                            }
+                            else
+                            {
+                                <h4 id="username">@FocusUser.UserName</h4>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="opt-bar right">
+                    <div id="action-options-div" class="item right">
+                        @ActionOptions
+                    </div>
+                    <div id="action-button-div" class="item right">
+                        @ActionButton
+                    </div>
+                </div>
+            </div>
+            @if (!IsBlockedBy && !IsBlocked)
+            {
+                <div id="desc-div" style="float: left; width: 100%; display: block">
+                    <Divider/>
+                    <h4>Description</h4>
+                    <Divider/>
+                    <textarea name="bio" 
                        type="text" 
                        style="resize: none; max-height: 400px; min-height: 100px;"
                        class="form-control"
                        disabled>
                          @FocusUser.Bio
-               </textarea>  
-               </div>
-           }
-        </div>        
+               </textarea>
+                </div>
+            }
+        </div>
     </ModalBody>
 </ModalContent>
 
@@ -140,21 +137,21 @@
         UserInteractionService.AddSubscriber(this);
     }
 
-    public async Task UpdateContext()
+    private async Task UpdateContext()
     {
         ActionButton = null;
         ActionOptions = null;
         StatusBadge = null;
-        
+
         UserData ??= await UserService.GetUserDataAsync();
-        
+
         IsSelf = FocusUser.Id == UserData.Id;
         IsFriend = await UserInteractionService.FindFriendship(FocusUser.Id) is not null;
         IsBlocked = await UserInteractionService.FindIfBlocked(FocusUser.Id) is not null;
         IsBlockedBy = await UserInteractionService.FindIfBlockedBy(FocusUser.Id) is not null;
         HasIncomingRequest = await UserInteractionService.FindIncomingRequest(FocusUser.Id) is not null;
         HasOutgoingRequest = await UserInteractionService.FindOutgoingRequest(FocusUser.Id) is not null;
-        
+
         if (IsSelf)
         {
             ActionButton = GetActionButton(
@@ -164,16 +161,16 @@
                 "Settings",
                 IconName.Settings
             );
-            StatusBadge = @<Badge ElementId="profile-badge" 
+            StatusBadge = @<Badge ElementId="profile-badge"
                                   Color="Color.Light">
                               YOU
                           </Badge>;
             return;
         }
-        
+
         if (IsFriend)
         {
-            StatusBadge = @<Badge ElementId="profile-badge" 
+            StatusBadge = @<Badge ElementId="profile-badge"
                                   Color="Color.Success">
                               <Icon Name="IconName.UserFriends"/>
                               FRIEND
@@ -197,7 +194,7 @@
             {
                 ActionButton = GetActionButton(
                     EventCallback.Factory.Create(
-                        this, 
+                        this,
                         async () => await UserInteractionService.AcceptFriendRequest(FocusUser.Id)
                     ),
                     "Accept Friend Request",
@@ -218,17 +215,17 @@
             {
                 ActionButton = GetActionButton(
                     EventCallback.Factory.Create(
-                        this, 
+                        this,
                         async () => await UserInteractionService.SendFriendRequest(FocusUser.Id)
                     ),
-                    "Send Friend Request", 
+                    "Send Friend Request",
                     IconName.UserPlus
                 );
             }
         }
         else if (IsBlocked)
         {
-            StatusBadge = @<Badge ElementId="profile-badge" 
+            StatusBadge = @<Badge ElementId="profile-badge"
                                   Color="Color.Danger">
                               <Icon Name="IconName.ShieldAlt"/>
                               BLOCKED
@@ -236,7 +233,7 @@
         }
 
         var moddedChats = await UserGroupService.GetAllModeratedGroups();
-        
+
         ActionOptions = GetProfileActions(moddedChats);
         
         await InvokeAsync(StateHasChanged);
@@ -250,24 +247,23 @@
                     ButtonId="profile-action-button"
                     Color="@(buttonColor ?? Color.Success)"
                     ColumnWrapped="@false"
-                    IconName = "iconName"
-                    Disabled="disabled"
-                />;
+                    IconName="iconName"
+                    Disabled="disabled"/>;
     }
 
     private RenderFragment GetProfileActions(List<GroupChat>? moddedChats = null)
     {
         var viableChats = moddedChats?.Where(
-            c => c.Users.FirstOrDefault(u => u.Id == FocusUser.Id) is null)
+                c => c.Users.FirstOrDefault(u => u.Id == FocusUser.Id) is null)
             .ToList();
         return @<text>
-                    <Div id="profile-actions" 
+                    <Div id="profile-actions"
                          Class="dropdown">
-                        <Icon Name="@("fa-ellipsis-v")" 
-                              Class="fa-xl" 
+                        <Icon Name="@("fa-ellipsis-v")"
+                              Class="fa-xl"
                               Style="margin-top: 18px; margin-left: 10px; margin-right: 5px;"/>
                         <Div id="profile-actions-dropdown"
-                             Background="Background.Primary" 
+                             Background="Background.Primary"
                              Border="Border.Dark"
                              Class="dropdown-content">
                             @if (HasIncomingRequest && !IsBlocked)
@@ -288,13 +284,13 @@
                             {
                                 @if (viableChats is not null && viableChats.Count > 0)
                                 {
-                                    <Div id="group-actions" 
+                                    <Div id="group-actions"
                                          Class="dropdown">
                                         <Button>
                                             Invite to group
                                         </Button>
                                         <Div Class="dropdown-content"
-                                             Background="Background.Primary" 
+                                             Background="Background.Primary"
                                              Border="Border.Dark">
                                             @foreach (var chat in viableChats)
                                             {
@@ -371,4 +367,3 @@
         await UpdateContext();
     }
 }
-

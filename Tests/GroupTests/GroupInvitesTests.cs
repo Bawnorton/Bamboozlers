@@ -4,22 +4,15 @@ using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Components.Group;
 using Bunit.Extensions.WaitForHelpers;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Tests.Provider;
 using Xunit.Abstractions;
 
 namespace Tests.GroupTests;
 
-public class GroupInvitesTests : GroupChatTestBase
+public class GroupInvitesTests(ITestOutputHelper helper) : GroupChatTestBase
 {
-    private ITestOutputHelper output { get; set; }
+    private ITestOutputHelper Output { get; set; } = helper;
 
-    public GroupInvitesTests(ITestOutputHelper helper)
-    {
-        output = helper;
-    }
-    private async Task<bool> CompAddMember_CheckInviteListEntry(
+    private Task<bool> CompAddMember_CheckInviteListEntry(
         User self,
         User friend, 
         Chat chat,
@@ -28,7 +21,7 @@ public class GroupInvitesTests : GroupChatTestBase
     {
         try
         {
-            var friendSection = fragment.WaitForElement($"#{friend.UserName}-display");
+            fragment.WaitForElement($"#{friend.UserName}-display");
             var inGroup = chat.Users.FirstOrDefault(u => u.Id == friend.Id) is not null;
             var invited = invites.FirstOrDefault(i 
                 => i.SenderID == self.Id && i.RecipientID == friend.Id && i.GroupID == chat.ID) is not null;
@@ -47,11 +40,12 @@ public class GroupInvitesTests : GroupChatTestBase
                 Assert.Contains("Invite",actionButton.TextContent);
             }
         }
-        catch (WaitForFailedException)
+        catch (WaitForFailedException e)
         {
-            return false;
+            Output.WriteLine(e.Message);
+            return Task.FromResult(false);
         }
-        return true;
+        return Task.FromResult(true);
     }
     
     [Fact]

@@ -86,7 +86,7 @@ public class MockUserManager
 
         _mockUserManager.Setup(x
             => x.ChangePasswordAsync(It.IsAny<User>(),It.IsAny<string>(),It.IsAny<string>())
-        ).ReturnsAsync((User user, string? password, string? newPassword) 
+        ).ReturnsAsync((User user, string? password, string? _) 
             => {
             if (password.IsNullOrEmpty())
                 return IdentityResult.Failed([new IdentityError{Description="Password entered was null or empty."}]);
@@ -95,7 +95,7 @@ public class MockUserManager
         
         _mockUserManager.Setup(x 
             => x.ChangeEmailAsync(It.IsAny<User>(), It.IsAny<string>(), It.IsAny<string>())
-        ).ReturnsAsync((User user, string? newEmail, string? token) 
+        ).ReturnsAsync((User _, string? newEmail, string? _) 
             => {
             if (newEmail.IsNullOrEmpty())
                 return IdentityResult.Failed([new IdentityError { Description = "Email entered was null or empty." }]);
@@ -106,7 +106,7 @@ public class MockUserManager
 
         _mockUserManager.Setup(x
             => x.SetUserNameAsync(It.IsAny<User>(), It.IsAny<string>())
-        ).ReturnsAsync((User user, string? newUsername)
+        ).ReturnsAsync((User _, string? newUsername)
             => {
             if (newUsername.IsNullOrEmpty())
                 return IdentityResult.Failed([new IdentityError { Description = "Username entered was null or empty." }]);

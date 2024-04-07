@@ -7,12 +7,11 @@
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
-
 @using Bamboozlers.Components.MainVisual
 @using Bamboozlers.Components.Settings
+@using Bamboozlers.Components.Group.Settings
 @using Bamboozlers.Components.Interaction
 @using Bamboozlers.Components.Group
-@using Bamboozlers.Components.Group.Settings
 
 @attribute [Authorize]
 
@@ -52,7 +51,7 @@
                            Background="Background.Primary"
                            TextColor="TextColor.White">
                 <Div Class="h-100 d-flex justify-content-center align-items-center">
-                    <Div Class="rounded-3 border-3 border-warning text-warning p-5 fa-2x" 
+                    <Div Class="rounded-3 border-3 border-warning text-warning p-5 fa-2x"
                          Background="Background.Dark">
                         <p>Oops! Something went wrong.</p>
                         <p>@exception.Message</p>
@@ -65,30 +64,30 @@
 
 @code {
     private NavLayout? _navLayout;
-    
+
     private EventCallback<NewPopupArgs> OpenNewPopup { get; set; }
     private EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     private EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
     private EventCallback DismissPopup { get; set; }
-    
+
     private EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
-    
+
     protected override void OnInitialized()
     {
-        OpenKnownPopup = EventCallback.Factory.Create<KnownPopupArgs>(this, 
+        OpenKnownPopup = EventCallback.Factory.Create<KnownPopupArgs>(this,
             async args => await CreateKnownPopup(args.Type, args.FocusUser, args.ChatId)
         );
-        
-        OpenAlertPopup = EventCallback.Factory.Create<AlertPopupArgs>(this, 
+
+        OpenAlertPopup = EventCallback.Factory.Create<AlertPopupArgs>(this,
             async args => await CreateAlertPopup(args.AlertBody, args.OnConfirmCallback)
         );
-        
-        OpenNewPopup = EventCallback.Factory.Create<NewPopupArgs>(this, 
+
+        OpenNewPopup = EventCallback.Factory.Create<NewPopupArgs>(this,
             async args => await CreateNewPopup(args.Body, args.Header, args.Footer)
         );
 
-        DismissPopup = EventCallback.Factory.Create(this, async args => await ClosePopup());
-        
+        DismissPopup = EventCallback.Factory.Create(this, async _ => await ClosePopup());
+
         OpenChatCallback = EventCallback.Factory.Create<OpenChatArgs>(this, async args =>
         {
             switch (args.ChatType)
@@ -102,13 +101,13 @@
             }
         });
     }
-    
+
     private Modal ModalRef { get; set; } = default!;
     private RenderFragment? CurrentPopup { get; set; }
-    
+
     private Modal AlertModalRef { get; set; } = default!;
     private RenderFragment? AlertPopup { get; set; }
-    
+
     private async Task CreateKnownPopup(PopupType type, User? focusUser = null, int? chatId = null)
     {
         CurrentPopup = type switch
@@ -118,7 +117,7 @@
                                    </text>,
             PopupType.UserProfile => @<text>
                                           <CompProfileView FocusUser="@UserRecord.From(focusUser!)"/>
-                                      </text>, 
+                                      </text>,
             PopupType.GroupChatSettings => @<text>
                                                 <CompGroupSettings ChatID="@chatId"/>
                                             </text>,
@@ -168,25 +167,25 @@
     private async Task CreateAlertPopup(RenderFragment bodyAlert, EventCallback onConfirm)
     {
         AlertPopup = @<text>
-                            <ModalContent Centered>
-                                <ModalHeader>
-                                    <Heading>Are you sure?</Heading>
-                                </ModalHeader>
-                                <ModalBody>
-                                    @bodyAlert
-                                </ModalBody>
-                                <ModalFooter TextAlignment="TextAlignment.Center">
-                                    <Button Color="Color.Danger" Clicked="@(async () => { await ClosePopup(); })">
-                                        <Icon Name="IconName.Ban"/>
-                                        Cancel
-                                    </Button>
-                                    <Button Color="Color.Success" Clicked="@(async () => { await onConfirm.InvokeAsync(); await ClosePopup(); })">
-                                        <Icon Name="IconName.Check"/>
-                                        Confirm
-                                    </Button>
-                                </ModalFooter>
-                            </ModalContent>
-                        </text>;
+                          <ModalContent Centered>
+                              <ModalHeader>
+                                  <Heading>Are you sure?</Heading>
+                              </ModalHeader>
+                              <ModalBody>
+                                  @bodyAlert
+                              </ModalBody>
+                              <ModalFooter TextAlignment="TextAlignment.Center">
+                                  <Button Color="Color.Danger" Clicked="@(async () => { await ClosePopup(); })">
+                                      <Icon Name="IconName.Ban"/>
+                                      Cancel
+                                  </Button>
+                                  <Button Color="Color.Success" Clicked="@(async () => { await onConfirm.InvokeAsync(); await ClosePopup(); })">
+                                      <Icon Name="IconName.Check"/>
+                                      Confirm
+                                  </Button>
+                              </ModalFooter>
+                          </ModalContent>
+                      </text>;
         await AlertModalRef.Show();
     }
 
@@ -200,4 +199,5 @@
 
         await ModalRef.Hide();
     }
+
 }

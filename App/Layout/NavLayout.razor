@@ -1,4 +1,7 @@
+@rendermode InteractiveServer
+
 @inherits UserViewComponentBase;
+
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
 
@@ -12,7 +15,6 @@
 @using Bamboozlers.Components.Utility
 @using Blazorise.Extensions
 
-@rendermode InteractiveServer
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IUserGroupService UserGroupService;
@@ -169,7 +171,7 @@
     private View CurrentView { get; set; } = View.Home;
     private int CurrentChatId { get; set; } = -1;
     private int FriendCount { get; set; } = 0;
-    
+
     protected override async Task OnInitializedAsync()
     {
         UserService.AddSubscriber(this);
@@ -177,12 +179,12 @@
         UserInteractionService.AddSubscriber(this);
         await Refresh();
     }
-    
+
     public async Task Refresh()
     {
         await GetDataAsync();
     }
-    
+
     private async Task GetDataAsync()
     {
         await GetUserData();
@@ -233,12 +235,12 @@
         CurrentChatId = -1;
         CurrentView = View.Home;
     }
-    
+
     private async Task GetFriendData()
     {
         if (Self is null)
             throw new InvalidOperationException("User and/or chats were not found.");
-        
+
         await using var db = await Db.CreateDbContextAsync();
         FriendCount = 0;
         var friendships = db.FriendShips.Include(f => f.User1).Include(f => f.User2);
@@ -293,9 +295,8 @@
             GetGroupData();
         }
 
-        if (GroupChats.FirstOrDefault(g => g.ID == chatId) is null)
-            return;
-        
+        if (GroupChats.FirstOrDefault(g => g.ID == chatId) is null) return;
+
         CurrentView = View.Group; 
         CurrentChatId = chatId; 
         await InvokeAsync(StateHasChanged);
@@ -341,13 +342,14 @@
         await GetDataAsync();
         await base.OnUpdate(data);
     }
-    
+
     private enum View
     {
         Dm,
         Group,
         Home
     }
-    
+
     private record DmChat(int ID, User User, byte[]? Avatar);
+
 }

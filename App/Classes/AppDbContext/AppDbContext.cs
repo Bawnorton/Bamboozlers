@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Bamboozlers.Classes.AppDbContext;
 
-public class AppDbContext:IdentityDbContext<User, IdentityRole<int>, int>
+public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -31,19 +30,17 @@ public class AppDbContext:IdentityDbContext<User, IdentityRole<int>, int>
         modelBuilder.Entity<GroupChat>()
             .HasOne(h => h.Owner)
             .WithMany(w => w.OwnedChats);
-        
+
         //default behavior is cascade however all relationships except for chat messages need to be set to no action
         foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
-        {
             relationship.DeleteBehavior = DeleteBehavior.NoAction;
-        }
 
         //chat messages need to be deleted if chat is deleted
         modelBuilder.Entity<Chat>()
             .HasMany(h => h.Messages)
             .WithOne(w => w.Chat)
             .OnDelete(DeleteBehavior.Cascade);
-        
+
         base.OnModelCreating(modelBuilder);
     }
 }

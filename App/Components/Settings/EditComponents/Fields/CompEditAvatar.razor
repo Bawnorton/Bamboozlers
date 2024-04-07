@@ -1,6 +1,5 @@
 @inherits SettingsComponentBase
 
-@using Bamboozlers.Classes.Events
 @using System.Diagnostics
 @using Azure.Core
 @using Bamboozlers.Classes
@@ -20,20 +19,20 @@
             await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return;
         }
-    
+        
         if (DataChangeFunction is null)
         {
             await AlertEventCallback.InvokeAsync(AlertArguments.DefaultErrorAlertArgs);
             return;
-        } 
-                                  
+        }
+
         var result = await DataChangeFunction.Invoke(new UserDataRecord
         {
             DataType = UserDataType.Visual,
             AvatarBytes = Array.Empty<byte>()
         });
-                                  
-        if (result) 
+
+        if (result)
         {
             await AlertEventCallback.InvokeAsync(new AlertArguments(
                 Color.Success,

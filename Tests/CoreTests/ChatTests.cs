@@ -2,7 +2,6 @@ using Bamboozlers.Components.Chat;
 using Blazorise;
 using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -16,10 +15,10 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
     {
         Ctx.Services.AddSingleton(new Mock<IJSModalModule>().Object);
         Ctx.Services.AddBlazorise().Replace(ServiceDescriptor.Transient<IComponentActivator, ComponentActivator>());
-        
+
         _ = new MockJsRuntimeProvider(Ctx);
     }
-    
+
     [Fact]
     public async void ComponentInitializesCorrectly()
     {
@@ -32,25 +31,25 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
 
         // Assert
         Assert.NotNull(chat.Messages);
-        
+
         var expectedCount = chat.Messages.Count;
         var actualCount = component.FindAll(".message-content").Count / 2;
-        
+
         // Assert
         Assert.Equal(expectedCount, actualCount);
-        
+
         foreach (var chatMessage in chat.Messages)
         {
             var messageContainer = component.Find("#message_" + chatMessage.ID);
             var content = messageContainer.Children;
             var message = content.FirstOrDefault(child => child.ClassList.Contains("message-content"))!.FirstChild;
-            
+
             // Assert
             Assert.NotNull(message);
-            
+
             var expected = chatMessage.Content;
             var actual = message.TextContent;
-            
+
             // Assert
             Assert.Equal(expected, actual);
         }

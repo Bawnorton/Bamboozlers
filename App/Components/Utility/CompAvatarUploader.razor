@@ -13,7 +13,7 @@
                    Class="border-mask overlay fit"
                    Source="images/edit_overlay.png"/>
         </Label>
-        <InputFile id="input-file" OnChange="OnFileUpload" hidden/>
+        <InputFile id="input-file" OnChange="@OnFileUpload" hidden/>
     </Row>
     <Row>
         @if (Avatar is not null)
@@ -59,7 +59,7 @@
                 "No file was uploaded."
             );
         }
-        
+
         if (!upload.ContentType.Contains("image/"))
             return new AlertArguments(
                 Color.Danger,
@@ -67,7 +67,7 @@
                 "Error occured while uploading image.",
                 "Uploaded file was not an image."
             );
-        
+
         var imageType = upload.ContentType[6..];
         if (!AllowedFormats.Contains(imageType))
             return new AlertArguments(

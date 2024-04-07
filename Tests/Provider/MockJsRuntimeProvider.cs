@@ -21,7 +21,7 @@ public class MockJsRuntimeProvider
         ).Returns(new ValueTask<IJSVoidResult>());
         
         _mockJsRuntime.Setup(js => js.InvokeAsync<bool>("showConfirmDialog",It.IsAny<object[]>())
-        ).Returns(ValueTask.FromResult(true));
+        ).ReturnsAsync(true);
         
         ctx.JSInterop.Mode = JSRuntimeMode.Strict;
         ctx.Services.AddSingleton(GetJsRuntime());

@@ -5,7 +5,8 @@ using Assert = Xunit.Assert;
 namespace Tests.Playwright;
 
 [Collection("Sequential")]
-public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper outputHelper) : PlaywrightTestBase(fixture, outputHelper)
+public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHelper outputHelper)
+    : PlaywrightTestBase(fixture, outputHelper)
 {
     [Fact]
     public async Task TestMessageEcho()
@@ -29,7 +30,8 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
             .Last
             .EvaluateAsync("element => window.getComputedStyle(element).getPropertyValue('color')");
 
-        Assert.Equal("rgb(222, 226, 230)", color.ToString()); // Color of the message is `rgb(160, 163, 167)` when sent and then updated to `rgb(222, 226, 230)` when recieved
+        Assert.Equal("rgb(222, 226, 230)",
+            color.ToString()); // Color of the message is `rgb(160, 163, 167)` when sent and then updated to `rgb(222, 226, 230)` when recieved
     }
 
     [Fact]
@@ -41,10 +43,10 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
         await user2Page.GotoAsync(ServerAddress);
         await Login(user2Page, "testuser2", "testuser2@gmail.com");
         await OpenFirstDm(user2Page);
-        
+
         const string message = "Hello, User1!";
         const string reply = "Hello, User2!";
-        
+
         await user1Page
             .Locator("#message-input")
             .FillAsync(message);
@@ -53,19 +55,19 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
             .Locator("#message-input")
             .PressAsync("Enter");
         await Task.Delay(500);
-        
+
         var user1Message = await user1Page
             .Locator(".message-content")
             .Last
             .InnerTextAsync();
         Assert.Equal(message, user1Message, ignoreAllWhiteSpace: true);
-        
+
         var user2Message = await user2Page
             .Locator(".message-content")
             .Last
             .InnerTextAsync();
         Assert.Equal(message, user2Message, ignoreAllWhiteSpace: true);
-        
+
         await user2Page
             .Locator("#message-input")
             .FillAsync(reply);
@@ -74,13 +76,13 @@ public class MessagingJsTests(CustomWebApplicationFactory fixture, ITestOutputHe
             .Locator("#message-input")
             .PressAsync("Enter");
         await Task.Delay(500);
-        
+
         user1Message = await user1Page
             .Locator(".message-content")
             .Last
             .InnerTextAsync();
         Assert.Equal(reply, user1Message, ignoreAllWhiteSpace: true);
-        
+
         user2Message = await user2Page
             .Locator(".message-content")
             .Last

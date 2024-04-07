@@ -1,4 +1,3 @@
-using Bamboozlers;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -13,7 +12,6 @@ namespace Tests.Playwright.Infrastructure;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private IHost? _host;
-    public event EventHandler? Disposing;
 
     public string ServerAddress
     {
@@ -23,21 +21,23 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return ClientOptions.BaseAddress.ToString();
         }
     }
-    
+
+    public event EventHandler? Disposing;
+
     protected override IHost CreateHost(IHostBuilder builder)
     {
         var testHost = builder.Build();
 
         builder.ConfigureWebHost(hostBuilder => hostBuilder.UseKestrel());
-        
+
         _host = builder.Build();
         _host.Start();
-        
+
         var server = _host.Services.GetRequiredService<IServer>();
         var addresses = server.Features.Get<IServerAddressesFeature>();
-        
+
         ClientOptions.BaseAddress = addresses!.Addresses.Select(a => new Uri(a)).Last();
-        
+
         testHost.Start();
         return testHost;
     }
@@ -47,7 +47,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         _host?.Dispose();
         Disposing?.Invoke(this, EventArgs.Empty);
     }
-    
+
     private void EnsureServer()
     {
         if (_host == null)

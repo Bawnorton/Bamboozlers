@@ -1,4 +1,3 @@
-using AngleSharp.Diffing.Extensions;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Func;
 using Bamboozlers.Classes.Utility.Observer;
@@ -6,10 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.Services.UserServices;
 
-public class UserInteractionService(IAuthService authService, IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory) : IUserInteractionService
+public class UserInteractionService(
+    IAuthService authService,
+    IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory) : IUserInteractionService
 {
-    private IAuthService AuthService { get; set; } = authService;
-    private IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; set; } = dbContextFactory;
+    private IAuthService AuthService { get; } = authService;
+    private IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; } = dbContextFactory;
 
     private async Task<(User?, User?)> GetInvolvedUsers(int? otherId, Unary<IQueryable<User>>? inclusionCallback = null)
     {        
@@ -30,7 +31,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
 
         if (self is null || other is null)
             return null;
-        
+
         return await dbContext.FriendShips.FirstOrDefaultAsync(f =>
             (f.User1ID == other.Id && f.User2ID == self.Id)
             || (f.User1ID == self.Id && f.User2ID == other.Id)
@@ -51,10 +52,10 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
 
         if (self is null || other is null)
             return null;
-        
+
         return await dbContext.FriendRequests.FirstOrDefaultAsync(r =>
-            r.ReceiverID == self.Id 
-            && r.SenderID == other.Id 
+            r.ReceiverID == self.Id
+            && r.SenderID == other.Id
         );
     }
 
@@ -65,13 +66,13 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
 
         if (self is null || other is null)
             return null;
-        
+
         return await dbContext.FriendRequests.FirstOrDefaultAsync(r =>
-            r.ReceiverID == other.Id 
-            && r.SenderID == self.Id 
+            r.ReceiverID == other.Id
+            && r.SenderID == self.Id
         );
     }
-    
+
     public async Task<Block?> FindIfBlocked(int? otherId)
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
@@ -79,9 +80,9 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
 
         if (self is null || other is null)
             return null;
-        
+
         return await dbContext.BlockList.FirstOrDefaultAsync(r =>
-            r.BlockerID == self.Id 
+            r.BlockerID == self.Id
             && r.BlockedID == other.Id
         );
     }
@@ -93,9 +94,9 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
 
         if (self is null || other is null)
             return null;
-        
+
         return await dbContext.BlockList.FirstOrDefaultAsync(r =>
-            r.BlockedID == self.Id 
+            r.BlockedID == self.Id
             && r.BlockerID == other.Id
         );
     }
@@ -169,18 +170,18 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     public async Task BlockUser(int? otherId)
     {
         var (self, other) = await GetInvolvedUsers(otherId);
-        
+
         if (self is null || other is null)
             return;
 
         var blockEntry = await FindIfBlocked(otherId);
-        
+
         if (blockEntry is null)
         {
             await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            
-            var (incoming,outgoing) = await FindFriendRequests(otherId);
-            
+
+            var (incoming, outgoing) = await FindFriendRequests(otherId);
+
             if (incoming is not null) dbContext.FriendRequests.Remove(incoming);
             if (outgoing is not null) dbContext.FriendRequests.Remove(outgoing);
 
@@ -197,7 +198,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     public async Task UnblockUser(int? otherId)
     {
         var (self, other) = await GetInvolvedUsers(otherId);
-        
+
         if (self is null || other is null)
             return;
 
@@ -206,9 +207,9 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         if (blockEntry is not null)
         {
             await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-           
+
             dbContext.BlockList.Remove(blockEntry);
-            
+
             await dbContext.SaveChangesAsync();
             await NotifySubscribersOf(InteractionEvent.Unblock);
         }
@@ -218,12 +219,12 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var (self, other) = await GetInvolvedUsers(otherId);
-        
+
         if (self is null || other is null)
             return;
-        
-        var (incoming,outgoing) = await FindFriendRequests(otherId);
-        
+
+        var (incoming, outgoing) = await FindFriendRequests(otherId);
+
         if (outgoing is null && incoming is null)
         {
             var friendRequest = new FriendRequest(self.Id, other.Id);
@@ -237,7 +238,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var (self, other) = await GetInvolvedUsers(otherId);
-        
+
         if (self is null || other is null)
             return;
 
@@ -255,12 +256,12 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var (self, other) = await GetInvolvedUsers(otherId);
-        
+
         if (self is null || other is null)
             return;
 
         var requestEntry = await FindIncomingRequest(otherId);
-        
+
         if (requestEntry is not null)
         {
             dbContext.FriendRequests.Remove(requestEntry);
@@ -270,13 +271,13 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
             await NotifySubscribersOf(InteractionEvent.RequestDeclined);
         }
     }
-    
+
     public async Task DeclineFriendRequest(int? otherId)
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
         var other = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == otherId);
-        
+
         if (self is null || other is null)
             return;
 
@@ -295,7 +296,7 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
         var other = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == otherId);
-        
+
         if (self is null || other is null)
             return;
 
@@ -313,37 +314,36 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
-        return self is not null 
-            ? dbContext.FriendRequests.AsNoTracking()
-                .Where(r => r.ReceiverID == self.Id)
-                    .Include(r => r.Sender)
-                        .Include(r => r.Receiver)
-                            .ToList() 
-            : [];
+        if (self is null) return [];
+
+        return dbContext.FriendRequests.AsNoTracking()
+            .Where(r => r.ReceiverID == self.Id)
+            .Include(r => r.Sender)
+            .Include(r => r.Receiver)
+            .ToList(); 
     }
 
     public async Task<List<FriendRequest>> GetAllOutgoingRequests()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
-        return self is not null
-            ? dbContext.FriendRequests.AsNoTracking()
+        if (self is null) return [];
+        
+        return dbContext.FriendRequests.AsNoTracking()
                 .Where(r => r.SenderID == self.Id)
-                    .Include(r => r.Sender)
-                        .Include(r => r.Receiver)
-                            .ToList() 
-            : [];
+                .Include(r => r.Sender)
+                .Include(r => r.Receiver)
+                .ToList();
     }
 
     public async Task<List<User>> GetAllFriends()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var self = await AuthService.GetUser();
-        return self is not null
-            ? dbContext.FriendShips.AsNoTracking()
-                .Where(f => f.User1ID == self.Id || f.User2ID == self.Id)
-                .Select(s => s.User1ID != self.Id ? s.User1 : s.User2).ToList()
-            : [];
+        if (self is null) return [];
+        return dbContext.FriendShips.AsNoTracking()
+            .Where(f => f.User1ID == self.Id || f.User2ID == self.Id)
+            .Select(s => s.User1ID != self.Id ? s.User1 : s.User2).ToList();
     }
     
     public async Task<List<User>> GetAllBlocked()
@@ -391,10 +391,9 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
-        
         return true;
     }
-    
+
     public async Task NotifyAllAsync()
     {
         foreach (var sub in Subscribers)

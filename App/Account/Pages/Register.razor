@@ -1,11 +1,10 @@
 ﻿@page "/Account/Register"
-
-@using System.ComponentModel.DataAnnotations
-@using System.Text
-@using System.Text.Encodings.Web
+@using Bamboozlers.Classes.AppDbContext
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using Bamboozlers.Classes.AppDbContext
+@using System.Text
+@using System.Text.Encodings.Web
+@using System.ComponentModel.DataAnnotations
 
 @inject UserManager<User> UserManager
 @inject IUserStore<User> UserStore
@@ -28,6 +27,7 @@
             </div>
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.DisplayName" class="form-control" autocomplete="displayName" aria-required="false" placeholder="Your Name"/>
+                @* ReSharper disable once Html.IdNotResolved *@
                 <label for="displayName">Display Name</label>
             </div>
             <div class="form-floating mb-3">
@@ -42,6 +42,7 @@
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.ConfirmPassword" id="confirmPswd" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password"/>
+                @* ReSharper disable once Html.IdNotResolved *@
                 <label for="confirm-password">Confirm Password <label class="text-danger">*</label></label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger"/>
             </div>
@@ -54,11 +55,15 @@
 </div>
 
 @code {
+    
+    // ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
+    // ReSharper disable UnusedAutoPropertyAccessor.Local - Used by SupplyParameterFromForm
     [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
-    private ValidationMessageStore? validationMessageStore;
+    private ValidationMessageStore? _validationMessageStore;
+
     public async Task RegisterUser(EditContext editContext)
     {
         var user = CreateUser();
@@ -68,24 +73,26 @@
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
         user.DisplayName = Input.DisplayName;
         var result = await UserManager.CreateAsync(user, Input.Password);
-        
-        validationMessageStore = new ValidationMessageStore(editContext);
-        
+
+        _validationMessageStore = new ValidationMessageStore(editContext);
+
         if (!result.Succeeded)
         {
             foreach (var error in result.Errors)
             {
                 if (error.Code.Contains("Password"))
                 {
-                    validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Password)), error.Description);
+                    _validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Password)), error.Description);
                 }
+
                 if (error.Code.Contains("Email"))
                 {
-                    validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Email)), error.Description);
+                    _validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Email)), error.Description);
                 }
+
                 if (error.Code.Contains("UserName"))
                 {
-                    validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Username)), error.Description);
+                    _validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Username)), error.Description);
                 }
                 // Handle other errors as needed
             }
@@ -106,7 +113,7 @@
 
         RedirectManager.RedirectTo(
             "Account/RegisterConfirmation",
-            new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+            new Dictionary<string, object?> { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
     }
 
     private User CreateUser()
@@ -124,15 +131,15 @@
 
     private sealed class InputModel
     {
-        [DataType((DataType.Text))]
+        [DataType(DataType.Text)]
         [Display(Name = "Display Name")]
         public string DisplayName { get; set; } = "";
-        
+
         [Required]
         [ValidUsername(ErrorMessage = "Username is invalid. It can only contain letters, numbers, and underscores. There can only be 1 underscore in a row.")]
         [Display(Name = "Username")]
         public string Username { get; set; } = "";
-        
+
         [Required]
         [EmailAddress(ErrorMessage = "Provided email address is invalid.")]
         [Display(Name = "Email")]
