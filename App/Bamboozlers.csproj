@@ -60,13 +60,4 @@
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </Content>
     </ItemGroup>
-    
-    <ItemGroup>
-      <_ContentIncludedByDefault Remove="Components\Settings\VisualUtility\CompEditButtons.razor" />
-    </ItemGroup>
-    
-    <ItemGroup>
-      <AdditionalFiles Include="Components\Settings\EditComponents\VisualUtility\CompEditButtons.razor" />
-    </ItemGroup>
-
 </Project>

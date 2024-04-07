@@ -56,6 +56,39 @@ public class MockUsers : AbstractMockDbSet<User>
                 UserName = "TestUser3",
                 Email = "test_user3@gmail.com",
                 EmailConfirmed = true
+            },
+            new User
+            {
+                Id = 4,
+                AccessFailedCount = 0,
+                Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
+                UserName = "TestUser4",
+                Email = "test_user4@gmail.com",
+                EmailConfirmed = true
+            },
+            new User
+            {
+                Id = 5,
+                AccessFailedCount = 0,
+                Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
+                UserName = "TestUser5",
+                Email = "test_user5@gmail.com",
+                EmailConfirmed = true
+            },
+            new User
+            {
+                Id = 6,
+                AccessFailedCount = 0,
+                Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
+                UserName = "TestUser6",
+                Email = "test_user6@gmail.com",
+                EmailConfirmed = true
             }
         ]);
     }

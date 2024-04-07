@@ -113,13 +113,10 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
                 .Include(u => u.Chats)
                     .ThenInclude(c => c.Users)
         );
-
-        if (self is null || other is null)
-            return null;
         
-        var existingChat = self.Chats.Where(c => c is not GroupChat)
+        var existingChat = self!.Chats.Where(c => c is not GroupChat)
             .FirstOrDefault(c => c.Users.FirstOrDefault(u => u.Id == self.Id) is not null
-                                 && c.Users.FirstOrDefault(u => u.Id == other.Id) is not null);
+                                 && c.Users.FirstOrDefault(u => u.Id == other!.Id) is not null);
 
         return existingChat;
     }

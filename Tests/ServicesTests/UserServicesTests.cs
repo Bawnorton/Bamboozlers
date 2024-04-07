@@ -1,3 +1,4 @@
+using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Services.UserServices;
 using Bamboozlers.Classes.Utility.Observer;
@@ -5,12 +6,14 @@ using Tests.Provider;
 
 namespace Tests.ServicesTests;
 
-public class AuthServicesTests : AuthenticatedBlazoriseTestBase
+public class UserServicesTests : AuthenticatedBlazoriseTestBase
 {
-    public AuthServicesTests()
+    public UserServicesTests()
     {
         AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
         UserService = new UserService(AuthService, new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper());
+        UserInteractionService = new UserInteractionService(AuthService, MockDatabaseProvider.GetDbContextFactory());
+        UserGroupService = new UserGroupService(AuthService, UserInteractionService, MockDatabaseProvider.GetDbContextFactory());
     }
     
     [Fact]
@@ -29,6 +32,9 @@ public class AuthServicesTests : AuthenticatedBlazoriseTestBase
         Assert.NotNull(user);
         Assert.Equal(user, Self);
         Assert.True(await AuthService.IsAuthenticated());
+
+        var token = await AuthService.GetAccessToken();
+        Assert.Null(token);
         
         AuthService.Invalidate();
         Assert.False(AuthService.HasClaims());

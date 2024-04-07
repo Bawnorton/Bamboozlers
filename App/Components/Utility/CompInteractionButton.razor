@@ -16,6 +16,7 @@
     [Parameter] public InteractionEvent EventKind { get; set; }
     [Parameter] public int? UserId { get; set; }
     [Parameter] public string? ButtonId { get; set; }
+    [Parameter] public bool FullText { get; set; }
 
     public EventCallback InteractionCallback { get; set; } = EventCallback.Empty;
     public IconName IconName { get; set; }
@@ -48,12 +49,14 @@
             case InteractionEvent.RequestDeclined:
                 Color = Color.Danger;
                 IconName = IconName.Ban;
+                ButtonCaption = FullText ? "Decline Friend Request" : "";
                 InteractionCallback = eventCallbackFactory.Create(
                     this,
                     async () => await UserInteractionService.DeclineFriendRequest(UserId));
                 break;
             case InteractionEvent.RequestAccepted:
                 IconName = IconName.Check;
+                ButtonCaption = FullText ? "Accept Friend Request" : "";
                 InteractionCallback = eventCallbackFactory.Create(
                     this,
                     async () => await UserInteractionService.AcceptFriendRequest(UserId));

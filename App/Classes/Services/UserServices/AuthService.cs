@@ -59,7 +59,7 @@ public class AuthService : IAuthService
         if (!(claims.Identity?.IsAuthenticated ?? false)) return null;
         
         var token = claims.FindFirstValue("access_token");
-        Console.WriteLine($"Access token: {token}");
+        //Console.WriteLine($"Access token: {token}");
         return token ?? null;
     }
 

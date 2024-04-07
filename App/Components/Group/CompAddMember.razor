@@ -24,7 +24,7 @@
                 var isInvited = InvitedAlready.Contains(friend);
                 var buttonId = $"{friend.UserName}-action-button";
                 
-                var evt = isInvited ? GroupEvent.SentInvitePending : GroupEvent.SentInvite;
+                var evt = isInvited ? GroupEvent.SentInviteRevoked : GroupEvent.SentInvite;
                 RenderFragment button = @<CompGroupButton ButtonId="@buttonId"
                                                           EventKind="@evt"
                                                           GroupID="@ChatID"

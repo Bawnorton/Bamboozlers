@@ -11,19 +11,19 @@
 <div style="margin-top: 5px">
     <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SelectedTab">
         <Items>
-            <Tab Name="Incoming">
+            <Tab Name="Incoming" ElementId="incoming-toggle">
                 @if (IncomingFriendRequests.Count > 0)
                 {
-                    <Badge Color="Color.Danger">
+                    <Badge ElementId="incoming-badge" Color="Color.Danger">
                         @IncomingFriendRequests.Count
                     </Badge>  
                 } 
                 Received Friend Requests
             </Tab>
-            <Tab Name="Outgoing">
+            <Tab Name="Outgoing" ElementId="outgoing-toggle">
                 @if (OutgoingFriendRequests.Count > 0)
                 {
-                    <Badge Color="Color.Dark">
+                    <Badge ElementId="outgoing-badge" Color="Color.Dark">
                         @OutgoingFriendRequests.Count
                     </Badge>  
                 } 
@@ -33,7 +33,7 @@
         <Content>
             <TabPanel Name="Incoming">
                 <Divider/>
-                <div style="display: inline-block; margin: 10px; width: 90%;">
+                <div id="incoming-requests" style="display: inline-block; margin: 10px; width: 90%;">
                     @if (IncomingFriendRequests.Count > 0)
                     {
                         foreach (var request in IncomingFriendRequests)
@@ -61,7 +61,7 @@
             </TabPanel>
             <TabPanel Name="Outgoing">
                 <Divider/>
-                <div style="display: inline-block; margin: 10px; width: 90%;">
+                <div id="outgoing-requests" style="display: inline-block; margin: 10px; width: 90%;">
                     @if (OutgoingFriendRequests.Count > 0)
                     {
                         foreach (var request in OutgoingFriendRequests)
@@ -122,18 +122,7 @@
 
     public async Task OnUpdate(InteractionEvent evt)
     {
-        switch (evt)
-        {
-            case InteractionEvent.RequestAccepted: case InteractionEvent.RequestDeclined:
-                IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
-                break;
-            case InteractionEvent.RequestRevoked: case InteractionEvent.RequestSent:
-                OutgoingFriendRequests = await UserInteractionService.GetAllOutgoingRequests();
-                break;
-            default:
-                await GetFriendsData();
-                break;
-        }
+        await GetFriendsData();
         await InvokeAsync(StateHasChanged);
     }
 }

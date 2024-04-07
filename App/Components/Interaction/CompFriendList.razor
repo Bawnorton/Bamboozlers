@@ -24,7 +24,9 @@
         <div class="scrollbar-container" style="display: inline-block; width: 90%; max-height: 100%; margin: 10px;">
             @foreach (var user in Friends)
             {
-                RenderFragment button = @<CompActionButton ButtonCaption="Send Message" IconName="@IconName.Mail"
+                RenderFragment button = @<CompActionButton ButtonId="send-message"
+                                                           ButtonCaption="Send Message" 
+                                                           IconName="@IconName.Mail"
                                                            ActionCallback="@(async () => await CallOpenDm(user))"
                                                            ColumnWrapped="@false"/>;
                 <CompUserTab @key=@user 
@@ -44,9 +46,9 @@
 @code {
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     
-    [CascadingParameter] private EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
-    [CascadingParameter] private EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
-    [CascadingParameter] private EventCallback ClosePopup { get; set; }
+    [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    [CascadingParameter] public EventCallback ClosePopup { get; set; }
     
     [Parameter] public bool IsPopup { get; set; } = false;
     
@@ -82,6 +84,6 @@
     public async Task OnUpdate(InteractionEvent evt)
     {
         await GetFriendData();
-        InvokeAsync(StateHasChanged);
+        await InvokeAsync(StateHasChanged);
     }
 }

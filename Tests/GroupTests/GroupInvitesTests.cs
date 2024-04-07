@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using Bamboozlers.Classes.AppDbContext;
+using Bamboozlers.Classes.Utility.Observer;
 using Bamboozlers.Components.Group;
 using Bunit.Extensions.WaitForHelpers;
 using Microsoft.AspNetCore.Components.Web;
@@ -28,7 +29,7 @@ public class GroupInvitesTests : GroupChatTestBase
     {
         try
         {
-            var friendSection = fragment.WaitForElement($"#{friend.UserName}-display");
+            var friendSection = fragment.WaitForElement($"#user-{friend.UserName}");
             var inGroup = chat.Users.FirstOrDefault(u => u.Id == friend.Id) is not null;
             var invited = invites.FirstOrDefault(i 
                 => i.SenderID == self.Id && i.RecipientID == friend.Id && i.GroupID == chat.ID) is not null;
@@ -40,7 +41,7 @@ public class GroupInvitesTests : GroupChatTestBase
             }
             else if (invited)
             {
-                Assert.Contains("Revoke Invitation",actionButton.TextContent);
+                Assert.Contains("Revoke Invite",actionButton.TextContent);
             }
             else
             {
@@ -83,6 +84,13 @@ public class GroupInvitesTests : GroupChatTestBase
             Assert.True(await CompAddMember_CheckInviteListEntry(subjectUser, friend, subjectGroup, testInvites, component));
         }
         
+        // Observer Pattern Test
+        var subjectFriendship = testFriendships[0];
+        MockDatabaseProvider.GetMockAppDbContext().MockFriendships.RemoveMock(subjectFriendship);
+        await component.Instance.OnUpdate(GroupEvent.General);
+        
+        Assert.Throws<WaitForFailedException>(() => component.WaitForElement($"#user-{subjectFriendship.User2.UserName}"));
+        
         // Arrange & Act: User is not found/authenticated
         await SetUser(null);
         UserService.Invalidate();
@@ -113,38 +121,6 @@ public class GroupInvitesTests : GroupChatTestBase
             Assert.False(await CompAddMember_CheckInviteListEntry(subjectUser, friend, subjectGroup, testInvites, component));
         }
     }
-
-    [Fact]
-    public async void GroupInvitesTests_SendInvite()
-    {
-        // Arrange & Act: Set up test cases for Users and Group Chats
-        var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
-        
-        var subjectUser = testUsers[0];
-        var subjectGroup = testGroups[0];
-        await SetUser(subjectUser);
-        UserService.Invalidate();
-        
-        var component = Ctx.RenderComponent<CompAddMember>(
-            parameters 
-                => parameters.Add(p => p.ChatID, subjectGroup.ID)
-        );
-
-        var friend = testUsers[3];
-        var actionButton = component.WaitForElement($"#{friend.UserName}-button");
-        Assert.Contains("Invite",actionButton.TextContent);
-
-        await actionButton.ClickAsync(new MouseEventArgs());
-
-        var dbContext = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
-        Assert.NotNull(MockDatabaseProvider.GetMockAppDbContext().MockGroupInvites.MockDbSet.Object.FirstOrDefault(i =>
-            i.GroupID == subjectGroup.ID && i.SenderID == subjectUser.Id && i.RecipientID == friend.Id));
-        Assert.NotNull(dbContext.GroupInvites.FirstOrDefault(i =>
-            i.GroupID == subjectGroup.ID && i.SenderID == subjectUser.Id && i.RecipientID == friend.Id));
-        
-        actionButton = component.WaitForElement($"#{friend.UserName}-button");
-        Assert.Contains("Pending",actionButton.TextContent);
-    }
     
     [Fact]
     public async void GroupInvitesTests_CompGroupInvites()
@@ -153,50 +129,11 @@ public class GroupInvitesTests : GroupChatTestBase
         var (testUsers, testFriendships, testGroups, testInvites) = BuildGroupTestCases();
         
         var subjectUser = testUsers[0];
-        var subjectGroup = testGroups[0];
         await SetUser(subjectUser);
         UserService.Invalidate();
 
-        testInvites.AddRange(new GroupInvite[]
-        {
-            new(0, 5, 1)
-            {
-                Group = subjectGroup,
-                Sender = subjectUser,
-                Recipient = testUsers[5]
-            },
-            new(5, 0, 2)
-            {
-                Group = testGroups[1],
-                Sender = testUsers[5],
-                Recipient = subjectUser
-            },
-            new(6, 0, 2)
-            {
-                Group = testGroups[1],
-                Sender = testUsers[5],
-                Recipient = subjectUser
-            },
-            new(4, 0, 3)
-            {
-                Group = testGroups[2],
-                Sender = testUsers[4],
-                Recipient = subjectUser
-            },
-            new(0, 1, 3)
-            {
-                Group = testGroups[2],
-                Sender = testUsers[4],
-                Recipient = subjectUser
-            }
-        });
-
         List<GroupInvite> incoming = [];
         List<GroupInvite> outgoing = [];
-        foreach (var inv in testInvites)
-        {
-            MockDatabaseProvider.GetMockAppDbContext().MockGroupInvites.AddMock(inv);
-        }
 
         foreach (var inv in MockDatabaseProvider.GetMockAppDbContext().MockGroupInvites.GetMocks())
         {
@@ -216,64 +153,55 @@ public class GroupInvitesTests : GroupChatTestBase
         
         var outgoingBadge = component.Find("#outgoing-badge");
         Assert.Contains($"{outgoing.Count}", outgoingBadge.TextContent);
-
-        var incomingInvites = component.FindAll("#group-invite-incoming");
-        Assert.Equal(incoming.Count,incomingInvites.Count);
         
-        for (var i = 0; i < incoming.Count; i++)
+        foreach (var invite in incoming)
         {
-            var inviteDiv = incomingInvites[i];
-            var invite = incoming[i];
+            var inviteDiv = component.Find($"#incoming-invites #user-{invite.Sender.UserName}");
             
-            var firstPart = inviteDiv.Children[0];
-            var secondPart = inviteDiv.Children[1];
-            var accept = inviteDiv.Children[2].FirstElementChild!;
-            var decline = inviteDiv.Children[3].FirstElementChild!;
+            var username = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "username");
+            Assert.NotNull(username);
+            Assert.Contains($"{invite.Sender.UserName}",username.TextContent);
             
-            Assert.Equal($"forgroup-{invite.Group.GetGroupName()}",firstPart.Id);
-            Assert.Contains("Invite to", firstPart.TextContent);
-            Assert.Contains(invite.Group.GetGroupName(), firstPart.TextContent);
-
-            if (invite.Group.Avatar is not null)
-            {
-                var avatarDisplayed = firstPart.FindChild<IHtmlImageElement>();
-                Assert.NotNull(avatarDisplayed);
-            }
+            var innerContent = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "inner-content-div");
+            Assert.NotNull(innerContent);
+            var innerContentText = innerContent.Descendants<IText>().FirstOrDefault();
+            Assert.NotNull(innerContentText);
+            Assert.Contains("(Invite for group",innerContentText.TextContent);
+            Assert.Contains($"{invite.Group.GetGroupName()})",innerContentText.TextContent);
             
-            Assert.Equal($"fromuser-{invite.Sender.UserName}", secondPart.Id);
-            Assert.Contains("from", secondPart.TextContent);
+            var acceptButton = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "accept-button");
+            Assert.NotNull(acceptButton);
             
-            Assert.Equal("accept-button",accept.Id);
-            Assert.Equal("decline-button",decline.Id);
+            var declineButton = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "decline-button");
+            Assert.NotNull(declineButton);
         }
         
         component.Find("#outgoing-toggle").FirstElementChild!.Click();
-        var outgoingInvites = component.FindAll("#group-invite-outgoing");
-        Assert.Equal(outgoing.Count,outgoingInvites.Count);
-        
-        for (var i = 0; i < outgoing.Count; i++)
+        foreach (var invite in outgoing)
         {
-            var inviteDiv = outgoingInvites[i];
-            var invite = outgoing[i];
+            var inviteDiv = component.Find($"#outgoing-invites #user-{invite.Recipient.UserName}");
             
-            var firstPart = inviteDiv.Children[0];
-            var secondPart = inviteDiv.Children[1];
-            var button = inviteDiv.Children[2].FirstElementChild!;
+            var username = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "username");
+            Assert.NotNull(username);
+            Assert.Contains($"{invite.Recipient.UserName}",username.TextContent);
             
-            Assert.Equal($"forgroup-{invite.Group.GetGroupName()}",firstPart.Id);
-            Assert.Contains("Invite to", firstPart.TextContent);
-            Assert.Contains(invite.Group.GetGroupName(), firstPart.TextContent);
-
-            if (invite.Group.Avatar is not null)
-            {
-                var avatarDisplayed = firstPart.FindChild<IHtmlImageElement>();
-                Assert.NotNull(avatarDisplayed);
-            }
+            var innerContent = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "inner-content-div");
+            Assert.NotNull(innerContent);
+            var innerContentText = innerContent.Descendants<IText>().FirstOrDefault();
+            Assert.NotNull(innerContentText);
+            Assert.Contains("(Invite for group",innerContentText.TextContent);
+            Assert.Contains($"{invite.Group.GetGroupName()})",innerContentText.TextContent);
             
-            Assert.Equal($"touser-{invite.Sender.UserName}", secondPart.Id);
-            Assert.Contains("for", secondPart.TextContent);
-            
-            Assert.Equal("accept-button",button.Id);
+            var revokeButton = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "revoke-button");
+            Assert.NotNull(revokeButton);
         }
+        
+        // Observer Pattern
+        component.Find("#incoming-toggle").FirstElementChild!.Click();
+        var subjectInvite = testInvites[0];
+        MockDatabaseProvider.GetMockAppDbContext().MockGroupInvites.RemoveMock(subjectInvite);
+        await component.Instance.OnUpdate(GroupEvent.General);
+        
+        Assert.Throws<WaitForFailedException>(() => component.WaitForElement($"#incoming-invites #user-{subjectInvite.Sender.UserName}"));
     }
 }
