@@ -129,7 +129,9 @@
                                       </text>,
             PopupType.FriendList => @<text>
                                          <ModalContent Centered>
-                                             <CompFriendList IsPopup="@true"/>
+                                             <Container Margin="Margin.Is2">
+                                                 <CompFriendList IsPopup="@true"/>
+                                             </Container>
                                          </ModalContent>
                                      </text>,
             PopupType.FindFriends => @<text>
