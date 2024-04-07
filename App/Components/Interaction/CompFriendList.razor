@@ -1,0 +1,89 @@
+@inherits UserViewComponentBase
+@implements IInteractionSubscriber
+
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Components.Utility
+
+<div style="margin-top: 10px; width: 100%">
+    <Heading>
+        @if (Friends.Count > 0)
+        {
+            <Badge ElementId="BlockCountBadge"
+                   Color="Color.Dark">
+                @Friends.Count
+            </Badge>
+        }
+        Friends
+    </Heading>
+    <Divider/>
+    @if (Friends.Count > 0)
+    {
+        <div class="scrollbar-container" style="display: inline-block; width: 90%; max-height: 100%; margin: 10px;">
+            @foreach (var user in Friends)
+            {
+                RenderFragment button = @<CompActionButton ButtonId="send-message"
+                                                           ButtonCaption="Send Message" 
+                                                           IconName="@IconName.Mail"
+                                                           ActionCallback="@(async () => await CallOpenDm(user))"
+                                                           ColumnWrapped="@false"/>;
+                <CompUserTab @key=@user 
+                             User="@user"
+                             Button="@button"/>
+                <Divider/>
+            }
+        </div>
+    }
+    else
+    {
+        <p>Nothing to see here...</p>
+        <p>You haven't made any friends.</p>
+    }
+</div>
+
+@code {
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    
+    [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    [CascadingParameter] public EventCallback ClosePopup { get; set; }
+    
+    [Parameter] public bool IsPopup { get; set; }
+    
+    private User Self { get; set; } = default!;
+    private List<User> Friends { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Self = (await AuthService.GetUser())!;
+        UserInteractionService.AddSubscriber(this);
+        await GetFriendData();
+    }
+
+    public async Task CallOpenDm(User user)
+    {
+        await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, user.Id)); 
+        if (IsPopup) await ClosePopup.InvokeAsync();
+    }
+    
+    public async Task GetFriendData()
+    {
+        Friends = [];
+        Friends = await UserInteractionService.GetAllFriends();
+    }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
+    [
+        InteractionEvent.Unfriend,
+        InteractionEvent.RequestAccepted,
+        InteractionEvent.Block
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
+    {
+        await GetFriendData();
+        await InvokeAsync(StateHasChanged);
+    }
+}

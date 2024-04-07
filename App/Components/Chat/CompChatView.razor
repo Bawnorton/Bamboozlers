@@ -1,10 +1,9 @@
 @inherits UserViewComponentBase
 
-@implements Bamboozlers.Classes.Utility.Observer.IAsyncGroupSubscriber
+@implements IGroupSubscriber
 @implements IAsyncDisposable
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
-@using Microsoft.AspNetCore.SignalR.Client
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Networking
@@ -13,8 +12,14 @@
 @using Bamboozlers.Classes.Networking.Packets.Serverbound
 @using Bamboozlers.Classes.Networking.SignalR
 @using Bamboozlers.Classes.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@using Bamboozlers.Classes
+@using Blazorise.Extensions
+@using AngleSharp.Diffing.Extensions
+@using Microsoft.IdentityModel.Tokens
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Components.Utility
 @using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Components.VisualUtility
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject NavigationManager NavigationManager
@@ -23,24 +28,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <!--suppress JSVoidFunctionReturnValueUsed, JSUnresolvedReference -->
-<script>
-    function showConfirmDialog(message) {
-        return Swal.fire({
-            title: 'Are you sure?',
-            text: message,
-            color: '#d33',
-            icon: 'warning',
-            iconColor:'#d33',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#247352',
-            confirmButtonText: 'Yes',
-            background: '#343a40',
-        }).then((result) => {
-            return result.isConfirmed;
-        });
-    }
-    
+<script> 
     function waitForElm(selector) {
         return new Promise(resolve => {
             if (document.querySelector(selector)) {
@@ -88,42 +76,29 @@
                   Display="Display.InlineFlex"
                   Class="justify-content-between align-items-center">
         <Div>
-            @if (Chat is GroupChat { Avatar: not null } groupChat)
+            @if (Chat is GroupChat groupChat)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}") Class="message-avatar" alt=""/>
+                <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
             }
             else if (Chat is not null && Chat is not GroupChat && Chat.Users.First(f => f.Id != Self!.Id).Avatar != null)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.First(f => f.Id != Self!.Id).Avatar!)}") Class="message-avatar" alt=""/>
+                <Image Source="@Chat.Users.First(f => f.Id != Self!.Id).GetAvatar()" Class="message-avatar" alt=""/>
             }
             <Text ElementId="header-text">@ChatName</Text>
         </Div>
-        <Div>
-            <Icon ElementId="pin_button" Name="Icons.MapPin" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.Pins, ChatId = ChatID })"/>
-            @if (Chat is GroupChat)
-            {
-                <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.GroupChatSettings, ChatId = ChatID })"/>
-            }
-        </Div>
+        @if (Chat is GroupChat)
+        {
+            <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.GroupChatSettings, null, ChatID))"/>
+        }
     </LayoutHeader>
     <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
-        <Alert Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
-            <AlertMessage>
-                @AlertArguments.AlertMessage
-                <CloseButton Style="--bs-btn-close-white-filter: black;" VerticalAlignment="VerticalAlignment.Middle" Float="Float.End" TextColor="TextColor.Warning"/>
-            </AlertMessage>
-            <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
-        </Alert>
         <Layout>
             <LayoutContent>
                 <Div>
-                    <CascadingValue Value="new ChatContextData(IsShiftHeld, IsMod, DeleteMessage, EditMessage, PinMessage)">
+                    <CascadingValue Value="IsShiftHeld">
                         @foreach (var message in Messages)
                         {
-                            <CompMessageView
-                                Message="message.DbMessage"
-                                PreviousMessage="@message.Previous?.DbMessage"
-                                EchoRecieved="@message.EchoRecieved"/>
+                            <CompMessageView Message="message.Message" MessageState="@message.GetMessageState()" EchoRecieved="@message.OthersCanSee"/>
                         }
                     </CascadingValue>
                 </Div>
@@ -139,30 +114,37 @@
         </Div>
     </LayoutFooter>
 </Layout>
-@if (Chat is GroupChat)
-{
-    <LayoutSider>
-        <LayoutSiderContent>
-            <Bar Mode="BarMode.VerticalInline"
-                 CollapseMode="BarCollapseMode.Hide"
-                 ThemeContrast="ThemeContrast.Dark"
-                 Class="h-100">
-                <BarMenu>
-                    <BarItem Class="mb-2">
-                        <Div TextColor="TextColor.Primary"
-                             Background="Background.Dark"
-                             Padding="Padding.Is3"
-                             TextSize="TextSize.Heading5">
-                            <Text Class="me-4">Members - @Chat.Users.Count</Text>
+<LayoutSider>
+    <LayoutSiderContent>
+        <Bar Mode="BarMode.VerticalInline"
+             CollapseMode="BarCollapseMode.Hide"
+             ThemeContrast="ThemeContrast.Dark"
+             Class="h-100">
+            <BarMenu>
+                <BarItem Class="mb-2">
+                    <Div TextColor="TextColor.Primary"
+                         Background="Background.Dark"
+                         Padding="Padding.Is3"
+                         TextSize="TextSize.Large">
+                        @if (Chat is GroupChat)
+                        {
+                            <span class="me-4">Members - @Chat.Users.Count</span>
                             @if (IsMod)
                             {
                                 <Icon ElementId="addMembers"
                                       role="button"
                                       Name="IconName.Add"
-                                      onclick="@(() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.ChatAddMember, ChatId = ChatID }))"/>
+                                      @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.InviteGroupMembers, null, ChatID))"/>
                             }
-                        </Div>
-                    </BarItem>
+                        }
+                        else
+                        {
+                            <span class="me-4">Direct Message</span>
+                        }
+                    </Div>
+                </BarItem>
+                @if (Chat is not null)
+                {
                     @foreach (var user in Chat.Users)
                     {
                         <BarItem>
@@ -170,45 +152,38 @@
                                 <Div>
                                     @if (user.Avatar != null)
                                     {
-                                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") Class="message-avatar" alt=""/>
+                                        <Image Source="@user.GetAvatar()" Class="message-avatar" alt=""/>
                                     }
                                     <CompInteractUsername User="@user"/>
                                 </Div>
                             </BarLink>
                         </BarItem>
                     }
-                </BarMenu>
-            </Bar>
-        </LayoutSiderContent>
-    </LayoutSider>
-}
+                }
+            </BarMenu>
+        </Bar>
+    </LayoutSiderContent>
+</LayoutSider>
 
-
+@* ReSharper disable always InconsistentNaming *@
 @code {
     [Inject] IUserGroupService UserGroupService { get; set; } = default!;
-
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
-    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
-
-    [Parameter] public int? ChatID { get; set; }
-    private Chat? Chat { get; set; }
-    private string ChatName { get; set; }
-
+    
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    
+    [Parameter] public int? ChatID { get; set; } 
     public List<int?> WatchedIDs { get; set; } = [];
-
+    private Chat? Chat { get; set; }
     private User? Self { get; set; }
+    private string ChatName { get; set; } = default!;
     private bool IsMod { get; set; }
-
-    private List<MessageEntry> Messages { get; set; } = [];
-    private Dictionary<int, int> MessageIdToIndex { get; set; } = new();
-    private List<int> EphemeralMessages { get; set; } = [];
+    private List<LinkedMessage> Messages { get; set; } = [];
+    
     private DateTime? _lastMessageSentAt;
+    
+    private string MessageInput { get; set; } = default!;
 
-    public AlertArguments AlertArguments { get; set; } = new();
-
-    private string MessageInput { get; set; }
-
-    private string _hubUrl;
+    private string _hubUrl = default!;
     private HubConnection? _hubConnection;
 
     private bool IsShiftHeld { get; set; }
@@ -228,39 +203,17 @@
         WatchedIDs = [ChatID];
         await GetChatData();
         IsMod = IsModerator();
-
-        await using var db = await Db.CreateDbContextAsync();
-        Chat = await db.Chats
-            .Include(c => c.Users)
-            .FirstOrDefaultAsync(c => c.ID == ChatID);
-        switch (Chat)
-        {
-            case null:
-                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
-            case GroupChat groupChat:
-                ChatName = groupChat.Name;
-                break;
-            default:
-            {
-                var self = await AuthService.GetUser();
-                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
-                ChatName = (other.DisplayName ?? other.UserName)!;
-                break;
-            }
-        }
-
-        await UpdateMessages();
     }
 
     private bool IsModerator()
     {
         if (Chat is not GroupChat)
-        {
             return false;
-        }
-
+        
         using var db = Db.CreateDbContext();
-        var gc = db.GroupChats.Include(i => i.Moderators).First(f => f.ID == ChatID);
+        var gc = db.GroupChats.Include(i => i.Moderators)
+            .AsNoTracking()
+                .First(f => f.ID == ChatID);
         return gc.OwnerID == Self!.Id || gc.Moderators.Any(m => m.Id == Self.Id);
     }
 
@@ -269,37 +222,46 @@
         await using var db = await Db.CreateDbContextAsync();
         Chat = await db.Chats.Include(i => i.Users)
             .Include(i => i.Messages)
-            .FirstOrDefaultAsync(c => c.ID == ChatID);
+                .FirstOrDefaultAsync(c => c.ID == ChatID);
+
+        if (Chat is GroupChat)
+        {
+            Chat = await db.GroupChats.Include(i => i.Users)
+                .Include(i => i.Messages)
+                    .Include(i => i.Owner)
+                        .FirstOrDefaultAsync(c => c.ID == ChatID);
+        }
 
         if (Self is null || Chat is null)
             return;
-
-        if (Chat is GroupChat groupChat)
+        
+        switch (Chat)
         {
-            ChatName = groupChat.Name;
+            case null:
+                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
+            case GroupChat gc:
+                ChatName = gc.GetGroupName();
+                break;
+            default:
+            {
+                var self = await AuthService.GetUser();
+                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
+                ChatName = other.GetName();
+                break;
+            }
         }
-        else if (Chat is not null)
-        {
-            var other = Chat.Users.FirstOrDefault(u => u.Id != Self.Id) ?? Self;
-            ChatName = (other.DisplayName ?? other.UserName)!;
-        }
-        else
-        {
-            throw new InvalidOperationException("Chat is null");
-        }
-    }
-
-    private void ReIndexMessages()
-    {
-        MessageIdToIndex.Clear();
-        for (var i = 0; i < Messages.Count; i++)
-        {
-            MessageIdToIndex[Messages[i].DbMessage.ID] = i;
-        }
+        
+        var messages = new List<Message>(Chat?.Messages ?? []);
+        messages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
+        var linkedMessages = messages.Select((t, i) => new LinkedMessage(t, i > 0 ? messages[i - 1] : null)).ToList();
+        Messages = linkedMessages;
+        
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await base.OnAfterRenderAsync(firstRender);
         if (!firstRender) return;
 
         await Connect();
@@ -330,18 +292,6 @@
                         {
                             await UpdateMessages();
                         }
-
-                        break;
-                    case MessageDeletedS2CPacket messageDeletedS2CPacket:
-                        await RemoveClientMessage(messageDeletedS2CPacket.MessageId);
-                        break;
-                    case MessageEditedS2CPacket messageEditedS2CPacket:
-                        var messageEntry = Messages[MessageIdToIndex[messageEditedS2CPacket.MessageId]];
-                        messageEntry.DbMessage.Content = messageEditedS2CPacket.NewContent;
-                        if (EphemeralMessages.Contains(messageEntry.DbMessage.ID)) return;
-
-                        messageEntry.EchoRecieved = true;
-                        await InvokeAsync(StateHasChanged);
                         break;
                 }
             });
@@ -367,96 +317,40 @@
         MessageInput = "";
     }
 
-    private async Task DeleteMessage(Message message)
-    {
-        await using var db = await Db.CreateDbContextAsync();
-        db.Messages.Remove(message);
-        await db.SaveChangesAsync();
-
-        var messageUpdated = new MessageUpdatedC2SPacket
-        {
-            ChatId = (int)ChatID!,
-            MessageId = message.ID,
-            Deleted = true,
-            UpdaterId = Self!.Id
-        };
-
-        await SendToServer(messageUpdated);
-    }
-
-    private async Task RemoveClientMessage(int messageId)
-    {
-        var target = Messages[MessageIdToIndex[messageId]];
-        if (target.Previous != null)
-        {
-            target.Previous.Next = target.Next;
-        }
-
-        if (target.Next != null)
-        {
-            target.Next.Previous = target.Previous;
-        }
-
-        Messages.Remove(target);
-        ReIndexMessages();
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task EditMessage(Message message, string newContent)
-    {
-        if (string.IsNullOrWhiteSpace(newContent)) return;
-
-        while (newContent.EndsWith("\n")) newContent = newContent[..^1];
-        while (newContent.StartsWith("\n")) newContent = newContent[1..];
-
-        message.Content = newContent;
-        Messages[MessageIdToIndex[message.ID]].EchoRecieved = false;
-
-        await using var db = await Db.CreateDbContextAsync();
-        db.Messages.Update(message);
-        await db.SaveChangesAsync();
-
-        var messageUpdated = new MessageUpdatedC2SPacket
-        {
-            ChatId = (int)ChatID!,
-            MessageId = message.ID,
-            NewContent = newContent,
-            UpdaterId = Self!.Id
-        };
-
-        await SendToServer(messageUpdated);
-    }
-
-    private async Task PinMessage(Message message)
-    {
-        await using var db = await Db.CreateDbContextAsync();
-        message.IsPinned = !message.IsPinned;
-        db.Messages.Update(message);
-        await db.SaveChangesAsync();
-    }
-
-    private async Task UpdateMessages()
+    public async Task UpdateMessages()
     {
         var newMessages = await (await Db.CreateDbContextAsync()).Messages
             .Where(m => m.ChatID == Chat!.ID && (_lastMessageSentAt == null || m.SentAt > _lastMessageSentAt))
             .ToListAsync();
         if (newMessages.Count == 0) return;
 
-        foreach (var message in newMessages)
+        newMessages.Sort((a, b) => a.SentAt.CompareTo(b.SentAt));
+        Dictionary<int, int> clientOnlyMessages = new();
+        for (var index = 0; index < Messages.Count; index++)
         {
-            if (EphemeralMessages.Contains(message.ID))
-            {
-                EphemeralMessages.Remove(message.ID);
-                Messages[MessageIdToIndex[message.ID]].EchoRecieved = true;
-            }
-            else
-            {
-                CreateMessageEntry(message);
-            }
+            var message = Messages[index];
+            if (message.OthersCanSee) continue;
+
+            clientOnlyMessages[message.Message.ID] = index;
         }
 
-        _lastMessageSentAt = Messages[^1].DbMessage.SentAt;
+        var previousLastMessage = Messages.Count == 0 ? null : Messages[^1].Message;
+        for (var i = 0; i < newMessages.Count; i++)
+        {
+            var previous = i == 0 ? previousLastMessage : newMessages[i - 1];
+            var newMessage = newMessages[i];
+            if (clientOnlyMessages.TryGetValue(newMessage.ID, value: out var existingMessageIndex))
+            {
+                var clientMessage = Messages[existingMessageIndex];
+                clientMessage.OthersCanSee = true;
+                clientMessage.Previous = previous;
+                continue;
+            }
+
+            Messages.Add(new LinkedMessage(newMessage, previous));
+        }
+
+        _lastMessageSentAt = newMessages[^1].SentAt;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -489,32 +383,7 @@
         };
         await SendToServer(readDatabaseRequest);
 
-        CreateMessageEntry(message, true);
-    }
-
-    private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false)
-    {
-        var lastMessage = Messages.Count == 0 ? null : Messages[^1];
-        var messageEntry = new MessageEntry
-        {
-            DbMessage = message,
-            Previous = lastMessage,
-            Next = null,
-            EchoRecieved = !ephemeral
-        };
-        if (lastMessage != null)
-        {
-            lastMessage.Next = messageEntry;
-        }
-
-        Messages.Add(messageEntry);
-        MessageIdToIndex[message.ID] = Messages.Count - 1;
-        if (ephemeral)
-        {
-            EphemeralMessages.Add(message.ID);
-        }
-
-        return messageEntry;
+        Messages.Add(new LinkedMessage(message, Messages.LastOrDefault()?.Message, othersCanSee: false));
     }
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)
@@ -541,10 +410,7 @@
             KeyPressService.KeyReleased -= OnKeyReleased;
             await KeyPressService.StopListeningAsync();
         }
-        catch (JSDisconnectedException)
-        {
-            /* Ignore */
-        }
+        catch (JSDisconnectedException) { /* Ignore */ }
 
         if (_hubConnection is null) return;
 
@@ -555,21 +421,35 @@
 
         GC.SuppressFinalize(this);
     }
+    
+    public class LinkedMessage(Message message, Message? previous, bool othersCanSee = true)
+    {
+        public MessageState GetMessageState()
+        {
+            // if (Previous is null)
+            // {
+            //     return MessageState.First;
+            // }
+            //
+            // return Previous.SenderID == Message.SenderID ? MessageState.SameUser : MessageState.NewUser;
+            return MessageState.NewUser;
+        }
 
-    public async Task OnGroupUpdate()
+        public Message Message { get; } = message;
+        
+        public Message? Previous { get; set; } = previous;
+
+        public bool OthersCanSee { get; set; } = othersCanSee;
+    }
+
+    public List<GroupEvent> WatchedGroupEvents { get; } = 
+    [
+        GroupEvent.GroupDisplayChange,
+        GroupEvent.RemoveMember
+    ];
+    
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetChatData();
     }
-
-    private class MessageEntry
-    {
-        public MessageEntry? Next { get; set; }
-        public MessageEntry? Previous { get; set; }
-        public Message DbMessage { get; set; }
-        public bool EchoRecieved { get; set; }
-
-        public bool HasNext => Next != null;
-        public bool HasPrevious => Previous != null;
-    }
-
 }

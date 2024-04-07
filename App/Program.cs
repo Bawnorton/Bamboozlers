@@ -66,7 +66,10 @@ builder.Services.AddScoped<IKeyPressService, KeyPressService>();
 builder.Services.AddSignalR(e => { e.MaximumReceiveMessageSize = 1024 * 1024; });
 builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
 
-builder.WebHost.UseUrls("http://localhost:5152");
+string[] urls = builder.Environment.IsDevelopment() 
+    ? ["http://localhost:5152"] 
+    : ["http://192.168.1.199:5152", "http://localhost:5152"];
+builder.WebHost.UseUrls(urls);
 
 var app = builder.Build();
 
@@ -96,7 +99,4 @@ app.MapRazorComponents<App>()
 app.MapAdditionalIdentityEndpoints();
 app.Run();
 
-namespace Bamboozlers
-{
-    public class Program;
-}
+public partial class Program;

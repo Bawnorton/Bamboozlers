@@ -1,0 +1,118 @@
+@inherits UserViewComponentBase
+
+@implements IGroupSubscriber
+
+@using Bamboozlers.Classes.AppDbContext
+@using AngleSharp.Diffing.Extensions
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Components.Utility
+@using Microsoft.IdentityModel.Tokens
+@using Bamboozlers.Classes.Utility.Observer
+@using Blazorise.Extensions
+
+@inject IDbContextFactory<AppDbContext> Db
+
+<ModalContent Centered>
+    <ModalHeader>
+        <ModalTitle>Invite Friends to @(Chat is null ? "Group" : Chat.GetGroupName())</ModalTitle>
+    </ModalHeader>
+    <ModalBody>
+        <Div Style="width: 90%; margin: 10px;">
+            @if (Chat is not null) {
+                using var dbContext = Db.CreateDbContext();
+                var invitesForGroup = dbContext.GroupInvites.Where(i => i.GroupID == ChatID);
+                
+                foreach (var friend in FriendList)
+                {
+                    if (Chat is null)
+                        continue;
+
+                    var isInGroup = Chat.Users.FirstOrDefault(u => u.UserName == friend.UserName) is not null;
+                    var isInvited = invitesForGroup.FirstOrDefault(i => friend.Id == i.RecipientID) is not null;
+                    var buttonId = $"{friend.UserName}-action-button";
+
+                    var evt = isInvited ? GroupEvent.SentInviteRevoked : GroupEvent.SentInvite;
+                    RenderFragment button = @<CompGroupButton ButtonId="@buttonId"
+                                                              EventKind="@evt"
+                                                              GroupID="@ChatID"
+                                                              UserId="@friend.Id"/>;
+                    if (isInGroup)
+                    {
+                        button = @<CompActionButton ButtonId="@buttonId"
+                                                    Color="Color.Dark"
+                                                    ButtonCaption="Already in group"
+                                                    ColumnWrapped="@false"
+                                                    Disabled="@true"/>;
+                    }
+
+                    <CompUserTab @key=@friend
+                                 User="@friend"
+                                 Button="@button"/>
+                    <Divider/>
+                }
+            }
+        </Div>
+    </ModalBody>
+</ModalContent>
+
+@code{
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+
+    [Parameter] public int? ChatID { get; set; }
+    public List<int?> WatchedIDs { get; set; } = [];
+    
+    private GroupChat? Chat { get; set; }
+    
+    private User? Self { get; set; }
+
+    private List<User> FriendList { get; set; } = [];
+    private List<User> InvitedAlready { get; set; } = [];
+    private List<User> InGroupAlready { get; set; } = [];
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        UserGroupService.AddSubscriber(this);
+        WatchedIDs = [ChatID];
+        await LoadGroupData();
+    }
+    
+    private async Task LoadGroupData()
+    {
+        Self = await AuthService.GetUser();
+        if (Self is null) 
+            return;
+        
+        await using var db = await Db.CreateDbContextAsync();
+        
+        Chat = db.GroupChats.AsNoTracking().Where(c => c.ID == ChatID)
+            .Include(c => c.Users)
+            .Include(c => c.Moderators)
+            .Include(c => c.Owner)
+            .FirstOrDefault();
+        
+        if (Chat is null)
+            return;
+        
+        FriendList = await UserInteractionService.GetAllFriends();
+    }
+    
+    public List<GroupEvent> WatchedGroupEvents { get; set; } =
+    [
+        GroupEvent.SentInvite,
+        GroupEvent.SentInviteRevoked,
+        GroupEvent.RemoveMember,
+        GroupEvent.SelfLeftGroup
+    ];
+    
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    {
+        await LoadGroupData();
+        await InvokeAsync(StateHasChanged);
+    }
+}
+
+

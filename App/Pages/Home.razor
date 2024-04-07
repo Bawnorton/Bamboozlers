@@ -4,10 +4,14 @@
 
 @inherits LayoutComponentBase
 
-@using Bamboozlers.Components.Settings
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Components.Chat
 @using Microsoft.AspNetCore.Authorization
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Components.MainVisual
+@using Bamboozlers.Components.Settings
+@using Bamboozlers.Components.Group.Settings
+@using Bamboozlers.Components.Interaction
+@using Bamboozlers.Components.Group
 
 @attribute [Authorize]
 
@@ -16,18 +20,21 @@
 <ErrorBoundary>
     <ChildContent>
         <AuthorizeView>
-            <!-- IMPORTANT: This allows child components to create Popups! 
-                 Declare a [CascadingParameter] of type EventCallback<PopupCallbackArgs> in a component to use this!
-                 
-                 Allows for dynamic creation of popups without using Blazorise ModalProvider/Service, which isn't
-                 very cooperative!
-            -->
-            <CascadingValue Value="_openPopupCallback">
-                <CascadingValue Value="_closePopupCallback">
-                    <NavLayout @ref="_navLayout"/>
-                    <Modal @ref="_popupComponent" Closed="OnPopupClosed">
-                        @_popupContent
-                    </Modal>
+            <CascadingValue Value="OpenAlertPopup">
+                <CascadingValue Value="OpenNewPopup">
+                    <CascadingValue Value="OpenKnownPopup">
+                        <CascadingValue Value="DismissPopup">
+                            <CascadingValue Value="OpenChatCallback">
+                                <NavLayout @ref="_navLayout"/>
+                                <Modal @ref="ModalRef" Closed="@(() => CurrentPopup = null)">
+                                    @CurrentPopup
+                                </Modal>
+                                <Modal @ref="AlertModalRef" Closed="@(() => AlertPopup = null)">
+                                    @AlertPopup
+                                </Modal>
+                            </CascadingValue>
+                        </CascadingValue>
+                    </CascadingValue>
                 </CascadingValue>
             </CascadingValue>
         </AuthorizeView>
@@ -58,80 +65,141 @@
 @code {
     private NavLayout? _navLayout;
 
-    private EventCallback<PopupCallbackArgs> _openPopupCallback;
-    private EventCallback _closePopupCallback;
+    private EventCallback<NewPopupArgs> OpenNewPopup { get; set; }
+    private EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    private EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
+    private EventCallback DismissPopup { get; set; }
 
-    private Modal? _popupComponent;
-    private RenderFragment? _popupContent;
+    private EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
 
     protected override void OnInitialized()
     {
-        _openPopupCallback = EventCallback.Factory.Create<PopupCallbackArgs>(this, OpenPopup);
-        _closePopupCallback = EventCallback.Factory.Create(this, ClosePopup);
+        OpenKnownPopup = EventCallback.Factory.Create<KnownPopupArgs>(this,
+            async args => await CreateKnownPopup(args.Type, args.FocusUser, args.ChatId)
+        );
+
+        OpenAlertPopup = EventCallback.Factory.Create<AlertPopupArgs>(this,
+            async args => await CreateAlertPopup(args.AlertBody, args.OnConfirmCallback)
+        );
+
+        OpenNewPopup = EventCallback.Factory.Create<NewPopupArgs>(this,
+            async args => await CreateNewPopup(args.Body, args.Header, args.Footer)
+        );
+
+        DismissPopup = EventCallback.Factory.Create(this, async _ => await ClosePopup());
+
+        OpenChatCallback = EventCallback.Factory.Create<OpenChatArgs>(this, async args =>
+        {
+            switch (args.ChatType)
+            {
+                case ChatType.Dm:
+                    await _navLayout!.OpenDm(-1, args.Id, true);
+                    break;
+                case ChatType.Group:
+                    await _navLayout!.OpenGroup(args.Id, true);
+                    break;
+            }
+        });
     }
 
-    private async Task OpenPopup(PopupCallbackArgs args)
+    private Modal ModalRef { get; set; } = default!;
+    private RenderFragment? CurrentPopup { get; set; }
+
+    private Modal AlertModalRef { get; set; } = default!;
+    private RenderFragment? AlertPopup { get; set; }
+
+    private async Task CreateKnownPopup(PopupType type, User? focusUser = null, int? chatId = null)
     {
-        if (_popupComponent is null)
-            return;
-
-        _popupContent = args.PopupType switch
+        CurrentPopup = type switch
         {
-            RecognizedPopupType.Settings => @<text>
-                                                 <CompSettings StateChangedCallback="@(async () => await _navLayout!.Refresh())"/>
-                                             </text>,
-            RecognizedPopupType.Profile => @<text>
-                                                <CompProfileView FocusUser="UserRecord.From(args.FocusUser!)"/>
+            PopupType.Settings => @<text>
+                                       <CompSettings/>
+                                   </text>,
+            PopupType.UserProfile => @<text>
+                                          <CompProfileView FocusUser="@UserRecord.From(focusUser!)"/>
+                                      </text>,
+            PopupType.GroupChatSettings => @<text>
+                                                <CompGroupSettings ChatID="@chatId"/>
                                             </text>,
-            RecognizedPopupType.GroupChatSettings => @<text>
-                                                          <CompChatSettings ChatID="@args.ChatId"/>
-                                                      </text>,
-            RecognizedPopupType.ChatAddMember => @<text>
-                                                      <CompAddMember ChatID="@args.ChatId"/>
-                                                  </text>,
-            RecognizedPopupType.Pins => @<text>
-                                             <CompPinsView ChatID="@args.ChatId"/>
-                                         </text>,
-            _ => @<text>
-                      <ModalContent Size="args.Size" Centered>
-                          <ModalHeader>
-                              @if (args.HeaderContent is not null)
-                              {
-                                  @args.HeaderContent
-                              }
-                              <CloseButton/>
-                          </ModalHeader>
-                          <ModalBody>
-                              @if (args.BodyContent is not null)
-                              {
-                                  @args.BodyContent
-                              }
-                          </ModalBody>
-                          <ModalFooter>
-                              @if (args.FooterContent is not null)
-                              {
-                                  @args.FooterContent
-                              }
-                          </ModalFooter>
-                      </ModalContent>
-                  </text>
+            PopupType.InviteGroupMembers => @<text>
+                                                 <CompAddMember ChatID="@chatId"/>
+                                             </text>,
+            PopupType.CreateGroup => @<text>
+                                          <CompCreateGroup/>
+                                      </text>,
+            PopupType.FriendList => @<text>
+                                         <ModalContent Centered>
+                                             <Container Margin="Margin.Is2">
+                                                 <CompFriendList IsPopup="@true"/>
+                                             </Container>
+                                         </ModalContent>
+                                     </text>,
+            PopupType.FindFriends => @<text>
+                                          <CompAddFriend/>
+                                      </text>,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, $"Cannot create popup of type {type}")
         };
+        await ModalRef.Show();
+    }
 
-        await _popupComponent.Show();
+    private async Task CreateNewPopup(RenderFragment bodyContent, RenderFragment? headerContent = null, RenderFragment? footerContent = null)
+    {
+        CurrentPopup = @<text>
+                            <ModalContent>
+                                @if (headerContent is not null)
+                                {
+                                    <ModalHeader>
+                                        @headerContent
+                                    </ModalHeader>
+                                }
+                                <ModalBody>
+                                    @bodyContent
+                                </ModalBody>
+                                @if (footerContent is not null)
+                                {
+                                    <ModalFooter TextAlignment="TextAlignment.Center">
+                                        @footerContent
+                                    </ModalFooter>
+                                }
+                            </ModalContent>
+                        </text>;
+        await ModalRef.Show();
+    }
+
+    private async Task CreateAlertPopup(RenderFragment bodyAlert, EventCallback onConfirm)
+    {
+        AlertPopup = @<text>
+                          <ModalContent Centered>
+                              <ModalHeader>
+                                  <Heading>Are you sure?</Heading>
+                              </ModalHeader>
+                              <ModalBody>
+                                  @bodyAlert
+                              </ModalBody>
+                              <ModalFooter TextAlignment="TextAlignment.Center">
+                                  <Button Color="Color.Danger" Clicked="@(async () => { await ClosePopup(); })">
+                                      <Icon Name="IconName.Ban"/>
+                                      Cancel
+                                  </Button>
+                                  <Button Color="Color.Success" Clicked="@(async () => { await onConfirm.InvokeAsync(); await ClosePopup(); })">
+                                      <Icon Name="IconName.Check"/>
+                                      Confirm
+                                  </Button>
+                              </ModalFooter>
+                          </ModalContent>
+                      </text>;
+        await AlertModalRef.Show();
     }
 
     private async Task ClosePopup()
     {
-        if (_popupComponent is null)
+        if (AlertPopup is not null)
+        {
+            await AlertModalRef.Hide();
             return;
-        await _popupComponent.Hide();
-    }
+        }
 
-    private void OnPopupClosed()
-    {
-        if (_popupComponent is null)
-            return;
-        _popupContent = null;
+        await ModalRef.Hide();
     }
 
 }

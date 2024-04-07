@@ -1,16 +1,14 @@
 using Bamboozlers.Classes.AppDbContext;
-using Microsoft.EntityFrameworkCore;
 
 namespace Tests.Provider.MockAppDbContext;
 
 public class MockUsers : AbstractMockDbSet<User>
 {
-    private readonly Func<User, User, bool> _matchFunction = (u0, u1) => u0.Id == u1.Id;
-    public Mock<DbSet<User>> MockUsersSet;
+    protected override Func<User, User, bool> MatchPredicate { get; set; }  = (u0, u1) => u0.Id == u1.Id;
 
     public MockUsers(MockAppDbContext mockAppDbContext) : base(mockAppDbContext)
     {
-        MockUsersSet = MockAppDbContext.SetupMockDbSet<User>(
+        MockDbSet = MockAppDbContext.SetupMockDbSet<User>(
         [
             new User
             {
@@ -55,48 +53,45 @@ public class MockUsers : AbstractMockDbSet<User>
                 UserName = "TestUser3",
                 Email = "test_user3@gmail.com",
                 EmailConfirmed = true
+            },
+            new User
+            {
+                Id = 4,
+                AccessFailedCount = 0,
+                Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
+                UserName = "TestUser4",
+                Email = "test_user4@gmail.com",
+                EmailConfirmed = true
+            },
+            new User
+            {
+                Id = 5,
+                AccessFailedCount = 0,
+                Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
+                UserName = "TestUser5",
+                Email = "test_user5@gmail.com",
+                EmailConfirmed = true
+            },
+            new User
+            {
+                Id = 6,
+                AccessFailedCount = 0,
+                Chats = [],
+                ModeratedChats = [],
+                OwnedChats = [],
+                UserName = "TestUser6",
+                Email = "test_user6@gmail.com",
+                EmailConfirmed = true
             }
         ]);
-        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(MockUsersSet.Object);
     }
-
-    public override void AddMock(User user)
+    
+    public override void RebindMocks()
     {
-        MockUsersSet = base.AddMock(
-            user,
-            MockUsersSet,
-            _matchFunction
-        );
-        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(MockUsersSet.Object);
-    }
-
-    public override void RemoveMock(User user)
-    {
-        MockUsersSet = base.RemoveMock(
-            user,
-            MockUsersSet,
-            _matchFunction
-        );
-        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(MockUsersSet.Object);
-    }
-
-    public override void UpdateMock(User user)
-    {
-        RemoveMock(user);
-        AddMock(user);
-    }
-
-    public override User? FindMock(int idx)
-    {
-        return MockUsersSet.Object.Skip(idx - 1).FirstOrDefault();
-    }
-
-    public override void ClearAll()
-    {
-        var list = MockUsersSet.Object.ToList();
-        foreach (var user in list)
-        {
-            RemoveMock(user);
-        }
+        MockAppDbContext.MockDbContext.Setup(x => x.Users).Returns(GetMocks());
     }
 }

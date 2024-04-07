@@ -1,0 +1,336 @@
+@inherits UserViewComponentBase
+
+@implements IGroupSubscriber
+
+@using Bamboozlers.Classes.AppDbContext
+@using Microsoft.IdentityModel.Tokens
+@using Bamboozlers.Components.Utility
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.Utility.Observer
+
+@inject IDbContextFactory<AppDbContext> Db
+@inject ILogger<CompGroupSettings> Logger;
+
+<ModalContent Centered Size="ModalSize.Large">
+    <ModalHeader>
+        <ModalTitle>@(Chat is null ? "Group" : Chat.GetGroupName()) Settings</ModalTitle>
+    </ModalHeader>
+    <ModalBody>
+        <Alert ElementId="settings-alert" Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
+            <AlertMessage>
+                @AlertArguments.AlertMessage
+                <CloseButton Clicked="@(() => AlertArguments = new AlertArguments())"
+                             Style="--bs-btn-close-white-filter: black;"
+                             VerticalAlignment="VerticalAlignment.Middle"
+                             Float="Float.End"
+                             TextColor="TextColor.Warning"/>
+            </AlertMessage>
+            <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
+        </Alert>
+        <Div Display="Display.InlineFlex" Class="justify-content-between align-items-center w-100 mb-2">
+            @GroupDisplay
+        </Div>
+        <CompSimpleDivider/>
+        <Div Class="settings-tab scrollbar-container" style="margin-left: 2dvw; margin-right: 2dvw;">
+            <Heading ElementId = "mod-heading" Size="HeadingSize.Is4">Group Moderators</Heading>
+            @ModList
+            <CompSimpleDivider/>
+            <Heading ElementId="member-heading" Size="HeadingSize.Is4">Group Members</Heading>
+            @MemberList
+        </Div>
+    </ModalBody>
+    <ModalFooter>
+        @if (Chat?.OwnerID != Self?.Id)
+        {
+            <CompActionButton ButtonId="leaveGroup"
+                              ButtonCaption="Leave Group"
+                              Color="Color.Danger"
+                              IconName="IconName.Running"
+                              ColumnWrapped="@false"
+                              ActionCallback="@(async () => { await UserGroupService.LeaveGroup(ChatID); })"/>
+        }
+    </ModalFooter>
+</ModalContent>
+
+@code{
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+
+    [CascadingParameter] public EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
+    [CascadingParameter] public EventCallback DismissPopup { get; set; }
+
+    [Parameter] public int? ChatID { get; set; }
+
+    private GroupChat? Chat { get; set; }
+    private User? Self { get; set; }
+
+    public AlertArguments AlertArguments { get; set; } = new();
+
+    private RenderFragment? GroupDisplay { get; set; }
+    private RenderFragment? ModList { get; set; }
+    private RenderFragment? MemberList { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        UserGroupService.AddSubscriber(this);
+        await LoadGroupData();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        WatchedIDs = [ChatID];
+        await LoadGroupData();
+    }
+
+    private async Task LoadGroupData()
+    {
+        Self = await AuthService.GetUser();
+        if (Self is null)
+            return;
+
+        await using var dbContext = await Db.CreateDbContextAsync();
+        Chat = await dbContext.GroupChats.Where(c => c.ID == ChatID)
+            .Include(c => c.Users).ThenInclude(u => u.ModeratedChats)
+            .Include(c => c.Moderators)
+            .Include(c => c.Owner)
+            .FirstOrDefaultAsync();
+
+        if (Chat is null)
+            return;
+
+        var owner = await dbContext.Users.Where(u => u.Id == Chat.OwnerID).FirstOrDefaultAsync();
+        MemberList = @<div id="memberList">
+                         @foreach (var user in Chat.Users)
+                         {
+                             <div id="@($"{Chat.Name}_memberDisplay")">
+                                 @GetUserFragment(user)
+                                 <Divider/>
+                             </div>
+                         }
+                     </div>;
+
+        ModList = @<text>
+                       @if (Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null || Self.Id == owner!.Id)
+                       {
+                           <Paragraph TextSize="TextSize.Small" TextColor="TextColor.Warning">
+                               These users can add and remove members and change the chat settings.
+                           </Paragraph>
+                       }
+                       <div id="modList">
+                           @if (owner is not null)
+                           {
+                               <div id="@($"{Chat.Name}_memberDisplay")">
+                                   @GetUserFragment(owner)
+                                   <Divider/>
+                               </div>
+                           }
+                           @foreach (var user in Chat.Moderators)
+                           {
+                               <div id="@($"{Chat.Name}_memberDisplay")">
+                                   @GetUserFragment(user)
+                                   <Divider/>
+                               </div>
+                           }
+                       </div>
+                   </text>;
+
+        if (Self.Id == Chat.OwnerID || Chat.Moderators.FirstOrDefault(m => m.Id == Self.Id) is not null)
+        {
+            GroupDisplay = @<text>
+                                <Container id="@($"{Chat.Name}_displayContainer")">
+                                    <Row Class="centre-content">
+                                        <Column ColumnSize="ColumnSize.Is2">
+                                            <CompAvatarUploader OnDelete="DeleteAvatar"
+                                                                OnUpload="OnAvatarChange"
+                                                                DefaultSrc="@Chat.GetDefaultAvatar()"
+                                                                AlertCallback="@(args => AlertArguments = args)"
+                                                                Avatar="@Chat.Avatar"
+                                                                DisplayPx="128"/>
+                                        </Column>
+                                        <Column ColumnSize="ColumnSize.Is9">
+                                            <CompEditGroupName ChatID="@Chat.ID"
+                                                               AlertCallback="@(args => AlertArguments = args)"/>
+                                        </Column>
+                                    </Row>
+                                </Container>
+                            </text>;
+        }
+        else
+        {
+            GroupDisplay = @<text>
+                                <Div ElementId=@($"{Chat.Name}_displayDiv")>
+                                    <Row>
+                                        <Div Style="margin-left: 20px">
+                                            <CompViewAvatar DefaultSrc="@Chat.GetDefaultAvatar()"
+                                                            Avatar="@Chat.Avatar"
+                                                            DisplayPx="128"/>
+                                        </Div>
+                                    </Row>
+                                </Div>
+                                <Container>
+                                    <Row Class="centre-content">
+                                        <Column ColumnSize="ColumnSize.Is6">
+                                            <TextEdit Text="@Chat.GetGroupName()"
+                                                      ElementId="chat-name"
+                                                      Placeholder="Chat Name"
+                                                      Disabled>
+                                            </TextEdit>
+                                        </Column>
+                                    </Row>
+                                </Container>
+                            </text>;
+        }
+
+        await dbContext.DisposeAsync();
+    }
+
+    public async Task DeleteAvatar()
+    {
+        if (Chat?.Avatar is null)
+            return;
+
+        var result = await UserGroupService.UpdateGroupAvatar(ChatID, Array.Empty<byte>());
+        if (!result.Succeeded)
+        {
+            AlertArguments = new AlertArguments(
+                Color.Danger,
+                true,
+                "Unsuccessful attempt to delete avatar.",
+                $"{string.Join(",", result.Errors.Select(s => s.Description))}"
+            );
+            return;
+        }
+
+        AlertArguments = new AlertArguments(
+            Color.Success,
+            true,
+            "Success!",
+            "Group avatar was deleted."
+        );
+
+        await LoadGroupData();
+        StateHasChanged();
+    }
+
+    public async Task<bool> OnAvatarChange(byte[] newAvatar)
+    {
+        if (Chat is null)
+            return false;
+
+        var result = await UserGroupService.UpdateGroupAvatar(ChatID, newAvatar);
+
+        return result.Succeeded;
+    }
+
+    private RenderFragment? GetUserFragment(User user)
+    {
+        if (Self is null)
+            return null;
+
+        var isOwner = Chat!.OwnerID == user.Id;
+        var isMod = Chat.Moderators.Contains(user);
+        
+        return @<div id="@($"{user.UserName}_section")">
+                   <div style="display: inline-block">
+                       <Image ElementId="@($"{user.UserName}_avatar")"
+                              Class="_32x32 message-avatar"
+                              Source="@user.GetAvatar()"
+                              alt=""/>
+                       <CompInteractUsername User="@user"/>
+                       @if (isOwner)
+                       {
+                           <Badge ElementId="@($"{user.UserName}_badge")"
+                                  Style="margin-left: 5px; margin-right: 5px;" 
+                                  Color="Color.Success">
+                               OWNER
+                           </Badge>
+                       }
+                       else if (isMod)
+                       {
+                           <Badge ElementId="@($"{user.UserName}_badge")"
+                                  Style="margin-left: 5px; margin-right: 5px;" 
+                                  Color="Color.Light">
+                               MODERATOR
+                           </Badge>
+                       }
+                   </div>
+                   @if (!isOwner)
+                   {
+                       @if ((Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null && !isMod) || Chat.OwnerID == Self.Id)
+                       {
+                           @GetKickButton(user)
+                       }
+                       @if (Chat.OwnerID == Self.Id)
+                       {
+                           @GetPermsButton(user)
+                       }
+                   }
+               </div>;
+    }
+
+    private RenderFragment? GetPermsButton(User user)
+    {
+        if (Chat is null)
+            return null;
+
+        var isMod = Chat.Moderators.Contains(user);
+        return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
+            <CompActionButton ButtonId="@($"{user.UserName}_permsButton")"
+                              ButtonCaption="@(isMod ? "Revoke permissions" : "Assign permissions")"
+                              Color="@(isMod ? Color.Warning : Color.Success)"
+                              IconName="@(isMod ? IconName.Ban : IconName.ShieldAlt)"
+                              ColumnWrapped="@false"
+                              ActionCallback="@(isMod ? async () => await UserGroupService.RevokePermissions(ChatID, user.Id) : async () => await UserGroupService.AssignPermissions(ChatID, user.Id))"/>
+        </div>;
+    }
+
+    private RenderFragment GetKickButton(User user)
+    {
+        return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
+            <CompActionButton ButtonId="@($"{user.UserName}_kickButton")"
+                              ButtonCaption="Kick user"
+                              Color="Color.Danger"
+                              IconName="IconName.Ban"
+                              ColumnWrapped="@false"
+                              ActionCallback="@(async () => await OpenKickConfirmation(user.Id))"/>
+        </div>;
+    }
+
+    private async Task OpenKickConfirmation(int memberId)
+    {
+        await OpenAlertPopup.InvokeAsync(
+            new AlertPopupArgs(
+                @<text>
+                     This user will be removed from the group, and they will have to be invited again to re-join!
+                 </text>,
+                EventCallback.Factory.Create(this, () => UserGroupService.RemoveGroupMember(ChatID, memberId))
+            )
+        );
+    }
+
+    public List<GroupEvent> WatchedGroupEvents { get; set; } =
+    [
+        GroupEvent.RemoveMember,
+        GroupEvent.RevokedPermissions,
+        GroupEvent.GrantedPermissions,
+        GroupEvent.GroupDisplayChange,
+        GroupEvent.SelfLeftGroup,
+        GroupEvent.DeleteGroup
+    ];
+
+    public List<int?> WatchedIDs { get; set; } = [];
+
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    {
+        if (evt is GroupEvent.SelfLeftGroup or GroupEvent.DeleteGroup)
+        {
+            await DismissPopup.InvokeAsync();
+            return;
+        }
+
+        await LoadGroupData();
+        StateHasChanged();
+    }
+
+}

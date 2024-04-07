@@ -1,42 +1,57 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 
 namespace Tests.Provider.MockAppDbContext;
 
-// API Class
-[SuppressMessage("ReSharper", "UnusedMember.Global")]
-[SuppressMessage("ReSharper", "UnusedMemberInSuper.Global")]
 public abstract class AbstractMockDbSet<T>(MockAppDbContext mockAppDbContext) where T : class
 {
-    protected MockAppDbContext MockAppDbContext { get; } = mockAppDbContext;
-    public abstract void AddMock(T entry);
-    public abstract void RemoveMock(T entry);
-
-    public Mock<DbSet<T>> AddMock(T entry,
-        Mock<DbSet<T>> entries,
-        Func<T, T, bool> matchPredicate)
+    protected MockAppDbContext MockAppDbContext { get; set; } = mockAppDbContext;
+    protected abstract Func<T, T, bool> MatchPredicate { get; set; }
+    public Mock<DbSet<T>> MockDbSet { get; set; } = default!;
+    
+    public virtual void AddMock(T entry)
     {
-        return MockAppDbContext.AddMockDbEntry(
+        MockDbSet = MockAppDbContext.AddMockDbEntry(
             entry,
-            entries,
-            matchPredicate
+            MockDbSet,
+            MatchPredicate
         );
+        RebindMocks();
+    }
+    
+    public virtual void RemoveMock(T entry)
+    {
+        MockDbSet = MockAppDbContext.RemoveMockDbEntry(
+            entry,
+            MockDbSet,
+            MatchPredicate
+        );
+        RebindMocks();
     }
 
-    public Mock<DbSet<T>> RemoveMock(T entry,
-        Mock<DbSet<T>> entries,
-        Func<T, T, bool> matchPredicate)
+    public virtual void UpdateMock(T entry)
     {
-        return MockAppDbContext.RemoveMockDbEntry(
-            entry,
-            entries,
-            matchPredicate
-        );
+        RemoveMock(entry);
+        AddMock(entry);
     }
 
-    public abstract void UpdateMock(T entry);
+    public abstract void RebindMocks();
+    
+    public T? FindMock(int idx)
+    {
+        return MockDbSet.Object.Skip(idx - 1).FirstOrDefault();
+    }
 
-    public abstract T? FindMock(int idx);
-
-    public abstract void ClearAll();
+    public DbSet<T> GetMocks()
+    {
+        return MockDbSet.Object;
+    }
+    
+    public void ClearAll()
+    {
+        var list = MockDbSet.Object.ToList();
+        foreach (var item in list)
+        {
+            RemoveMock(item);
+        }
+    }
 }

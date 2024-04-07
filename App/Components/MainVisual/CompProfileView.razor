@@ -1,0 +1,369 @@
+@inherits UserViewComponentBase
+
+@implements IInteractionSubscriber
+
+@using Blazorise.Extensions
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Components.Utility
+
+@inject IUserInteractionService UserInteractionService
+@inject IUserGroupService UserGroupService
+
+<style>
+    .dropdown {
+        position:  relative;
+        display: inline-block;
+    }
+    
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        width: max-content;
+    }
+    
+    .dropdown-option {
+        display: block;
+        width: fit-content;
+    }
+    
+    .dropdown:hover > .dropdown-content {
+        display: inline-block;
+    }
+   
+   .opt-bar {
+        position: relative;
+        display: inline; 
+        width: max-content;
+   }
+   
+   .right {
+        float: right
+   }
+   
+   .left {
+        float: left
+   }
+   
+   .clip-to-bottom {
+        position: absolute;
+        bottom: 0;
+   }
+   
+   .opt-bar .item {
+        display: inline-block; 
+        width: fit-content; 
+        margin-left: 5px; 
+        margin-right: 5px;
+   }
+</style>
+
+<ModalContent Centered>
+    <ModalBody>
+        <div>
+            <div class="opt-bar">
+                <div class="opt-bar left">
+                    <div class="item left" style="margin-right: 15px">
+                        <Image ElementId="avatar-display"
+                               Class="border-mask fit _128x128"
+                               Source="@(IsBlocked || IsBlockedBy ? "images/default_profile.png" : FocusUser.Avatar)"/>
+                    </div>
+                    <div id="content-div" class="item left" style="vertical-align: middle;">
+                        @StatusBadge
+                        <div class="clip-to-bottom">
+                            @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
+                            {
+                                <h4 id="display-name">@(FocusUser.DisplayName)</h4>
+                                <p id="username">@FocusUser.UserName</p>
+                            }
+                            else
+                            {
+                                <h4 id="username">@FocusUser.UserName</h4>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="opt-bar right">
+                    <div id="action-options-div" class="item right">
+                        @ActionOptions
+                    </div>
+                    <div id="action-button-div" class="item right">
+                        @ActionButton
+                    </div>
+                </div>
+            </div>
+            @if (!IsBlockedBy && !IsBlocked)
+            {
+                <div id="desc-div" style="float: left; width: 100%; display: block">
+                    <Divider/>
+                    <h4>Description</h4>
+                    <Divider/>
+                    <textarea name="bio" 
+                       type="text" 
+                       style="resize: none; max-height: 400px; min-height: 100px;"
+                       class="form-control"
+                       disabled>
+                         @FocusUser.Bio
+               </textarea>
+                </div>
+            }
+        </div>
+    </ModalBody>
+</ModalContent>
+
+@code {
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    [CascadingParameter] public EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
+    [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
+    
+    [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
+    private RenderFragment? ActionButton { get; set; }
+    private RenderFragment? ActionOptions { get; set; }
+    private RenderFragment? StatusBadge { get; set; }
+
+    private bool IsSelf { get; set; }
+    private bool IsFriend { get; set; }
+    private bool IsBlocked { get; set; }
+    private bool IsBlockedBy { get; set; }
+    private bool HasIncomingRequest { get; set; }
+    private bool HasOutgoingRequest { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        await UpdateContext();
+        UserInteractionService.AddSubscriber(this);
+    }
+
+    private async Task UpdateContext()
+    {
+        ActionButton = null;
+        ActionOptions = null;
+        StatusBadge = null;
+
+        UserData ??= await UserService.GetUserDataAsync();
+
+        IsSelf = FocusUser.Id == UserData.Id;
+        IsFriend = await UserInteractionService.FindFriendship(FocusUser.Id) is not null;
+        IsBlocked = await UserInteractionService.FindIfBlocked(FocusUser.Id) is not null;
+        IsBlockedBy = await UserInteractionService.FindIfBlockedBy(FocusUser.Id) is not null;
+        HasIncomingRequest = await UserInteractionService.FindIncomingRequest(FocusUser.Id) is not null;
+        HasOutgoingRequest = await UserInteractionService.FindOutgoingRequest(FocusUser.Id) is not null;
+
+        if (IsSelf)
+        {
+            ActionButton = GetActionButton(
+                EventCallback.Factory.Create(
+                    this,
+                    async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Settings))),
+                "Settings",
+                IconName.Settings
+            );
+            StatusBadge = @<Badge ElementId="profile-badge"
+                                  Color="Color.Light">
+                              YOU
+                          </Badge>;
+            return;
+        }
+
+        if (IsFriend)
+        {
+            StatusBadge = @<Badge ElementId="profile-badge"
+                                  Color="Color.Success">
+                              <Icon Name="IconName.UserFriends"/>
+                              FRIEND
+                          </Badge>;
+            ActionButton = GetActionButton(
+                EventCallback.Factory.Create(
+                    this,
+                    async () =>
+                    {
+                        if (FocusUser.Id is null) 
+                            return;
+                        await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, (int) FocusUser.Id));
+                    }),
+                "Send Message",
+                IconName.Mail
+            );
+        } 
+        else if (!IsBlockedBy && !IsBlocked)
+        {
+            if (HasIncomingRequest)
+            {
+                ActionButton = GetActionButton(
+                    EventCallback.Factory.Create(
+                        this,
+                        async () => await UserInteractionService.AcceptFriendRequest(FocusUser.Id)
+                    ),
+                    "Accept Friend Request",
+                    IconName.UserCheck
+                );
+            }
+            else if (HasOutgoingRequest)
+            {
+                ActionButton = GetActionButton(
+                    EventCallback.Empty,
+                    "Pending",
+                    IconName.Send,
+                    Color.Light,
+                    true
+                );
+            }
+            else
+            {
+                ActionButton = GetActionButton(
+                    EventCallback.Factory.Create(
+                        this,
+                        async () => await UserInteractionService.SendFriendRequest(FocusUser.Id)
+                    ),
+                    "Send Friend Request",
+                    IconName.UserPlus
+                );
+            }
+        }
+        else if (IsBlocked)
+        {
+            StatusBadge = @<Badge ElementId="profile-badge"
+                                  Color="Color.Danger">
+                              <Icon Name="IconName.ShieldAlt"/>
+                              BLOCKED
+                          </Badge>;
+        }
+
+        var moddedChats = await UserGroupService.GetAllModeratedGroups();
+
+        ActionOptions = GetProfileActions(moddedChats);
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private RenderFragment GetActionButton(EventCallback callback, string buttonCaption, IconName iconName, Color? buttonColor = null, bool disabled = false)
+    {
+        return @<CompActionButton
+                    ActionCallback="callback"
+                    ButtonCaption="@buttonCaption"
+                    ButtonId="profile-action-button"
+                    Color="@(buttonColor ?? Color.Success)"
+                    ColumnWrapped="@false"
+                    IconName="iconName"
+                    Disabled="disabled"/>;
+    }
+
+    private RenderFragment GetProfileActions(List<GroupChat>? moddedChats = null)
+    {
+        var viableChats = moddedChats?.Where(
+                c => c.Users.FirstOrDefault(u => u.Id == FocusUser.Id) is null)
+            .ToList();
+        return @<text>
+                    <Div id="profile-actions"
+                         Class="dropdown">
+                        <Icon Name="@("fa-ellipsis-v")"
+                              Class="fa-xl"
+                              Style="margin-top: 18px; margin-left: 10px; margin-right: 5px;"/>
+                        <Div id="profile-actions-dropdown"
+                             Background="Background.Primary"
+                             Border="Border.Dark"
+                             Class="dropdown-content">
+                            @if (HasIncomingRequest && !IsBlocked)
+                            {
+                                <Button ElementId="decline-request-option" Class="dropdown-option" TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await UserInteractionService.DeclineFriendRequest(FocusUser.Id))">
+                                    Decline Friend Request
+                                </Button>
+                            }
+                            @if (HasOutgoingRequest)
+                            {
+                                <Button ElementId="revoke-request-option" Class="dropdown-option" TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await UserInteractionService.RevokeFriendRequest(FocusUser.Id))">
+                                    Revoke Friend Request
+                                </Button>
+                            }
+                            @if (IsFriend)
+                            {
+                                @if (viableChats is not null && viableChats.Count > 0)
+                                {
+                                    <Div id="group-actions"
+                                         Class="dropdown">
+                                        <Button>
+                                            Invite to group
+                                        </Button>
+                                        <Div Class="dropdown-content"
+                                             Background="Background.Primary"
+                                             Border="Border.Dark">
+                                            @foreach (var chat in viableChats)
+                                            {
+                                                <Button ElementId="@($"{chat.GetGroupName()}-invite-option")"
+                                                        Class="dropdown-option"
+                                                        Clicked="@(async () =>  await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.InviteGroupMembers, null, chat.ID)))">
+                                                    Invite to @chat.GetGroupName()
+                                                </Button>
+                                            }
+                                        </Div>
+                                    </Div>
+                                }
+                                <Button ElementId="unfriend-option" 
+                                        Class="dropdown-option" 
+                                        TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await OpenUnfriendConfirmation(FocusUser.Id))">
+                                    Remove friend
+                                </Button>
+                            }
+                            @if (!IsBlocked)
+                            {
+                                <Button ElementId="block-option" 
+                                        Class="dropdown-option" 
+                                        TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await OpenBlockConfirmation(FocusUser.Id))">
+                                    Block user
+                                </Button>
+                            }
+                            else
+                            {
+                                <Button ElementId="unblock-option" Class="dropdown-option" TextColor="TextColor.Danger"
+                                        Clicked="@(async () => await UserInteractionService.UnblockUser(FocusUser.Id))">
+                                    Unblock user
+                                </Button>
+                            }
+                        </Div>
+                    </Div>
+                </text>;
+    }
+    
+    private async Task OpenUnfriendConfirmation(int? otherId)
+    {
+        await OpenAlertPopup.InvokeAsync(
+            new AlertPopupArgs(
+                @<text>
+                     This user will be removed as your friend! You will have to send a new friend request to re-add them.
+                     You will not be able to direct message them while they are not your friend!
+                 </text>,
+                EventCallback.Factory.Create(this, () => UserInteractionService.RemoveFriend(otherId))
+            )
+        );
+    }
+    
+    private async Task OpenBlockConfirmation(int? otherId)
+    {
+        await OpenAlertPopup.InvokeAsync(
+            new AlertPopupArgs(
+                @<text>
+                     This user will not be able to send or receive messages from you! If they are your friend, they will
+                     be removed as your friend!
+                 </text>,
+                EventCallback.Factory.Create(this, () => UserInteractionService.BlockUser(otherId))
+            )
+        );
+    }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
+    [
+        InteractionEvent.General
+    ];
+    
+    public async Task OnUpdate(InteractionEvent evt)
+    {
+        await UpdateContext();
+    }
+}

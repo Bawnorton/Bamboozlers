@@ -7,10 +7,11 @@
 
 <PageTitle>Register confirmation</PageTitle>
 
-<h1>Register confirmation</h1>
-
-<StatusMessage Message="@_statusMessage"/>
-<p>Please check your email to confirm your account.</p>
+<CompAccountContainer>
+    <h1>Register confirmation</h1>
+    <StatusMessage Message="@_statusMessage"/>
+    <p>Please check your email to confirm your account.</p>
+</CompAccountContainer>
 
 @code {
     private string? _statusMessage;
@@ -25,6 +26,7 @@
         if (Email is null)
         {
             RedirectManager.RedirectTo("");
+            return;
         }
 
         var user = await UserManager.FindByEmailAsync(Email);

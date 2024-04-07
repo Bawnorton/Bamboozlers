@@ -11,8 +11,7 @@ public class TellOthersToReadDatabaseC2SPacket : IPacket
             json => new TellOthersToReadDatabaseC2SPacket(json));
 
     internal int ChatId;
-    internal DbEntry DbEntry;
-
+    internal DbEntry DbEntry = default!;
     internal int SenderId;
 
     internal TellOthersToReadDatabaseC2SPacket()

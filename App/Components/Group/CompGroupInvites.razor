@@ -1,0 +1,150 @@
+@inherits UserViewComponentBase
+@implements IGroupSubscriber
+
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Components.Utility
+@using Bamboozlers.Classes.Utility.Observer
+@using Blazorise.Extensions
+
+<div style="margin-top: 5px">
+    <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SelectedTab">
+        <Items>
+            <Tab Name="Incoming" ElementId="incoming-toggle">
+                @if (IncomingGroupInvites.Count > 0)
+                {
+                    <Badge Color="Color.Dark" ElementId="incoming-badge">
+                        @IncomingGroupInvites.Count
+                    </Badge>  
+                } 
+                Received Group Invites
+            </Tab>
+            <Tab Name="Outgoing" ElementId="outgoing-toggle">
+                @if (OutgoingGroupInvites.Count > 0)
+                {
+                    <Badge Color="Color.Dark" ElementId="outgoing-badge">
+                        @OutgoingGroupInvites.Count
+                    </Badge>  
+                } 
+                Sent Group Invites
+            </Tab>
+        </Items>
+        <Content>
+            <TabPanel Name="Incoming">
+                <Divider/>
+                <div id="incoming-invites" style="display: inline-block; margin: 10px; width: 90%;">
+                    @if (IncomingGroupInvites.Count > 0)
+                    {
+                        foreach (var invite in IncomingGroupInvites)
+                        {
+                            RenderFragment buttons = @<text>
+                                                         <CompGroupButton EventKind="GroupEvent.ReceivedInviteAccepted"
+                                                                          UserId="@invite.SenderID"
+                                                                          GroupID="@invite.GroupID"
+                                                                          ButtonId="accept-button"/>
+                                                         <CompGroupButton EventKind="GroupEvent.ReceivedInviteDeclined"
+                                                                          UserId="@invite.SenderID"
+                                                                          GroupID="@invite.GroupID"
+                                                                          ButtonId="decline-button"/>
+                                                     </text>;
+                            RenderFragment innerContent = @<text>
+                                                               (Invite for group
+                                                               <img style="margin-left: 5px; margin-right: 5px;" 
+                                                                    class="_32x32 border-mask" 
+                                                                    src="@invite.Group.GetGroupAvatar()" 
+                                                                    alt=""/>
+                                                               @invite.Group.GetGroupName())
+                                                           </text>;
+                            <CompUserTab @key=@invite
+                                         User="@invite.Sender"
+                                         Button="@buttons"
+                                         ExtraInnerContent="@innerContent"/>
+                            <Divider/>
+                        }
+                    }
+                    else
+                    {
+                        <p>Nothing to see here...</p>
+                        <p>You haven't received any group invites from your friends.</p>
+                    }
+                </div>
+            </TabPanel>
+            <TabPanel Name="Outgoing">
+                <Divider/>
+                <div id="outgoing-invites" style="display: inline-block; margin: 10px; width: 90%;">
+                    @if (OutgoingGroupInvites.Count > 0)
+                    {
+                        foreach (var invite in OutgoingGroupInvites)
+                        {
+                            RenderFragment button = @<CompGroupButton EventKind="GroupEvent.SentInviteRevoked"
+                                                                      UserId="@invite.RecipientID"
+                                                                      GroupID="@invite.GroupID"
+                                                                      ButtonId="revoke-button"/>;
+                            RenderFragment innerContent = @<text>
+                                                               (Invite for group
+                                                               <img style="margin-left: 5px; margin-right: 5px;" 
+                                                                    class="_32x32 border-mask" 
+                                                                    src="@invite.Group.GetGroupAvatar()" 
+                                                                    alt=""/>
+                                                               @invite.Group.GetGroupName())
+                                                           </text>;
+                            <CompUserTab @key=@invite
+                                         User="@invite.Recipient"
+                                         Button="@button"
+                                         ExtraInnerContent="@innerContent"/>
+                            <Divider/>
+                        }
+                    }
+                    else
+                    {
+                        <p>Nothing to see here...</p>
+                        <p>You haven't sent any group invites to your friends.</p>
+                    }
+                </div>
+            </TabPanel>
+        </Content>
+    </Tabs>
+</div>
+
+@code {
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+
+    private string SelectedTab { get; set; } = "Incoming";
+    
+    private List<GroupInvite> IncomingGroupInvites { get; set; } = [];
+    private List<GroupInvite> OutgoingGroupInvites { get; set; } = [];
+    
+    private User Self { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        UserGroupService.AddSubscriber(this);
+        await GetGroupsData();
+    }
+    
+    private async Task GetGroupsData()
+    {
+        IncomingGroupInvites = await UserGroupService.GetAllIncomingInvites();
+        OutgoingGroupInvites = await UserGroupService.GetAllOutgoingInvites();
+    }
+
+    public List<GroupEvent> WatchedGroupEvents { get; set; } =
+    [
+        GroupEvent.SentInvite,
+        GroupEvent.SentInviteRevoked,
+        GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.ReceivedInviteDeclined
+    ];
+    
+    public List<int?> WatchedIDs { get; set; } = [];
+    
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    {
+        await GetGroupsData();
+        await InvokeAsync(StateHasChanged);
+    }
+}
+

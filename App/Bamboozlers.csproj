@@ -51,7 +51,8 @@
 
     <ItemGroup>
         <Folder Include="Migrations\"/>
-        <Folder Include="wwwroot\images\"/>
+        <Folder Include="wwwroot\images\default_groups\" />
+        <Folder Include="wwwroot\images\default_profiles\" />
     </ItemGroup>
 
     <ItemGroup>
@@ -59,19 +60,6 @@
             <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-        <_ContentIncludedByDefault Remove="Components\Settings\VisualUtility\CompEditButtons.razor"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <AdditionalFiles Include="Components\Friend\AddFriend.razor"/>
-        <AdditionalFiles Include="Components\Friend\BlockedUsers.razor"/>
-        <AdditionalFiles Include="Components\Friend\CompFriendsView.razor"/>
-        <AdditionalFiles Include="Components\Friend\CurrentFriends.razor"/>
-        <AdditionalFiles Include="Components\Friend\PendingFriendRequests.razor"/>
-        <AdditionalFiles Include="Components\Settings\EditComponents\VisualUtility\CompEditButtons.razor"/>
     </ItemGroup>
 
 </Project>

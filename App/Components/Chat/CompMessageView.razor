@@ -1,15 +1,30 @@
 @inherits UserViewComponentBase;
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
-@using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes
+@using Bamboozlers.Components.Utility
 
 @inject IDbContextFactory<AppDbContext> Db
 
 @if (Loaded)
 {
     <Div ElementId="@("message_" + Message.ID)">
-        <CompMessageHeaderView Message="Message" PreviousMessage="PreviousMessage"/>
+        @if (MessageState != MessageState.SameUser)
+        {
+            <Div Class="message-header" Style="@(MessageState == MessageState.First ? "" : "margin-top: 15px;")">
+                <Div Class="message-info">
+                    @if (Message.Sender is not null)
+                    {
+                        <Image Source="@Message.Sender.GetAvatar()" Class="message-avatar" alt=""/>
+                    }
+                    <CompInteractUsername User="@Message.Sender"/>
+                    <Div Class="message-timestamp">
+                        @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
+                    </Div>
+                </Div>
+            </Div>
+        }
         <Div Class="message-content">
             <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
                 <CompMessageContentView Content=@Message.Content/>
@@ -18,7 +33,7 @@
                 @switch (ShowEdit)
                 {
                     case true:
-                        <Button Clicked="@(async () => await ChatContext.OnEdit(Message, Message.Content + " (edited)"))">
+                        <Button onclick="alert('Not Implemented')">
                             <Icon Class="fa-pencil-alt"></Icon>
                         </Button>
                         break;
@@ -28,36 +43,24 @@
                         </Button>
                         break;
                 }
-                <Button Clicked="async () => await ChatContext.OnPin(Message)">
+                <Button onclick="alert('Not Implemented')">
                     <Icon Name="Icons.MapPin"></Icon>
                 </Button>
-                @if (ShowDelete)
-                {
-                    <Button Clicked="@(async () => await ChatContext.OnDelete(Message))">
-                        <Icon Name="Icons.Trash"></Icon>
-                    </Button>
-                }
-                else
-                {
-                    <Button Outline=false>
-                        <Icon Name="Icons.Ellipsis"></Icon>
-                    </Button>
-                }
+                <Button onclick="alert('Not Implemented')">
+                    <Icon Name="Icons.Trash"></Icon>
+                </Button>
             </Div>
         </Div>
     </Div>
 }
 
 @code {
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
-
-    [Parameter] public Message Message { get; set; }
-
-    [Parameter] public Message? PreviousMessage { get; set; }
+    [Parameter] public Message Message { get; set; } = default!;
+    [Parameter] public MessageState MessageState { get; set; }
 
     [Parameter] public bool EchoRecieved { get; set; }
 
-    [CascadingParameter] private ChatContextData ChatContext { get; set; }
+    [CascadingParameter] private bool IsShiftHeld { get; set; }
 
     private bool Loaded { get; set; }
 
@@ -65,9 +68,7 @@
 
     private bool IsSelfMessage => Message.Sender!.Id == Self!.Id;
 
-    private bool ShowEdit => IsSelfMessage && ChatContext.IsShiftHelf;
-
-    private bool ShowDelete => ChatContext.IsShiftHelf && (IsSelfMessage || ChatContext.IsMod);
+    private bool ShowEdit => IsSelfMessage && IsShiftHeld;
 
     protected override async Task OnInitializedAsync()
     {

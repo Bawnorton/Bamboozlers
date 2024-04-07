@@ -1,0 +1,32 @@
+@inherits UserViewComponentBase
+
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.AppDbContext
+@using Bunit.Extensions
+
+<Div id="interact-username" Class="message-username" Style="display: inline-block" onclick="@(async () => await OpenProfilePopup())">
+    @if (User is not null)
+    {
+        @User.GetName()
+    }
+    else
+    {
+        <text>
+            Unknown User
+        </text>
+    }
+</Div>
+
+@code {
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    
+    [Parameter] public User? User { get; set; }
+
+    private async Task OpenProfilePopup()
+    {
+        if (User is not null)
+        { 
+            await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User));
+        }
+    }
+}

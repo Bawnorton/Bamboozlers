@@ -1,0 +1,79 @@
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.Services.UserServices
+@using Blazorise.Utilities
+
+<CompActionButton ButtonId="@ButtonId"
+                  Color="@Color"
+                  ButtonCaption="@ButtonCaption"
+                  IconName="@IconName"
+                  ActionCallback="@InteractionCallback"
+                  ColumnWrapped="@false"
+                  Disabled="@Disabled"/>
+
+@code {
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    
+    [Parameter] public InteractionEvent EventKind { get; set; }
+    [Parameter] public int? UserId { get; set; }
+    [Parameter] public string? ButtonId { get; set; }
+    [Parameter] public bool FullText { get; set; }
+
+    public EventCallback InteractionCallback { get; set; } = EventCallback.Empty;
+    public IconName IconName { get; set; }
+    public string? ButtonCaption { get; set; } = "";
+    private Color? Color { get; set; } = Color.Success;
+    public bool Disabled { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var eventCallbackFactory = new EventCallbackFactory();
+        switch (EventKind)
+        {
+            case InteractionEvent.Unblock:
+                Color = Color.Danger;
+                IconName = IconName.Shield;
+                ButtonCaption = "Unblock User";
+                InteractionCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserInteractionService.UnblockUser(UserId));
+                break;
+            case InteractionEvent.RequestRevoked:
+                Color = Color.Danger;
+                IconName = IconName.Ban;
+                ButtonCaption = "Revoke Friend Request";
+                InteractionCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserInteractionService.RevokeFriendRequest(UserId));
+                break;
+            case InteractionEvent.RequestDeclined:
+                Color = Color.Danger;
+                IconName = IconName.Ban;
+                ButtonCaption = FullText ? "Decline Friend Request" : "";
+                InteractionCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserInteractionService.DeclineFriendRequest(UserId));
+                break;
+            case InteractionEvent.RequestAccepted:
+                IconName = IconName.Check;
+                ButtonCaption = FullText ? "Accept Friend Request" : "";
+                InteractionCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserInteractionService.AcceptFriendRequest(UserId));
+                break;
+            case InteractionEvent.RequestSent:
+                IconName = IconName.UserPlus;
+                ButtonCaption = "Send Friend Request";
+                InteractionCallback = eventCallbackFactory.Create(
+                    this,
+                    async () => await UserInteractionService.SendFriendRequest(UserId));
+                break;
+            case InteractionEvent.RequestPending:
+                IconName = IconName.Send;
+                ButtonCaption = "Pending";
+                Disabled = true;
+                Color = Color.Light;
+                break;
+        }
+    }
+}

@@ -16,8 +16,8 @@ public class KeyPressService : IKeyPressService
         _dotNetObjectReference = DotNetObjectReference.Create(this);
     }
 
-    public event EventHandler<KeyEventArgs> KeyPressed;
-    public event EventHandler<KeyEventArgs> KeyReleased;
+    public event EventHandler<KeyEventArgs> KeyPressed = default!;
+    public event EventHandler<KeyEventArgs> KeyReleased = default!;
 
     public async Task StartListeningAsync()
     {

@@ -1,0 +1,140 @@
+@inherits UserViewComponentBase
+@implements IGroupSubscriber
+
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Components.Utility
+@using Blazorise.Extensions
+
+<Tabs SelectedTab="@SelectedTab">
+    <Content>
+        <TabPanel Name="view">
+            <Container>
+                <Row Class="centre-content">
+                    <Column ColumnSize="ColumnSize.Is6">
+                        <TextEdit Text="@ChatName"
+                                  ElementId="chat-name"
+                                  Placeholder="Chat Name"
+                                  Disabled>
+                        </TextEdit>
+                    </Column>
+                    <CompActionButton Color="Color.Light"
+                                      IconName="IconName.Pen"
+                                      ColumnSize="ColumnSize.Is1"
+                                      ActionCallback="@(() => SelectedTab = "edit")"/>
+                </Row>
+            </Container>
+        </TabPanel>
+        <TabPanel Name="edit">
+            <Container>
+                <Row Class="centre-content">
+                    <Column ColumnSize="ColumnSize.Is6">
+                        <TextEdit @bind-Text="TypedName"
+                                  ElementId="chat-name"
+                                  Placeholder="Chat Name">
+                        </TextEdit>
+                    </Column>
+                    <CompActionButton Color="Color.Danger"
+                                      IconName="IconName.Ban"
+                                      ColumnSize="ColumnSize.Is1"
+                                      ActionCallback="@(() => { TypedName = ""; SelectedTab = "view"; })"/>
+                    <CompActionButton Color="Color.Success"
+                                      IconName="IconName.Check"
+                                      ColumnSize="ColumnSize.Is1"
+                                      ActionCallback="OnSave"/>
+                </Row>
+            </Container>
+        </TabPanel>
+    </Content>
+</Tabs>
+
+@code {
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+
+    [Parameter] public EventCallback<AlertArguments> AlertCallback { get; set; }
+    [Parameter] public int ChatID { get; set; } = default!;
+
+    private GroupChat? Group { get; set; }
+
+    private string SelectedTab { get; set; } = "view";
+    private string ChatName { get; set; }  = "";
+    public string TypedName { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await GetGroupData();
+    }
+
+    private async Task GetGroupData()
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        WatchedIDs = [ChatID];
+        UserGroupService.AddSubscriber(this);
+        Group = dbContext.GroupChats.AsNoTracking()
+                    .Include(gc => gc.Owner)
+                        .FirstOrDefault(c => c.ID == ChatID);
+        if (Group is null)
+            return;
+        
+        ChatName = Group.GetGroupName();
+    }
+
+    public async Task OnSave()
+    {
+        if (Group is null)
+        {
+            await AlertCallback.InvokeAsync(new AlertArguments(
+                Color.Success,
+                true,
+                "An error occurred while saving changes.",
+                "An unknown error occurred. Please try again."
+            ));
+            return;
+        }
+
+        if (Group.Name == TypedName || (TypedName.IsNullOrEmpty() && Group.Name.IsNullOrEmpty()))
+        {
+            await AlertCallback.InvokeAsync(new AlertArguments(
+                Color.Warning,
+                true,
+                "Cannot change group name.",
+                "Specified new name is the same as the previous name."
+            ));
+            return;
+        }
+
+        var result = await UserGroupService.UpdateGroupName(ChatID, TypedName);
+        if (!result.Succeeded)
+        {
+            await AlertCallback.InvokeAsync(new AlertArguments(
+                Color.Danger,
+                true,
+                "Unsuccessful attempt to save changes.",
+                $"{string.Join(",",result.Errors.Select(s => s.Description))}"
+            ));
+            return;
+        }
+        await AlertCallback.InvokeAsync(new AlertArguments(
+            Color.Success,
+            true,
+            "Success!",
+            "Group name was changed."
+        ));
+    }
+
+    public List<int?> WatchedIDs { get; set; } = [];
+    public List<GroupEvent> WatchedGroupEvents { get; } = 
+    [
+        GroupEvent.GroupDisplayChange
+    ];
+    
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    {
+        await GetGroupData();
+    }
+}

@@ -1,0 +1,146 @@
+@inherits UserViewComponentBase
+
+@using Bamboozlers.Components.Utility
+@using Microsoft.IdentityModel.Tokens
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+
+<ModalContent Size="ModalSize.Large" Height="Height.Is75" Centered>
+    <ModalHeader>
+        <Heading>Create Group Chat</Heading>
+    </ModalHeader>
+    <ModalBody>
+        <Heading>Configure Group</Heading>
+        <Divider/>
+        <Container>
+            <Row Class="centre-content">
+                <Column ColumnSize="ColumnSize.Is3">
+                    <CompAvatarUploader DefaultSrc="images/default_group.png"
+                                        Avatar="@Avatar"
+                                        DisplayPx="128"
+                                        OnDelete="DeleteAvatar"
+                                        OnUpload="UploadAvatar"/>
+                </Column>
+                <Column ColumnSize="ColumnSize.Is6">
+                    <TextEdit @bind-Text="@Name"
+                              ElementId="chat-name"
+                              Placeholder="Chat Name"/>
+                </Column>
+            </Row>
+        </Container>
+        <Div>
+            <Alert ElementId="creation-alert" Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
+                <AlertMessage>
+                    @AlertArguments.AlertMessage
+                    <CloseButton Clicked="@(() => AlertArguments = new AlertArguments())"
+                                 Style="--bs-btn-close-white-filter: black;"
+                                 VerticalAlignment="VerticalAlignment.Middle"
+                                 Float="Float.End"
+                                 TextColor="TextColor.Warning"/>
+                </AlertMessage>
+                <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
+            </Alert>
+            <Heading>Invite Friends</Heading>
+            <Divider/>
+            @foreach (var inv in InviteList)
+            {
+                <Container Style="max-height: 15vh; margin-left: 10px; margin-right: 10px" Class="scrollbar-container">
+                    <Row Class="centre-content">
+                        <Column ColumnSize="ColumnSize.Is1">
+                            <Check TValue="bool" @bind-Checked="inv.Invite"/>
+                        </Column>
+                        <Column>
+                            <CompInlineUserWithAvatar User="@inv.Friend"></CompInlineUserWithAvatar>
+                        </Column>
+                    </Row>
+                </Container>
+            }
+        </Div>
+    </ModalBody>
+    <ModalFooter>
+        <Button Color="Color.Danger" Clicked="@(async () => await ClosePopupCallback.InvokeAsync())">
+            <Icon Name="IconName.Ban"/>
+            Cancel
+        </Button>
+        <Button Color="Color.Success" Clicked="CreateGroup">
+            <Icon Name="IconName.Check"/>
+            Confirm
+        </Button>
+    </ModalFooter>
+</ModalContent>
+
+@code {
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    
+    [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
+    [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
+    
+    public AlertArguments AlertArguments { get; set; } = new();
+    public byte[]? Avatar { get; set; }
+    private string Name { get; set; } = "";
+
+    private User Self { get; set; } = default!;
+    private List<User> FriendList { get; set; } = [];
+    private List<InviteFriend> InviteList { get; set; } = [];
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Self = (await AuthService.GetUser())!;
+
+        FriendList = await UserInteractionService.GetAllFriends();
+        foreach (var friend in FriendList)
+        {
+            InviteList.Add(new InviteFriend(friend, false));
+        }
+    }
+
+    public void DeleteAvatar()
+    {
+        Avatar = null;
+    }
+    
+    public Task<bool> UploadAvatar(byte[] image)
+    {
+        if (image.IsNullOrEmpty()) 
+            return Task.FromResult(false);
+
+        Avatar = image;
+        return Task.FromResult(true);
+    }
+
+    public async Task CreateGroup()
+    {
+        var toInvite = InviteList.Where(i => i.Invite).Select(i => i.Friend).ToList();
+        var result = await UserGroupService.CreateGroup(Avatar, Name, toInvite);
+
+        if (!result.Succeeded)
+        {
+            AlertArguments = new AlertArguments(
+                 Color.Danger,
+                true,
+                "Could not create group at this time.",
+                "An error occurred preventing the creation of the group."
+            );
+            return;
+        }
+
+        await ClosePopupCallback.InvokeAsync();
+        var group = (await 
+            AuthService.GetUser(query => query.Include(u => u.OwnedChats)))!
+                .OwnedChats
+                    .LastOrDefault();
+        if (group is null)
+            return;
+        
+        await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Group, group.ID));
+    }
+
+    private sealed record InviteFriend(User Friend, bool Invite)
+    {
+        public bool Invite { get; set; } = Invite;
+    }
+
+}

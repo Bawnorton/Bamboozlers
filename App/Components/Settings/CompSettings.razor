@@ -1,15 +1,14 @@
-@using Bamboozlers.Components.Settings.EditComponents.Fields
-@using Bamboozlers.Components.VisualUtility
 @inherits SettingsComponentBase
 
-@inject ILogger<CompSettings> Logger
-@inject IJSRuntime JsRuntime
+@using System.Data
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Components.Utility
+@using Bamboozlers.Components.Settings.EditComponents.Fields
 
 <ModalContent Size="ModalSize.ExtraLarge"
               Centered>
     <ModalHeader>
         <h3>Account Settings</h3>
-        <CloseButton/>
     </ModalHeader>
     <ModalBody>
         <Alert ElementId="status-alert" Color="@Arguments.AlertColor"
@@ -20,6 +19,11 @@
             <AlertDescription ElementId="status-description">
                 @Arguments.AlertDescription
             </AlertDescription>
+            <CloseButton Clicked="@(() => Arguments = new AlertArguments())"
+                         Style="--bs-btn-close-white-filter: black;"
+                         VerticalAlignment="VerticalAlignment.Middle"
+                         Float="Float.End"
+                         TextColor="TextColor.Warning"/>
         </Alert>
         <Divider/>
         <Tabs @bind-SelectedTab="SectionName">

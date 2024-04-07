@@ -1,6 +1,7 @@
-@using Bamboozlers.Components.VisualUtility
-@using Bamboozlers.Components.Settings.EditComponents.VisualUtility
 @inherits SettingsComponentBase
+
+@using Bamboozlers.Components.Utility
+@using Bamboozlers.Components.Settings.EditComponents.VisualUtility
 
 <Tabs @bind-SelectedTab="InteractionMode">
     <Content>
@@ -16,10 +17,10 @@
 </Tabs>
 
 @code {
-    protected RenderFragment ViewPanelContent { get; set; }
-    protected RenderFragment EditPanelContent { get; set; }
-    protected RenderFragment ToggleEditButton { get; set; }
-    protected RenderFragment EditPanelButtons { get; set; }
+    protected RenderFragment ViewPanelContent { get; set; } = default!;
+    protected RenderFragment EditPanelContent { get; set; } = default!;
+    protected RenderFragment ToggleEditButton { get; set; } = default!;
+    protected RenderFragment EditPanelButtons { get; set; } = default!;
 
     private bool Editing { get; set; }
     protected string? InteractionMode { get; set; } = "view";

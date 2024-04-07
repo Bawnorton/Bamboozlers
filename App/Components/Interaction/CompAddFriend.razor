@@ -1,0 +1,123 @@
+@inherits UserViewComponentBase
+@implements IInteractionSubscriber
+
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Components.Utility
+@using Blazorise.Extensions
+
+<ModalContent Centered Size="ModalSize.Large">
+    <ModalHeader>
+        <ModalTitle>Add Friends</ModalTitle>
+    </ModalHeader>
+    <ModalBody>
+        <Heading>Find users by their username or display name.</Heading>
+        <Divider/>
+        <Div>
+            <Div>
+                <TextEdit @bind-Text="SearchQuery"
+                          Style="display: inline-flex; width: 75%"
+                          ElementId="search-bar"
+                          MaskType="MaskType.RegEx"
+                          EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
+                          Placeholder="Find users by their username or display name"/>
+                <Div style="display: inline-flex">
+                    <CompActionButton ButtonId="search-button"
+                                      ActionCallback="@(async () => await PerformSearch())"
+                                      IconName="@IconName.Search"
+                                      ColumnWrapped="@false"/>
+                </Div>
+            </Div>
+            <Div class="scrollbar-container" style="margin-left: 5px; margin-right: 5px; max-height: 45vh; overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth;">
+                <Divider/>
+                @foreach (var user in CurrentSearchResults)
+                {
+                    var eventType = InteractionEvent.RequestSent;
+                    if (IncomingRequests.FirstOrDefault(u => u.SenderID == user.Id) is not null) eventType = InteractionEvent.RequestAccepted;
+                    else if (OutgoingRequests.FirstOrDefault(u => u.ReceiverID == user.Id) is not null) eventType = InteractionEvent.RequestPending;
+                    RenderFragment button = @<CompInteractionButton EventKind="@eventType"
+                                                                    UserId="@user.Id"
+                                                                    FullText="@true"
+                                                                    ButtonId="interact-button"/>;
+                    <CompUserTab @key=@user
+                                 User="@user" 
+                                 Button="@button"/>
+                    <Divider/>
+                }
+            </Div>
+        </Div>
+    </ModalBody>
+</ModalContent>
+
+@code {
+    [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+
+    private List<FriendRequest> IncomingRequests { get; set;} = [];
+    private List<FriendRequest> OutgoingRequests { get; set;} = [];
+    private List<User> CurrentSearchResults { get; set; } = [];
+
+    public string SearchQuery { get; set; } = "";
+
+    private User Self { get; set; } = default!;
+    private List<User> Ignore { get; set;} = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Self = (await AuthService.GetUser())!;
+        UserInteractionService.AddSubscriber(this);
+        await GetInteractionData();
+    }
+    
+    private async Task PerformSearch()
+    {
+        if (SearchQuery.Length == 0)
+        {
+            CurrentSearchResults = [];
+            return;
+        }
+        
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var useQuery = SearchQuery.ToLower();
+        var matches = dbContext.Users.Where(
+                u => (u.UserName != null && u.UserName.ToLower().StartsWith(useQuery))
+                     || (u.DisplayName != null && u.DisplayName.ToLower().StartsWith(useQuery)))
+            .Where(u => !Ignore.Contains(u));
+        
+        var len = matches.Count();
+        CurrentSearchResults = matches.Take(int.Max(len,100)).ToList();
+    }
+
+    private async Task GetInteractionData()
+    {
+        Ignore = [Self];
+        Ignore.AddRange(await UserInteractionService.GetAllFriends());
+        Ignore.AddRange(await UserInteractionService.GetAllBlocked());
+        Ignore.AddRange(await UserInteractionService.GetAllBlockedBy());
+        IncomingRequests = await UserInteractionService.GetAllIncomingRequests();
+        OutgoingRequests = await UserInteractionService.GetAllOutgoingRequests();
+    }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
+    [
+        InteractionEvent.General,
+        InteractionEvent.RequestSent,
+        InteractionEvent.RequestAccepted
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
+    {
+        await GetInteractionData();
+        await PerformSearch();
+        await InvokeAsync(StateHasChanged);
+    }
+}
+
+

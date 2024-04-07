@@ -5,8 +5,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Bamboozlers.Classes.Services.UserServices;
 
-public class UserService(IAuthService authService, ServiceProviderWrapper serviceProvider)
-    : IUserService
+public class UserService(IAuthService authService, ServiceProviderWrapper serviceProvider) : IUserService
 {
     private IAuthService AuthService { get; } = authService;
     private ServiceProviderWrapper ServiceProvider { get; } = serviceProvider;
@@ -14,6 +13,28 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
     /* User (Data) Retrieval */
     private UserRecord? UserRecord { get; set; }
 
+    /// <summary>
+    /// Builds a display record corresponding to the current user.
+    /// </summary>
+    private async Task<UserRecord> BuildUserDataAsync()
+    {
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var user = await userManager.GetUserAsync(await AuthService.GetClaims()).ConfigureAwait(false);
+        
+        var record = user is not null
+        ? new UserRecord(
+            user.Id,
+            user.UserName,
+            user.Email,
+            user.DisplayName,
+            user.Bio,
+            user.Avatar
+        )
+        : UserRecord.Default;
+        return record;
+    }
+    
     public virtual UserRecord GetUserData()
     {
         return UserRecord ?? UserRecord.Default;
@@ -32,16 +53,22 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
         var user = await userManager.GetUserAsync(await AuthService.GetClaims());
 
         if (user is null)
+        {
             return IdentityResult.Failed([new IdentityError { Description = "User not found." }]);
+        }
 
         if (newValues is not null)
         {
             user.DisplayName = newValues.DisplayName ?? user.DisplayName;
             user.Bio = newValues.Bio ?? user.Bio;
             if (newValues.AvatarBytes is not null && newValues.AvatarBytes.Length == 0)
+            {
                 user.Avatar = null;
+            }
             else
+            {
                 user.Avatar = newValues.AvatarBytes ?? user.Avatar;
+            }
         }
 
         var iResult = await userManager.UpdateAsync(user);
@@ -119,8 +146,8 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
     {
         if (invalidate)
             Invalidate();
-        await BuildUserDataAsync();
-        await ((IAsyncPublisher<IAsyncUserSubscriber>)this).NotifyAllAsync();
+        UserRecord = await BuildUserDataAsync();
+        ((IPublisher<IUserSubscriber>) this).NotifyAll();
     }
 
     public virtual void Invalidate()
@@ -128,48 +155,29 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
         AuthService.Invalidate();
         UserRecord = null;
     }
-
-    public List<IAsyncUserSubscriber> Subscribers { get; } = [];
-
-    public bool AddSubscriber(IAsyncUserSubscriber subscriber)
+    
+    public List<IUserSubscriber> Subscribers { get; } = [];
+    
+    public bool AddSubscriber(IUserSubscriber subscriber) 
     {
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
-
-        subscriber.OnUserUpdate();
-
+        
+        subscriber.OnUpdate(UserRecord);
+        
         return true;
     }
-
-    public async Task NotifyAllAsync()
+    
+    public void NotifyAll()
     {
-        foreach (var sub in Subscribers) await sub.OnUserUpdate();
-    }
-
-    /// <summary>
-    ///     Builds a display record corresponding to the current user.
-    /// </summary>
-    private async Task<UserRecord> BuildUserDataAsync()
-    {
-        await using var scope = ServiceProvider.CreateAsyncScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-        var user = await userManager.GetUserAsync(await AuthService.GetClaims()).ConfigureAwait(false);
-
-        var record = user is not null
-            ? new UserRecord(
-                user.Id,
-                user.UserName,
-                user.Email,
-                user.DisplayName,
-                user.Bio,
-                user.Avatar
-            )
-            : UserRecord.Default;
-        return record;
+        foreach (var sub in Subscribers)
+        {
+            sub.OnUpdate(UserRecord);
+        }
     }
 }
 
-public interface IUserService : IAsyncPublisher<IAsyncUserSubscriber>
+public interface IUserService : IPublisher<IUserSubscriber>
 {
     /// <summary>
     ///     Retrieval method for the User's display variables for classes utilizing this service.
