@@ -16,22 +16,22 @@
     <ModalBody>
         <Heading>Find users by their username or display name.</Heading>
         <Divider/>
-        <Div Style="display: block">
-            <div style="display: block;">
+        <Div>
+            <Div>
                 <TextEdit @bind-Text="SearchQuery"
                           Style="display: inline-flex; width: 75%"
                           ElementId="search-bar"
                           MaskType="MaskType.RegEx"
                           EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
                           Placeholder="Find users by their username or display name"/>
-                <div style="display: inline-flex">
+                <Div style="display: inline-flex">
                     <CompActionButton ButtonId="search-button"
                                       ActionCallback="@(async () => await PerformSearch())"
                                       IconName="@IconName.Search"
                                       ColumnWrapped="@false"/>
-                </div>
-            </div>
-            <div id="scrollbar-container" style="display: block; margin-left: 5px; margin-right: 5px;" class="settings-container scrollbar-container">
+                </Div>
+            </Div>
+            <Div class="scrollbar-container" style="margin-left: 5px; margin-right: 5px; max-height: 45vh; overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth;">
                 <Divider/>
                 @foreach (var user in CurrentSearchResults)
                 {
@@ -47,7 +47,7 @@
                                  Button="@button"/>
                     <Divider/>
                 }
-            </div>
+            </Div>
         </Div>
     </ModalBody>
 </ModalContent>

@@ -130,7 +130,7 @@ public class InteractionTests : InteractionTestBase
             parameters.Add(p => p.OpenKnownPopup, fauxOpenPopup);
         });
         
-        var container = component.Find("#scrollbar-container");
+        var container = component.Find(".scrollbar-container");
         Assert.NotNull(container);
         
         var friendUsers = friendships
@@ -151,13 +151,13 @@ public class InteractionTests : InteractionTestBase
         component.Instance.SearchQuery = "T";
         var searchButton = component.Find("#search-button");
         await searchButton.ClickAsync(new MouseEventArgs());
-        container = component.Find("#scrollbar-container");
+        container = component.Find(".scrollbar-container");
         Assert.Equal(1 + subjectUsers.Count * 2, container.ChildElementCount);
         
         component.Instance.SearchQuery = "";
         searchButton = component.Find("#search-button");
         await searchButton.ClickAsync(new MouseEventArgs());
-        container = component.Find("#scrollbar-container");
+        container = component.Find(".scrollbar-container");
         Assert.Equal(1, container.ChildElementCount);
         
         
@@ -176,7 +176,7 @@ public class InteractionTests : InteractionTestBase
         MockDatabaseProvider.GetMockAppDbContext().MockFriendships.AddMock(new Friendship(subjectUser.Id,f.Id) {User1 = subjectUser, User2 = f});
         await component.Instance.OnUpdate(InteractionEvent.General);
         
-        container = component.Find("#scrollbar-container");
+        container = component.Find(".scrollbar-container");
         incomingUserSection = container.Descendants<IElement>().FirstOrDefault(e => e.Id == $"user-{f.UserName}");
         Assert.Null(incomingUserSection);
     }

@@ -224,7 +224,7 @@
         var isOwner = Chat!.OwnerID == user.Id;
         var isMod = Chat.Moderators.Contains(user);
         
-        return @<div style="display: block" id="@($"{user.UserName}_section")">
+        return @<div id="@($"{user.UserName}_section")">
                    <div style="display: inline-block">
                        <Image ElementId="@($"{user.UserName}_avatar")"
                               Class="_32x32 message-avatar"
