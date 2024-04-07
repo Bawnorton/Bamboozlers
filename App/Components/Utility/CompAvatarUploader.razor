@@ -1,4 +1,4 @@
-@implements IAvatarViewer
+@inherits CompViewAvatar
 
 @using Bamboozlers.Classes.Data
 @using Blazorise.Extensions
@@ -8,7 +8,7 @@
         <Label Width="@Width.Px(DisplayPx)" Height="@Height.Px(DisplayPx)" Class="overlay-wrapper" for="input-file">
             <Image ElementId="avatar-display"
                    Class="border-mask overlay-base fit"
-                   Source="@(((IAvatarViewer) this).GetDisplayString())"/>
+                   Source="@(GetDisplayString())"/>
             <Image ElementId="hover-effect"
                    Class="border-mask overlay fit"
                    Source="images/edit_overlay.png"/>
@@ -27,10 +27,6 @@
 
 @code {
     private static readonly string[] AllowedFormats = ["png", "jpeg", "jpeg"];
-    
-    [Parameter] public byte[]? Avatar { get; set; }
-    [Parameter] public string DefaultSrc { get; set; } = "images/default_profile.png";
-    [Parameter] public int DisplayPx { get; set; } = 256;
     
     [Parameter] public EventCallback OnDelete { get; set; }
     [Parameter] public EventCallback<AlertArguments> AlertCallback { get; set; }

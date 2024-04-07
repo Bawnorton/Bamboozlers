@@ -1,3 +1,4 @@
+@using Blazorise.Extensions
 @implements IAvatarViewer;
 
 <Row>
@@ -12,6 +13,13 @@
 
 @code {
     [Parameter] public byte[]? Avatar { get; set; }
-    [Parameter] public string? DefaultSrc { get; set; } = "images/default_profile.png";
+    [Parameter] public string DefaultSrc { get; set; } = "images/default_profile.png";
     [Parameter] public int DisplayPx { get; set; } = 256;
+
+    public string GetDisplayString()
+    {
+        return !Avatar.IsNullOrEmpty()
+            ? $"data:image/png;base64,{Convert.ToBase64String(Avatar!)}"
+            : DefaultSrc;
+    }
 }

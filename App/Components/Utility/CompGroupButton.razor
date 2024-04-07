@@ -2,16 +2,13 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Blazorise.Utilities
 
-<div style="display: inline-flex; @(RightFloating ? "float: right" : "")">
-    <CompActionButton ButtonId="@ButtonId"
-                      Color="@Color"
-                      ButtonCaption="@ButtonCaption"
-                      IconName="@IconName"
-                      ActionCallback="@GroupCallback"
-                      ColumnWrapped="@false"
-                      Disabled="@Disabled"/>
-</div>
-
+<CompActionButton ButtonId="@ButtonId"
+                  Color="@Color"
+                  ButtonCaption="@ButtonCaption"
+                  IconName="@IconName"
+                  ActionCallback="@GroupCallback"
+                  ColumnWrapped="@false"
+                  Disabled="@Disabled"/>
 @code {
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
     
@@ -19,7 +16,6 @@
     [Parameter] public int? UserId { get; set; }
     [Parameter] public int? GroupID { get; set; }
     [Parameter] public string? ButtonId { get; set; }
-    [Parameter] public bool RightFloating { get; set; } = false;
 
     public EventCallback GroupCallback { get; set; } = EventCallback.Empty;
     public IconName IconName { get; set; }

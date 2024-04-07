@@ -21,14 +21,16 @@
     <Divider/>
     @if (Friends.Count > 0)
     {
-        <div class="scrollbar-container" style="display: inline-block; position: relative; left: 12%; width: 75%; max-height: 100%; margin-left: 10px; margin-right: 10px;">
-            <div>
-                
-            </div>
+        <div class="scrollbar-container" style="display: inline-block; width: 90%; max-height: 100%; margin: 10px;">
             @foreach (var user in Friends)
             {
-                @GetFriendFragment(user)
-                ;
+                RenderFragment button = @<CompActionButton ButtonCaption="Send Message" IconName="@IconName.Mail"
+                                                           ActionCallback="@(async () => await CallOpenDm(user))"
+                                                           ColumnWrapped="@false"/>;
+                <CompUserTab @key=@user 
+                             User="@user"
+                             Button="@button"/>
+                <Divider/>
             }
         </div>
     }
@@ -43,7 +45,8 @@
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     
     [CascadingParameter] private EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
-    [CascadingParameter] private EventCallback ClosePopupCallback { get; set; }
+    [CascadingParameter] private EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    [CascadingParameter] private EventCallback ClosePopup { get; set; }
     
     [Parameter] public bool IsPopup { get; set; } = false;
     
@@ -57,25 +60,15 @@
         await GetFriendData();
     }
 
-    public RenderFragment GetFriendFragment(User user)
+    public async Task CallOpenDm(User user)
     {
-        return @<text>
-                    <div style="display: block; margin-top: 5px; margin-bottom: 5px;" 
-                         id="@($"user-{user.UserName}")">
-                        <CompInlineUserWithAvatar User="@user"/>
-                        <div style="display: inline-flex; float: right;">
-                            <CompActionButton ButtonCaption="Send Message"
-                                              IconName="@IconName.Mail"
-                                              ActionCallback="@(async () => { await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, user.Id)); if (IsPopup) ClosePopupCallback.InvokeAsync(); })"
-                                              ColumnWrapped="@false"/>
-                        </div>
-                        <Divider/>
-                    </div>
-                </text>;
+        await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, user.Id)); 
+        if (IsPopup) await ClosePopup.InvokeAsync();
     }
     
     public async Task GetFriendData()
     {
+        Friends = [];
         Friends = await UserInteractionService.GetAllFriends();
     }
 
@@ -89,6 +82,6 @@
     public async Task OnUpdate(InteractionEvent evt)
     {
         await GetFriendData();
-        await InvokeAsync(StateHasChanged);
+        InvokeAsync(StateHasChanged);
     }
 }

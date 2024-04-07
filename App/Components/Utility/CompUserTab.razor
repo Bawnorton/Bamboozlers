@@ -1,0 +1,56 @@
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.AppDbContext
+
+<Div id="@($"user-{UserData.UserName}")" class="user-container">
+    <Span class="inner" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User))">
+        <Image Source="@(IsBlockedBy ? "images/default_profile.png" : UserData.Avatar)" Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
+        @if (IsBlocked || IsBlockedBy || string.IsNullOrEmpty(UserData.DisplayName))
+        {
+            <Div class="message-username">
+                @UserData.UserName
+            </Div>
+        }
+        else
+        {
+            <Div class="message-username">
+                @UserData.DisplayName
+            </Div>
+            <Div style="margin-left: 0.5em">
+                (@UserData.UserName)
+            </Div>
+        }
+    </Span>
+    @if (ExtraInnerContent is not null)
+    {
+        <Div style="margin-left: auto">
+            @ExtraInnerContent 
+        </Div>
+    }
+    @if (Button is not null)
+    {
+        <Div class="action-button">
+            @Button
+        </Div>   
+    }
+</Div>
+
+@code {
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    
+    [Parameter] public User? User { get; set; }
+    [Parameter] public RenderFragment? Button { get; set; }
+    [Parameter] public RenderFragment? ExtraInnerContent { get; set; }
+    [Parameter] public bool IsBlocked { get; set; }
+    [Parameter] public bool IsBlockedBy { get; set; }
+
+    public UserRecord UserData { get; set; } = UserRecord.Default;
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        if (UserData == UserRecord.Default && User is not null)
+            UserData = UserRecord.From(User);
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

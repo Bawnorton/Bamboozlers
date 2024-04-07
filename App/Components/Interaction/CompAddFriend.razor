@@ -9,7 +9,7 @@
 @using Bamboozlers.Components.Utility
 @using Blazorise.Extensions
 
-<ModalContent Size="ModalSize.Large">
+<ModalContent Centered Size="ModalSize.Large">
     <ModalHeader>
         <ModalTitle>Add Friends</ModalTitle>
     </ModalHeader>
@@ -59,7 +59,8 @@
     [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
-    [Inject] private IKeyPressService KeyPressService { get; set; } = default!;
+
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
 
     private List<FriendRequest> IncomingRequests { get; set;} = [];
     private List<FriendRequest> OutgoingRequests { get; set;} = [];
@@ -109,16 +110,14 @@
         var eventType = InteractionEvent.RequestSent;
         if (sentFr) eventType = InteractionEvent.RequestAccepted;
         else if (receivedFr) eventType = InteractionEvent.RequestPending;
-        
+        RenderFragment button = @<text>
+                                     <CompInteractionButton EventKind="@eventType"
+                                                            UserId="@user.Id"
+                                                            ButtonId="interact-button"/>
+                                 </text>;
         return @<text>
-                    <div style="display: block; margin-top: 5px; margin-bottom: 5px;" id="@($"user-{user.UserName}")">
-                        <CompInlineUserWithAvatar User="@user"/>
-                        <CompInteractionButton EventKind="@eventType"
-                                               RightFloating="@true"
-                                               UserId="@user.Id"
-                                               ButtonId="interact-button"/>
-                        <Divider/>
-                    </div>
+                    <CompUserTab User="@user" Button="@button"/>
+                    <Divider/>
                 </text>;
     }
 

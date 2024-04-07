@@ -93,6 +93,7 @@
         Chat = await dbContext.GroupChats.Where(c => c.ID == ChatID)
             .Include(c => c.Users).ThenInclude(u => u.ModeratedChats)
             .Include(c => c.Moderators)
+            .Include(c => c.Owner)
             .FirstOrDefaultAsync();
 
         if (Chat is null)

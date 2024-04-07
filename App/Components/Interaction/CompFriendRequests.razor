@@ -33,12 +33,23 @@
         <Content>
             <TabPanel Name="Incoming">
                 <Divider/>
-                <div style="display: inline-block; margin-left: 10px; margin-right: 10px; width: 50%;">
+                <div style="display: inline-block; margin: 10px; width: 90%;">
                     @if (IncomingFriendRequests.Count > 0)
                     {
                         foreach (var request in IncomingFriendRequests)
                         {
-                            @GetIncomingFriendRequestFragment(request)
+                            RenderFragment buttons = @<text>
+                                                          <CompInteractionButton EventKind="InteractionEvent.RequestDeclined"
+                                                                                 UserId="@request.SenderID"
+                                                                                 ButtonId="decline-button"/>
+                                                          <CompInteractionButton EventKind="InteractionEvent.RequestAccepted"
+                                                                                 UserId="@request.SenderID"
+                                                                                 ButtonId="accept-button"/>
+                                                      </text>;
+                            <CompUserTab @key=@request 
+                                         User="@request.Sender" 
+                                         Button="@buttons"/> 
+                            <Divider/>
                         }
                     }
                     else
@@ -50,12 +61,18 @@
             </TabPanel>
             <TabPanel Name="Outgoing">
                 <Divider/>
-                <div style="display: inline-block; margin-left: 10px; margin-right: 10px; width: 50%;">
+                <div style="display: inline-block; margin: 10px; width: 90%;">
                     @if (OutgoingFriendRequests.Count > 0)
                     {
                         foreach (var request in OutgoingFriendRequests)
                         {
-                            @GetOutgoingFriendRequestFragment(request)
+                            RenderFragment button = @<CompInteractionButton EventKind="InteractionEvent.RequestRevoked"
+                                                                            UserId="@request.ReceiverID"
+                                                                            ButtonId="revoke-button"/>;
+                            <CompUserTab @key=@request 
+                                         User="@request.Receiver" 
+                                         Button="@button"/> 
+                            <Divider/>
                         }
                     }
                     else
@@ -78,9 +95,6 @@
     private List<FriendRequest> IncomingFriendRequests { get; set; } = [];
     private List<FriendRequest> OutgoingFriendRequests { get; set; } = [];
 
-    private List<RenderFragment> IncomingFragments { get; set; } = [];
-    private List<RenderFragment> OutgoingFragments { get; set; } = [];
-
     public List<int?> WatchedIDs { get; } = [];
     
     private User Self { get; set; } = default!;
@@ -91,53 +105,11 @@
         UserInteractionService.AddSubscriber(this);
         await GetFriendsData();
     }
-
-    public RenderFragment GetIncomingFriendRequestFragment(FriendRequest friendRequest)
-    {
-        return @<text>
-                    <div id="friend-request" style="display: block; padding-top: 5px; padding-bottom: 5px;">
-                        <div id="@($"from-user-{friendRequest.Sender.UserName}")" 
-                             style="display:inline-flex">
-                            Friend request sent by
-                            <CompInlineUserWithAvatar User="@friendRequest.Sender"/>
-                        </div>
-                        <CompInteractionButton EventKind="InteractionEvent.RequestDeclined"
-                                               UserId="@friendRequest.SenderID"
-                                               RightFloating="@true"
-                                               ButtonId="decline-button"/>
-                        <CompInteractionButton EventKind="InteractionEvent.RequestAccepted"
-                                               UserId="@friendRequest.SenderID"
-                                               RightFloating="@true"
-                                               ButtonId="accept-button"/>
-                        <Divider/>
-                    </div>
-                </text>;
-    }
-    
-    public RenderFragment GetOutgoingFriendRequestFragment(FriendRequest friendRequest)
-    {
-        return @<text>
-                    <div id="friend-request" style="display: block">
-                        <div id="@($"for-user-{friendRequest.Sender.UserName}")" 
-                             style="display:inline-flex">
-                            Friend request sent to
-                            <CompInlineUserWithAvatar User="@friendRequest.Receiver"/>
-                        </div>
-                        <CompInteractionButton EventKind="InteractionEvent.RequestRevoked" 
-                                               UserId="@friendRequest.ReceiverID"
-                                               RightFloating="@true"
-                                               ButtonId="revoke-button"/>
-                        <Divider/>
-                    </div>
-                </text>;
-    }
     
     private async Task GetFriendsData()
     {
         IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
         OutgoingFriendRequests = await UserInteractionService.GetAllOutgoingRequests();
-        IncomingFragments = IncomingFriendRequests.Select(GetIncomingFriendRequestFragment).ToList(); 
-        OutgoingFragments = OutgoingFriendRequests.Select(GetOutgoingFriendRequestFragment).ToList();
     }
 
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
@@ -154,11 +126,9 @@
         {
             case InteractionEvent.RequestAccepted: case InteractionEvent.RequestDeclined:
                 IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
-                IncomingFragments = IncomingFriendRequests.Select(GetIncomingFriendRequestFragment).ToList(); 
                 break;
             case InteractionEvent.RequestRevoked: case InteractionEvent.RequestSent:
                 OutgoingFriendRequests = await UserInteractionService.GetAllOutgoingRequests();
-                OutgoingFragments = OutgoingFriendRequests.Select(GetOutgoingFriendRequestFragment).ToList();
                 break;
             default:
                 await GetFriendsData();

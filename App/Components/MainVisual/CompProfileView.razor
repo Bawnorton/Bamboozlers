@@ -298,10 +298,10 @@
                                              Border="Border.Dark">
                                             @foreach (var chat in viableChats)
                                             {
-                                                <Button ElementId="@($"{chat.Name}-invite-option")"
+                                                <Button ElementId="@($"{chat.GetGroupName()}-invite-option")"
                                                         Class="dropdown-option"
                                                         Clicked="@(async () =>  await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.InviteGroupMembers, null, chat.ID)))">
-                                                    Invite to @chat.Name
+                                                    Invite to @chat.GetGroupName()
                                                 </Button>
                                             }
                                         </Div>

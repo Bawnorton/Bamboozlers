@@ -1,3 +1,5 @@
+using Bunit.Extensions;
+
 namespace Bamboozlers.Components.Utility;
 
 public interface IAvatarViewer
@@ -6,10 +8,5 @@ public interface IAvatarViewer
     public byte[]? Avatar { get; }
     public string? DefaultSrc { get; }
 
-    public string GetDisplayString()
-    {
-        return Avatar is not null
-            ? $"data:image/png;base64,{Convert.ToBase64String(Avatar)}"
-            : DefaultSrc!;
-    }
+    public string GetDisplayString();
 }

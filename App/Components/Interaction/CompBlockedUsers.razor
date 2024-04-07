@@ -19,12 +19,21 @@
         Blocked Users
     </Heading>
     <Divider/>
-    <div class="scrollbar-container" style="display: inline-block; position: relative; width: 50%; max-height: 50vh; margin-left: 10px; margin-right: 10px;">
+    <div class="scrollbar-container" style="display: inline-block; width: 90%; max-height: 100%; margin: 10px;">
         @if (Blocked.Count > 0)
         {
             foreach (var user in Blocked)
             {
-                @GetBlockedUserFragment(user)
+                var isAlsoBlocker = BlockedBy.FirstOrDefault(u => u.Id == user.Id) is not null;
+                RenderFragment button = @<CompInteractionButton EventKind="InteractionEvent.Unblock"
+                                                                UserId="@user.Id"
+                                                                ButtonId="unblock-button"/>;
+                <CompUserTab @key=@user
+                             User="@user" 
+                             Button="@button" 
+                             IsBlocked="@true" 
+                             IsBlockedBy="@isAlsoBlocker"/>
+                <Divider/>
             }
         }
         else
@@ -37,7 +46,7 @@
 
 @code {
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
-
+    
     private User Self { get; set; } = default!;
     private List<User> Blocked { get; set; } = [];
     private List<User> BlockedBy { get; set; } = [];
@@ -49,22 +58,6 @@
         await GetBlockedData();
     }
 
-    public RenderFragment GetBlockedUserFragment(User user)
-    {
-        var isAlsoBlocker = BlockedBy.FirstOrDefault(u => u.Id == user.Id) is not null;
-        return @<text>
-                    <div style="display: block; padding-top: 5px; padding-bottom: 5px;"
-                         id="@($"blocked-user-{user.UserName}")">
-                        <CompInlineUserWithAvatar User="@user" BlockedBy="@isAlsoBlocker"/>
-                        <CompInteractionButton EventKind="InteractionEvent.Unblock"
-                                               RightFloating="@true"
-                                               UserId = "@user.Id"
-                                               ButtonId="unblock-button"/>
-                        <Divider/>
-                    </div>
-                </text>;
-    }
-    
     public async Task GetBlockedData()
     {
         Blocked = await UserInteractionService.GetAllBlocked();

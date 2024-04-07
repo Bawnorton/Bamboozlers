@@ -229,9 +229,16 @@
         await using var db = await Db.CreateDbContextAsync();
         Chat = await db.Chats.Include(i => i.Users)
             .Include(i => i.Messages)
-                .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.ID == ChatID);
-        
+                .FirstOrDefaultAsync(c => c.ID == ChatID);
+
+        if (Chat is GroupChat)
+        {
+            Chat = await db.GroupChats.Include(i => i.Users)
+                .Include(i => i.Messages)
+                    .Include(i => i.Owner)
+                        .FirstOrDefaultAsync(c => c.ID == ChatID);
+        }
+
         if (Self is null || Chat is null)
             return;
         

@@ -146,17 +146,21 @@ public class UserInteractionService(IAuthService authService, IDbContextFactory<
         var entityEntry = await dbContext.Chats.AddAsync(new Chat());
         await dbContext.SaveChangesAsync();
         var newChatId = entityEntry.Entity.ID;
-        dbContext.ChangeTracker.Clear();
-
+        
         var dm = dbContext.Chats.First(c => c.ID == newChatId);
-        dbContext.AttachRange([self,other,dm]);
-
+        var selfId = self.Id;
+        self = dbContext.Users.First(u => u.Id == selfId);
+        other = dbContext.Users.First(u => u.Id == other.Id);
         dm.Users = [self, other];
-        self.Chats.Add(dm);
-        other.Chats.Add(dm);
-
         dbContext.Chats.Update(dm);
         await dbContext.SaveChangesAsync();
+        
+        self = dbContext.Users.Include(u => u.Chats).First(u => u.Id == selfId);
+        other = dbContext.Users.Include(u => u.Chats).First(u => u.Id == other.Id);
+        self.Chats.Add(dm);
+        other.Chats.Add(dm);
+        await dbContext.SaveChangesAsync();
+        
         await NotifySubscribersOf(InteractionEvent.CreateDm);
 
         return dm;

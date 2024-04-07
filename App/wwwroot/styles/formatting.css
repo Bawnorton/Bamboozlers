@@ -30,3 +30,30 @@
     padding-top: 2%;
     padding-bottom: 2%
 }
+
+.user-container {
+    display: flex;
+    flex-direction: row;
+    font-size: 20px;
+    background-color: #28292e;
+    padding: 0.5em 0.5em 0.5em 0.7em;
+    border-radius: 5px;
+}
+
+.user-container .inner {
+    display: flex;
+    flex-direction: row;
+}
+
+.user-container:hover {
+    background-color: #2c2f33;
+    cursor: pointer;
+}
+
+.user-container .action-button {
+    margin-left: auto;
+}
+
+.user-container:hover > .message-username:hover {
+    text-decoration: none;
+}

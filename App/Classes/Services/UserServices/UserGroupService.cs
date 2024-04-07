@@ -340,7 +340,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
             invite = new GroupInvite(self.Id, other.Id, group.ID);
             dbContext.GroupInvites.Add(invite);
             await dbContext.SaveChangesAsync();
-            await NotifySubscribersOf(group.ID, GroupEvent.SentInvite);
+            await NotifySubscribersOf(-1, GroupEvent.SentInvite);
         }
     }
     
@@ -360,7 +360,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         {
             dbContext.Remove(invite);
             await dbContext.SaveChangesAsync();
-            await NotifySubscribersOf(group.ID,GroupEvent.SentInviteRevoked);
+            await NotifySubscribersOf(-1,GroupEvent.SentInviteRevoked);
         }
     }
 
@@ -371,7 +371,7 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
         if (self is null || group is null) return;
 
         await RemoveGroupMember(chatId, self.Id);
-        await NotifySubscribersOf(group.ID, GroupEvent.SelfLeftGroup);
+        await NotifySubscribersOf(-1, GroupEvent.SelfLeftGroup);
     }
 
     public async Task<List<GroupChat>> GetAllModeratedGroups()
@@ -399,7 +399,8 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
                     .Include(i => i.Sender)
                         .Include(i => i.Recipient)
                             .Include(i => i.Group)
-                                .ToList() 
+                                .ThenInclude(g => g.Owner)
+                                    .ToList() 
             : [];
     }
     
@@ -413,7 +414,8 @@ public class UserGroupService(IAuthService authService, IUserInteractionService 
                     .Include(i => i.Sender)
                         .Include(i => i.Recipient)
                             .Include(i => i.Group)
-                                .ToList()
+                                .ThenInclude(g => g.Owner)
+                                    .ToList()
             : [];
     }
 

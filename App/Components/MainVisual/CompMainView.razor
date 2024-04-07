@@ -63,10 +63,12 @@
                         }
                         Blocked
                     </Tab>
-                    <CompActionButton ColumnWrapped="@false"
-                                      ButtonCaption="Find Friends"
-                                      IconName="@IconName.UserPlus"
-                                      ActionCallback="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.FindFriends)))"/>
+                    <Div class="p-1">
+                        <CompActionButton ColumnWrapped="@false"
+                                          ButtonCaption="Find Friends"
+                                          IconName="@IconName.UserPlus"
+                                          ActionCallback="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.FindFriends)))"/>
+                    </Div>
                     </Items>
                 <Content>
                     <TabPanel Name="All">
