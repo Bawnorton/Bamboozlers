@@ -3,6 +3,7 @@
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes
+@using Bamboozlers.Components.Utility
 
 @inject IDbContextFactory<AppDbContext> Db
 
@@ -13,9 +14,9 @@
         {
             <Div Class="message-header" Style="@(MessageState == MessageState.First ? "" : "margin-top: 15px;")">
                 <Div Class="message-info">
-                    @if (Message.Sender!.Avatar != null)
+                    @if (Message.Sender is not null)
                     {
-                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Message.Sender.Avatar)}") Class="message-avatar" alt=""/>
+                        <Image Source="@Message.Sender.GetAvatar()" Class="message-avatar" alt=""/>
                     }
                     <CompInteractUsername User="@Message.Sender"/>
                     <Div Class="message-timestamp">

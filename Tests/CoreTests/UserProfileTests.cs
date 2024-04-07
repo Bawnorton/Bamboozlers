@@ -13,11 +13,8 @@ namespace Tests.CoreTests;
 public class UserProfileTests : AuthenticatedBlazoriseTestBase
 {
     private new MockDatabaseProvider MockDatabaseProvider { get; set; }
-
-    private readonly ITestOutputHelper _output;
-    public UserProfileTests(ITestOutputHelper outputHelper)
+    public UserProfileTests()
     {
-        _output = outputHelper;
         MockDatabaseProvider = new MockDatabaseProvider(Ctx);
         UserInteractionService = new UserInteractionService(AuthService, MockDatabaseProvider.GetDbContextFactory());
         Ctx.Services.AddSingleton<IUserInteractionService>(UserInteractionService);
@@ -91,8 +88,7 @@ public class UserProfileTests : AuthenticatedBlazoriseTestBase
 
         return (users, [friendship], [request0, request1], [block0, block1]);
     }
-
-    // TODO: This fails and I'm not sure why, it works in dev
+    
     [Fact]
     public async void UserProfileTests_ProfilePopup()
     {

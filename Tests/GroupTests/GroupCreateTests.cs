@@ -67,7 +67,7 @@ public class GroupCreateTests : GroupChatTestBase
         component.Instance.DeleteAvatar();
         Assert.Null(component.Instance.Avatar);
 
-        res = await component.Instance.UploadAvatar(null);
+        res = await component.Instance.UploadAvatar(null!);
         Assert.False(res);
 
         res = await component.Instance.UploadAvatar(Array.Empty<byte>());

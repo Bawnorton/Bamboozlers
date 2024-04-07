@@ -9,7 +9,7 @@ public class ReadDatabaseS2CPacket : IPacket
     public static readonly PacketType<ReadDatabaseS2CPacket> Type =
         PacketType<ReadDatabaseS2CPacket>.Create("read_database_s2c", json => new ReadDatabaseS2CPacket(json));
 
-    internal DbEntry DbEntry;
+    internal DbEntry DbEntry = default!;
 
     internal ReadDatabaseS2CPacket()
     {

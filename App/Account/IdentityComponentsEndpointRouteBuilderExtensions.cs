@@ -98,8 +98,6 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             var code = await userManager.GenerateChangeEmailTokenAsync(user, parameters.Email);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
 
-            // TODO: This is probably not the most stellar way to perform this action, but it works for now. Could be improved.
-
             var urlParams = HttpUtility.ParseQueryString(string.Empty);
             urlParams["userId"] = parameters.Id.ToString();
             urlParams["email"] = parameters.Email;

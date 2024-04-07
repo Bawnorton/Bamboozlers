@@ -7,10 +7,8 @@ using Xunit.Abstractions;
 
 namespace Tests.GroupTests;
 
-public class GroupInvitesTests(ITestOutputHelper helper) : GroupChatTestBase
+public class GroupInvitesTests(ITestOutputHelper outputHelper) : GroupChatTestBase
 {
-    private ITestOutputHelper Output { get; set; } = helper;
-
     private Task<bool> CompAddMember_CheckInviteListEntry(
         User self,
         User friend, 
@@ -39,9 +37,8 @@ public class GroupInvitesTests(ITestOutputHelper helper) : GroupChatTestBase
                 Assert.Contains("Invite",actionButton.TextContent);
             }
         }
-        catch (WaitForFailedException e)
+        catch (WaitForFailedException)
         {
-            Output.WriteLine(e.Message);
             return Task.FromResult(false);
         }
         return Task.FromResult(true);
@@ -156,10 +153,11 @@ public class GroupInvitesTests(ITestOutputHelper helper) : GroupChatTestBase
             
             var innerContent = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "inner-content-div");
             Assert.NotNull(innerContent);
-            var innerContentText = innerContent.Descendants<IText>().FirstOrDefault();
-            Assert.NotNull(innerContentText);
-            Assert.Contains("(Invite for group",innerContentText.TextContent);
-            Assert.Contains($"{invite.Group.GetGroupName()})",innerContentText.TextContent);
+
+            var textContent = "";
+            innerContent.Descendants<IText>().ToList().ForEach(s => textContent = $"{textContent}{s.TextContent}");
+            Assert.Contains("(Invite for group",textContent);
+            Assert.Contains($"{invite.Group.GetGroupName()})",textContent);
             
             var acceptButton = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "accept-button");
             Assert.NotNull(acceptButton);
@@ -179,10 +177,11 @@ public class GroupInvitesTests(ITestOutputHelper helper) : GroupChatTestBase
             
             var innerContent = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "inner-content-div");
             Assert.NotNull(innerContent);
-            var innerContentText = innerContent.Descendants<IText>().FirstOrDefault();
-            Assert.NotNull(innerContentText);
-            Assert.Contains("(Invite for group",innerContentText.TextContent);
-            Assert.Contains($"{invite.Group.GetGroupName()})",innerContentText.TextContent);
+            
+            var textContent = "";
+            innerContent.Descendants<IText>().ToList().ForEach(s => textContent = $"{textContent}{s.TextContent}");
+            Assert.Contains("(Invite for group",textContent);
+            Assert.Contains($"{invite.Group.GetGroupName()})",textContent);
             
             var revokeButton = inviteDiv.Descendants<IElement>().FirstOrDefault(e => e.Id == "revoke-button");
             Assert.NotNull(revokeButton);

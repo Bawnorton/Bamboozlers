@@ -19,9 +19,14 @@ public record UserRecord(int? Id, string? UserName, string? Email, string? Displ
     /// </summary>
     /// <param name="image">The image to be converted.</param>
     /// <returns>The encoded image string or, if image is null, the default avatar.</returns>
-    private static string GetDisplayableAvatar(byte[]? image)
+    private string GetDisplayableAvatar(byte[]? image)
     {
-        return image is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(image)}";
+        return image is null ? GetDefaultAvatar() : $"data:image/png;base64,{Convert.ToBase64String(image)}";
+    }
+    
+    public string GetDefaultAvatar()
+    {
+        return $"images/default_profiles/profile_{Id % 7}.png";
     }
 
     public static UserRecord From(User user)
@@ -52,7 +57,7 @@ public enum UserDataType { Password, Username, Deletion, Email, Visual }
 /// <param name="DisplayName">If set, the display name value to pass.</param>
 /// <param name="Bio">If set, the bio (or description) value to pass.</param>
 /// <param name="Avatar">If set, the avatar value to pass.</param>
-public record UserDataRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes) : UserRecord
+public record UserDataRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes) : UserRecord(Id,UserName,Email,DisplayName,Bio,AvatarBytes)
 {
     public UserDataType? DataType { get; init; }
     public string? CurrentPassword { get; init; }

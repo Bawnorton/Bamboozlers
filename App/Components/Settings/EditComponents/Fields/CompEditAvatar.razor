@@ -7,6 +7,7 @@
 
 <CompAvatarUploader OnDelete="DeleteAvatar"
                     OnUpload="OnChange"
+                    DefaultSrc="@(UserData is null ? "images/default_profile.png" : UserData.GetDefaultAvatar())"
                     Avatar="@UserData?.AvatarBytes"
                     AlertCallback="AlertEventCallback"/>
 

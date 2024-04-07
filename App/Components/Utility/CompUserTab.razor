@@ -1,22 +1,22 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
 
-<Div id="@($"user-{UserData.UserName}")" class="user-container">
+<Div id="@($"user-{User.UserName}")" class="user-container">
     <Span class="inner" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User))">
-        <Image id="avatar" Source="@(IsBlockedBy ? "images/default_profile.png" : UserData.Avatar)" Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
-        @if (IsBlocked || IsBlockedBy || string.IsNullOrEmpty(UserData.DisplayName))
+        <Image id="avatar" Source="@(IsBlockedBy ? "images/default_profile.png" : User.GetAvatar())" Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
+        @if (IsBlocked || IsBlockedBy || string.IsNullOrEmpty(User.DisplayName))
         {
             <Div id="username" class="message-username">
-                @UserData.UserName
+                @User.UserName
             </Div>
         }
         else
         {
             <Div id="display-name" class="message-username">
-                @UserData.DisplayName
+                @User.DisplayName
             </Div>
             <Div id="username" style="margin-left: 0.5em">
-                (@UserData.UserName)
+                (@User.UserName)
             </Div>
         }
     </Span>
@@ -36,21 +36,10 @@
 
 @code {
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
-    
-    [Parameter] public User? User { get; set; }
+
+    [Parameter] public User User { get; set; } = default!;
     [Parameter] public RenderFragment? Button { get; set; }
     [Parameter] public RenderFragment? ExtraInnerContent { get; set; }
     [Parameter] public bool IsBlocked { get; set; }
     [Parameter] public bool IsBlockedBy { get; set; }
-
-    public UserRecord UserData { get; set; } = UserRecord.Default;
-    
-    protected override async Task OnParametersSetAsync()
-    {
-        await base.OnParametersSetAsync();
-        if (UserData == UserRecord.Default && User is not null)
-            UserData = UserRecord.From(User);
-        await InvokeAsync(StateHasChanged);
-    }
-
 }

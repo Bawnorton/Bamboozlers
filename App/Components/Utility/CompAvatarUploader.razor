@@ -14,14 +14,14 @@
                    Source="images/edit_overlay.png"/>
         </Label>
         <InputFile id="input-file" OnChange="@OnFileUpload" hidden/>
-    </Row>
-    <Row>
-        @if (Avatar is not null)
-        {
-            <CompActionButton Color="Color.Danger"
-                              IconName="IconName.Delete"
-                              ActionCallback="SignalDeleteAvatar"/>
-        }
+        <Div Style="position: absolute; bottom: 0; left: 80%">
+            @if (Avatar is not null)
+            {
+                <CompActionButton Color="Color.Danger"
+                                  IconName="IconName.Delete"
+                                  ActionCallback="SignalDeleteAvatar"/>
+            }
+        </Div>
     </Row>
 </Container>
 

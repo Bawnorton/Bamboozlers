@@ -6,7 +6,7 @@ public abstract class AbstractMockDbSet<T>(MockAppDbContext mockAppDbContext) wh
 {
     protected MockAppDbContext MockAppDbContext { get; set; } = mockAppDbContext;
     protected abstract Func<T, T, bool> MatchPredicate { get; set; }
-    public Mock<DbSet<T>> MockDbSet { get; set; }
+    public Mock<DbSet<T>> MockDbSet { get; set; } = default!;
     
     public virtual void AddMock(T entry)
     {

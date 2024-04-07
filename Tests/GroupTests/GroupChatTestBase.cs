@@ -6,7 +6,7 @@ public class GroupChatTestBase : AuthenticatedBlazoriseTestBase
 {
     protected (List<User>,List<Friendship>,List<GroupChat>,List<GroupInvite>) BuildGroupTestCases()
     {
-        MockDatabaseProvider.GetMockAppDbContext().MockChats.ClearAll();
+        MockDatabaseProvider.GetMockAppDbContext().MockChats.ClearAll(); 
         MockDatabaseProvider.GetMockAppDbContext().MockGroupInvites.ClearAll();
         MockDatabaseProvider.GetMockAppDbContext().MockFriendships.ClearAll();
         

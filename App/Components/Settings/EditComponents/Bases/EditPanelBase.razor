@@ -21,9 +21,9 @@
 </EditForm>
 
 @code {
-    [Parameter] public TInput Model { get; set; }
+    [Parameter] public TInput Model { get; set; } = default!;
     [Parameter] public EventCallback SubmitCallback { get; set; }
     [Parameter] public string? FormName { get; set; }
-    [Parameter] public List<RenderFragment> Fields { get; set; }
-    [Parameter] public RenderFragment Buttons { get; set; }
+    [Parameter] public List<RenderFragment> Fields { get; set; } = default!;
+    [Parameter] public RenderFragment Buttons { get; set; } = default!;
 }

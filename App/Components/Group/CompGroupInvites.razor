@@ -50,13 +50,10 @@
                                                      </text>;
                             RenderFragment innerContent = @<text>
                                                                (Invite for group
-                                                               @if (invite.Group.Avatar is not null)
-                                                               {
-                                                                   <img style="margin-left: 5px; margin-right: 5px;" 
-                                                                        class="_32x32 border-mask" 
-                                                                        src="@($"data:image/png;base64,{Convert.ToBase64String(invite.Group.Avatar)}")" 
-                                                                        alt=""/>
-                                                               }
+                                                               <img style="margin-left: 5px; margin-right: 5px;" 
+                                                                    class="_32x32 border-mask" 
+                                                                    src="@invite.Group.GetGroupAvatar()" 
+                                                                    alt=""/>
                                                                @invite.Group.GetGroupName())
                                                            </text>;
                             <CompUserTab @key=@invite
@@ -86,13 +83,10 @@
                                                                       ButtonId="revoke-button"/>;
                             RenderFragment innerContent = @<text>
                                                                (Invite for group
-                                                               @if (invite.Group.Avatar is not null)
-                                                               {
-                                                                   <img style="margin-left: 5px; margin-right: 5px;" 
-                                                                        class="_32x32 border-mask" 
-                                                                        src="@($"data:image/png;base64,{Convert.ToBase64String(invite.Group.Avatar)}")" 
-                                                                        alt=""/>
-                                                               }
+                                                               <img style="margin-left: 5px; margin-right: 5px;" 
+                                                                    class="_32x32 border-mask" 
+                                                                    src="@invite.Group.GetGroupAvatar()" 
+                                                                    alt=""/>
                                                                @invite.Group.GetGroupName())
                                                            </text>;
                             <CompUserTab @key=@invite

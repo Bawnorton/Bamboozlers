@@ -143,7 +143,7 @@
                                         <Column ColumnSize="ColumnSize.Is2">
                                             <CompAvatarUploader OnDelete="DeleteAvatar"
                                                                 OnUpload="OnAvatarChange"
-                                                                DefaultSrc="images/default_group.png"
+                                                                DefaultSrc="@Chat.GetDefaultAvatar()"
                                                                 AlertCallback="@(args => AlertArguments = args)"
                                                                 Avatar="@Chat.Avatar"
                                                                 DisplayPx="128"/>
@@ -162,17 +162,23 @@
                                 <Div ElementId=@($"{Chat.Name}_displayDiv")>
                                     <Row>
                                         <Div Style="margin-left: 20px">
-                                            <CompViewAvatar DefaultSrc="images/default_group.png"
+                                            <CompViewAvatar DefaultSrc="@Chat.GetDefaultAvatar()"
                                                             Avatar="@Chat.Avatar"
                                                             DisplayPx="128"/>
                                         </Div>
                                     </Row>
                                 </Div>
-                                <TextEdit Class="w-25"
-                                          Text="@(Chat is null ? "Chat" : Chat.GetGroupName())"
-                                          ElementId="chat-name"
-                                          Placeholder="Chat Name"
-                                          Disabled/>
+                                <Container>
+                                    <Row Class="centre-content">
+                                        <Column ColumnSize="ColumnSize.Is6">
+                                            <TextEdit Text="@Chat.GetGroupName()"
+                                                      ElementId="chat-name"
+                                                      Placeholder="Chat Name"
+                                                      Disabled>
+                                            </TextEdit>
+                                        </Column>
+                                    </Row>
+                                </Container>
                             </text>;
         }
 
@@ -229,7 +235,7 @@
                    <div style="display: inline-block">
                        <Image ElementId="@($"{user.UserName}_avatar")"
                               Class="_32x32 message-avatar"
-                              Source=@(user.Avatar is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}")
+                              Source="@user.GetAvatar()"
                               alt=""/>
                        <CompInteractUsername User="@user"/>
                        @if (isOwner)

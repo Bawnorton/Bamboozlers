@@ -60,14 +60,7 @@
                                     {
                                         <BarItem>
                                             <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
-                                                @if (chat.Avatar is not null)
-                                                {
-                                                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
-                                                }
-                                                else
-                                                {
-                                                    <BarIcon IconName="Icons.UserGroup"></BarIcon>
-                                                }
+                                                <Image Source="@chat.User.GetAvatar()" Class="message-avatar" alt=""/>
                                                 @chat.User.GetName()
                                             </BarLink>
                                         </BarItem>
@@ -105,14 +98,7 @@
                                     {
                                         <BarItem>
                                             <BarLink ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
-                                                @if (chat.Avatar is not null)
-                                                {
-                                                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(chat.Avatar)}") Class="message-avatar" alt=""/>
-                                                }
-                                                else
-                                                {
-                                                    <BarIcon IconName="Icons.Users"></BarIcon>
-                                                }
+                                                <Image Source="@chat.GetGroupAvatar()" Class="message-avatar" alt=""/>
                                                 @chat.GetGroupName()
                                             </BarLink>
                                         </BarItem>
@@ -141,7 +127,7 @@
                 </Text>
                 @if (Self?.Avatar is not null)
                 {
-                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Self.Avatar)}") Class="message-avatar" alt=""/>
+                    <Image Source="@Self.GetAvatar()" Class="message-avatar" alt=""/>
                 }
                 else
                 {

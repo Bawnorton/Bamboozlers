@@ -4,7 +4,6 @@
 @implements IAsyncDisposable
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
-@using Microsoft.AspNetCore.SignalR.Client
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Networking
@@ -17,7 +16,6 @@
 @using Bamboozlers.Classes
 @using Blazorise.Extensions
 @using AngleSharp.Diffing.Extensions
-@using Bamboozlers.Classes.Services.UserServices
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.Utility
@@ -78,13 +76,13 @@
                   Display="Display.InlineFlex"
                   Class="justify-content-between align-items-center">
         <Div>
-            @if (Chat is GroupChat { Avatar: not null } groupChat)
+            @if (Chat is GroupChat groupChat)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}") Class="message-avatar" alt=""/>
+                <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
             }
             else if (Chat is not null && Chat is not GroupChat && Chat.Users.First(f => f.Id != Self!.Id).Avatar != null)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(Chat.Users.First(f => f.Id != Self!.Id).Avatar!)}") Class="message-avatar" alt=""/>
+                <Image Source="@Chat.Users.First(f => f.Id != Self!.Id).GetAvatar()" Class="message-avatar" alt=""/>
             }
             <Text ElementId="header-text">@ChatName</Text>
         </Div>
@@ -94,13 +92,6 @@
         }
     </LayoutHeader>
     <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
-        <Alert Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
-            <AlertMessage>
-                @AlertArguments.AlertMessage
-                <CloseButton Style="--bs-btn-close-white-filter: black;" VerticalAlignment="VerticalAlignment.Middle" Float="Float.End" TextColor="TextColor.Warning"/>
-            </AlertMessage>
-            <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
-        </Alert>
         <Layout>
             <LayoutContent>
                 <Div>
@@ -161,7 +152,7 @@
                                 <Div>
                                     @if (user.Avatar != null)
                                     {
-                                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") Class="message-avatar" alt=""/>
+                                        <Image Source="@user.GetAvatar()" Class="message-avatar" alt=""/>
                                     }
                                     <CompInteractUsername User="@user"/>
                                 </Div>
@@ -174,26 +165,25 @@
     </LayoutSiderContent>
 </LayoutSider>
 
+@* ReSharper disable always InconsistentNaming *@
 @code {
     [Inject] IUserGroupService UserGroupService { get; set; } = default!;
     
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     
-    [Parameter] public int? ChatID { get; set; }
+    [Parameter] public int? ChatID { get; set; } 
     public List<int?> WatchedIDs { get; set; } = [];
     private Chat? Chat { get; set; }
     private User? Self { get; set; }
-    private string ChatName { get; set; }
+    private string ChatName { get; set; } = default!;
     private bool IsMod { get; set; }
     private List<LinkedMessage> Messages { get; set; } = [];
-
-    public AlertArguments AlertArguments { get; set; } = new();
     
     private DateTime? _lastMessageSentAt;
     
-    private string MessageInput { get; set; }
+    private string MessageInput { get; set; } = default!;
 
-    private string _hubUrl;
+    private string _hubUrl = default!;
     private HubConnection? _hubConnection;
 
     private bool IsShiftHeld { get; set; }
