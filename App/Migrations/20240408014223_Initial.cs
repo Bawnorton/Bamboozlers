@@ -253,20 +253,21 @@ namespace Bamboozlers.Migrations
                 name: "ChatUser",
                 columns: table => new
                 {
-                    ChatsID = table.Column<int>(type: "int", nullable: false),
-                    UsersId = table.Column<int>(type: "int", nullable: false)
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ChatId = table.Column<int>(type: "int", nullable: false),
+                    LastAccess = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ChatUser", x => new { x.ChatsID, x.UsersId });
+                    table.PrimaryKey("PK_ChatUser", x => new { x.UserId, x.ChatId });
                     table.ForeignKey(
-                        name: "FK_ChatUser_AspNetUsers_UsersId",
-                        column: x => x.UsersId,
+                        name: "FK_ChatUser_AspNetUsers_UserId",
+                        column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_ChatUser_Chats_ChatsID",
-                        column: x => x.ChatsID,
+                        name: "FK_ChatUser_Chats_ChatId",
+                        column: x => x.ChatId,
                         principalTable: "Chats",
                         principalColumn: "ID");
                 });
@@ -401,9 +402,9 @@ namespace Bamboozlers.Migrations
                 column: "OwnerID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ChatUser_UsersId",
+                name: "IX_ChatUser_ChatId",
                 table: "ChatUser",
-                column: "UsersId");
+                column: "ChatId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FriendRequests_ReceiverID",
