@@ -26,7 +26,16 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
             .WithMany(e => e.ModeratedChats);
         modelBuilder.Entity<User>()
             .HasMany(u => u.Chats)
-            .WithMany(c => c.Users);
+            .WithMany(c => c.Users)
+            .UsingEntity<ChatUser>(
+                l => l.HasOne<Chat>(e => e.Chat)
+                    .WithMany(e => e.ChatUsers)
+                    .HasForeignKey(e => e.ChatId),
+                r => r.HasOne<User>(e => e.User)
+                    .WithMany(e => e.UserChats)
+                    .HasForeignKey(e => e.UserId),
+                j => j.Property(e => e.LastAccess).HasDefaultValueSql("CURRENT_TIMESTAMP")
+            );
         modelBuilder.Entity<GroupChat>()
             .HasOne(h => h.Owner)
             .WithMany(w => w.OwnedChats);
