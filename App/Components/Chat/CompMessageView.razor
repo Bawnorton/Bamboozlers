@@ -76,21 +76,15 @@
                             </Button>
                             break;
                     }
-                    <Button Clicked="async () => await ChatContext.OnPin(Message)" class=@TooltipClassDir data-tooltip=@(Message.IsPinned ? "Unpin" : "Pin")>
-                        <Icon Name="Icons.MapPin"></Icon>
-                    </Button>
                     @if (ShowDelete)
                     {
                         <Button Clicked="@(async () => await ChatContext.OnDelete(Message))" class=@TooltipClassDir data-tooltip="Delete">
                             <Icon Name="Icons.Trash"></Icon>
                         </Button>
                     }
-                    else
-                    {
-                        <Button Outline=false class=@TooltipClassDir data-tooltip="More">
-                            <Icon Name="Icons.Ellipsis"></Icon>
-                        </Button>
-                    }
+                    <Button Clicked="async () => await ChatContext.OnPin(Message)" class=@TooltipClassDir data-tooltip=@(Message.IsPinned ? "Unpin" : "Pin")>
+                        <Icon Name="Icons.MapPin"></Icon>
+                    </Button>
                 </Div>
             }
         </Div>

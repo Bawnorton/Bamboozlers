@@ -51,7 +51,7 @@
                 e.stopPropagation();
             }
         });
-        resizeTextarea('message-input');
+        setInterval(() => resizeTextarea('message-input'), 100);
         textarea.focus();
     });
     
@@ -206,7 +206,7 @@
                     </Label>
                     <InputFile id="input-file" OnChange="@OnFileUpload" hidden multiple/>
                 </Div>
-                <Div Display="Display.Flex" Overflow="Overflow.Hidden">
+                <Div Display="Display.Flex" Overflow="Overflow.Hidden" Width="Width.Is100">
                     <textarea id="message-input" placeholder="@($"Message {ChatName}")" class="message-input p-3" style="padding-left: 0 !important;" @onkeyup="OnInput" @bind="MessageInput" @bind:event="oninput">
                     </textarea>
                 </Div>
@@ -447,7 +447,6 @@
 
         await SendMessage(MessageInput);
         MessageInput = "";
-        await JsRuntime.InvokeVoidAsync("resizeTextarea", "message-input");
     }
 
     private async Task DeleteMessage(Message message)

@@ -71,8 +71,16 @@
             .ThenInclude(m => m.Sender)
             .FirstOrDefaultAsync(c => c.ID == ChatID);
         if (chat == null) throw new ArgumentNullException(nameof(chat));
-        if (chat is not GroupChat groupChat) IsDm = true;
-        else ModInChat = groupChat.Moderators.Any(m => m.Id == FocusUser.Id);
+        if (chat is not GroupChat) IsDm = true;
+        else
+        {
+            var groupChat = await db.GroupChats
+                .Include(gc => gc.Moderators)
+                .FirstOrDefaultAsync(gc => gc.ID == ChatID);
+            if (groupChat == null) throw new ArgumentNullException(nameof(groupChat));
+            
+            ModInChat = groupChat.Moderators.Any(m => m.Id == UserData!.Id);
+        }
 
         PinnedMessages = chat.Messages?.Where(m => m.IsPinned).ToList() ?? [];
         PinnedMessages.Sort((a, b) => b.PinnedAt!.Value.CompareTo(a.PinnedAt!.Value));

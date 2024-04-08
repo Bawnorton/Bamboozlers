@@ -366,22 +366,31 @@ public class UserInteractionService(
     }
 
     public List<IInteractionSubscriber> Subscribers { get; } = [];
+    private SemaphoreSlim SubscribersLock { get; } = new(1, 1);
     
     public async Task NotifySubscribersOf(InteractionEvent evt)
     {
-        if (evt is InteractionEvent.General)
+        await SubscribersLock.WaitAsync();
+        try
         {
-            foreach (var sub in Subscribers)
+            if (evt is InteractionEvent.General)
             {
-                await sub.OnUpdate(InteractionEvent.General);
+                foreach (var sub in Subscribers)
+                {
+                    await sub.OnUpdate(InteractionEvent.General);
+                }
             }
-        }
-        else
+            else
+            {
+                foreach (var sub in Subscribers.Where(s => s.WatchedInteractionEvents.Contains(evt) || s.WatchedInteractionEvents.Contains(InteractionEvent.General)))
+                {
+                    await sub.OnUpdate(evt);
+                }
+            }
+        } 
+        finally
         {
-            foreach (var sub in Subscribers.Where(s => s.WatchedInteractionEvents.Contains(evt) || s.WatchedInteractionEvents.Contains(InteractionEvent.General)))
-            {
-                await sub.OnUpdate(evt);
-            }
+            SubscribersLock.Release();
         }
     }
     public bool AddSubscriber(IInteractionSubscriber subscriber) 
