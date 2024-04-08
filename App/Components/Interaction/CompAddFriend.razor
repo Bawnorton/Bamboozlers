@@ -11,6 +11,8 @@
 @using Bamboozlers.Components.Utility
 @using Blazorise.Extensions
 
+@inject IJSRuntime JsRuntime
+
 <ModalContent Centered Size="ModalSize.Large">
     <ModalHeader>
         <ModalTitle>Add Friends</ModalTitle>
@@ -25,6 +27,7 @@
                           ElementId="search-bar"
                           MaskType="MaskType.RegEx"
                           EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
+                          Autofocus="true"
                           Placeholder="Find users by their username or display name"/>
                 <Div style="display: inline-flex">
                     <CompActionButton ButtonId="search-button"
@@ -78,12 +81,12 @@
         await GetInteractionData();
     }
 
-    protected override Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if(!firstRender) return Task.CompletedTask;
+        if (!firstRender) return;
         
         AddKeySubscriber(this);
-        return Task.CompletedTask;
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     private async Task PerformSearch()

@@ -61,9 +61,5 @@
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
     </ItemGroup>
-
-    <ItemGroup>
-      <_ContentIncludedByDefault Remove="Components\VisualUtility\CompInteractUsername.razor" />
-    </ItemGroup>
     
 </Project>

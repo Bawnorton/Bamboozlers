@@ -2,6 +2,9 @@
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.Services.UserServices
 @using Blazorise.Utilities
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
 
 <CompActionButton ButtonId="@ButtonId"
                   Color="@Color"
@@ -17,6 +20,8 @@
     [Parameter] public int? UserId { get; set; }
     [Parameter] public int? GroupID { get; set; }
     [Parameter] public string? ButtonId { get; set; }
+    
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
 
     public EventCallback GroupCallback { get; set; } = EventCallback.Empty;
     public IconName IconName { get; set; }
@@ -33,19 +38,13 @@
             case GroupEvent.SentInvite:
                 IconName = IconName.UserPlus;
                 ButtonCaption = "Send Invite";
-                GroupCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserGroupService.SendGroupInvite(GroupID, UserId)
-                );
+                GroupCallback = eventCallbackFactory.Create(this, SendInvite);
                 break;
             case GroupEvent.SentInviteRevoked:
                 IconName = IconName.Ban;
                 Color = Color.Danger;
                 ButtonCaption = "Revoke Invite";
-                GroupCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserGroupService.RevokeGroupInvite(GroupID, UserId)
-                );
+                GroupCallback = eventCallbackFactory.Create(this, RevokeInvite);
                 break;
             case GroupEvent.SentInvitePending:
                 IconName = IconName.Send;
@@ -56,28 +55,55 @@
             case GroupEvent.ReceivedInviteAccepted:
                 IconName = IconName.Check;
                 Color = Color.Success;
-                GroupCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserGroupService.AcceptGroupInvite(GroupID, UserId)
-                );
+                GroupCallback = eventCallbackFactory.Create(this, AcceptInvite);
                 break;    
             case GroupEvent.ReceivedInviteDeclined:
                 IconName = IconName.Ban;
                 Color = Color.Danger;
-                GroupCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserGroupService.DeclineGroupInvite(GroupID, UserId)
-                );
+                GroupCallback = eventCallbackFactory.Create(this, DeclineInvite);
                 break;    
             case GroupEvent.RemoveMember:
                 IconName = IconName.Ban;
                 Color = Color.Danger;
                 ButtonCaption = "Kick User";
-                GroupCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserGroupService.RemoveGroupMember(GroupID, UserId)
-                );
+                GroupCallback = eventCallbackFactory.Create(this, RemoveMember);
                 break;    
         }
+    }
+
+    private async Task RemoveMember()
+    {
+        await SyncedInteraction(GroupEvent.RemoveMember, UserGroupService.RemoveGroupMember);
+    }
+
+    private async Task DeclineInvite()
+    {
+        await SyncedInteraction(GroupEvent.ReceivedInviteDeclined, UserGroupService.DeclineGroupInvite);
+    }
+
+    private async Task AcceptInvite()
+    {
+        await SyncedInteraction(GroupEvent.ReceivedInviteAccepted, UserGroupService.AcceptGroupInvite);
+    }
+
+    private async Task RevokeInvite()
+    {
+        await SyncedInteraction(GroupEvent.SentInviteRevoked, UserGroupService.RevokeGroupInvite);
+    }
+
+    private async Task SendInvite()
+    {
+        await SyncedInteraction(GroupEvent.SentInvite, UserGroupService.SendGroupInvite);
+    }
+
+    private async Task SyncedInteraction(GroupEvent eventKind, AsyncBiConsumer<int?, int?> action)
+    {
+        await action.Invoke(GroupID, UserId);
+        var interactionSync = new GroupInteractionSyncC2SPacket
+        {
+            Event = eventKind,
+            GroupId = GroupID!.Value
+        };
+        await SendToServer.InvokeAsync(interactionSync);
     }
 }

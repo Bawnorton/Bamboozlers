@@ -367,7 +367,7 @@ public class UserInteractionService(
 
     public List<IInteractionSubscriber> Subscribers { get; } = [];
     
-    private async Task NotifySubscribersOf(InteractionEvent evt)
+    public async Task NotifySubscribersOf(InteractionEvent evt)
     {
         if (evt is InteractionEvent.General)
         {
@@ -421,4 +421,5 @@ public interface IUserInteractionService : IAsyncPublisher<IInteractionSubscribe
     Task<List<User>> GetAllFriends();
     Task<List<User>> GetAllBlockedBy();
     Task<List<User>> GetAllBlocked();
+    Task NotifySubscribersOf(InteractionEvent evt);
 }

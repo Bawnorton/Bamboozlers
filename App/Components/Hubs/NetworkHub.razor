@@ -11,6 +11,8 @@
 @using Microsoft.AspNetCore.Http.Connections
 @using System.Text.Json
 @using System.Net
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction
+@using Bamboozlers.Classes.Services.UserServices
 @using Microsoft.AspNetCore.Http.Connections.Client
 
 @inject NavigationManager NavigationManager
@@ -24,6 +26,9 @@
 @code {
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+    
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
     private EventCallback<IPacket> _sendToServer;
     private Predicate<IAsyncPacketSubscriber> _addPacketSubscriber;
@@ -80,9 +85,23 @@
         return true;
     }
     
+    private async Task TopLevelHandler(IPacket packet)
+    {
+        switch (packet)
+        {
+            case InteractionSyncS2CPacket interactionSync:
+                await UserInteractionService.NotifySubscribersOf(interactionSync.Event);
+                break;
+            case GroupInteractionSyncS2CPacket groupInteractionSync:
+                await UserGroupService.NotifySubscribersOf(groupInteractionSync.GroupId, groupInteractionSync.Event);
+                break;
+        }
+    }
+    
     private async Task OnPacketRecieved(IPacket packet)
     {
         Console.WriteLine($"Recieved packet from server: {packet.PacketType().GetId()}");
+        await TopLevelHandler(packet);
         foreach (var subscriber in Subscribers)
         {
             await subscriber.OnPacket(packet);

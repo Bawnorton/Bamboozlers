@@ -1,8 +1,10 @@
 @inherits UserViewComponentBase
+
 @implements IInteractionSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Utility
 @using Bamboozlers.Classes.Utility.Observer
@@ -89,7 +91,7 @@
 @code {
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
-
+    
     private string SelectedTab { get; set; } = "Incoming";
     
     private List<FriendRequest> IncomingFriendRequests { get; set; } = [];
@@ -105,7 +107,7 @@
         UserInteractionService.AddSubscriber(this);
         await GetFriendsData();
     }
-    
+
     private async Task GetFriendsData()
     {
         IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();

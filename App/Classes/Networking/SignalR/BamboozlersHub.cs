@@ -1,6 +1,8 @@
 using Bamboozlers.Classes.Networking.Packets;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat;
+using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR;
@@ -59,6 +61,13 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     };
                     await SendToChat(messagePinStatus.ChatId, messagePinStatusResponse);
                     break;
+                case InteractionSyncC2SPacket userRelation:
+                    var userRelationResponse = new InteractionSyncS2CPacket
+                    {
+                        Event = userRelation.Event
+                    };
+                    await SendToUser(userRelation.ReceiverId, userRelationResponse);
+                    break;
             }
         });
     }
@@ -67,6 +76,21 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
     {
         Console.WriteLine($"Sending packet to chat {chatId}: {packet.PacketType().GetId()}");
         await Clients.Groups(chatId.ToString()).SendAsync("RecievePacketOnClient", packet.Serialize());
+    }
+    
+    private async Task SendToUser(int userId, IPacket packet)
+    {
+        var success = false;
+        foreach (var connectionId in Connections.GetConnections(userId))
+        {
+            Console.WriteLine($"Sending packet to user {userId} on connection {connectionId}: {packet.PacketType().GetId()}");
+            success = true;
+            await Clients.Client(connectionId).SendAsync("RecievePacketOnClient", packet.Serialize());
+        }
+        if (!success)
+        {
+            Console.WriteLine($"Failed to send packet to user {userId}: {packet.PacketType().GetId()} (No connections)");
+        }
     }
 
     public override async Task OnConnectedAsync()

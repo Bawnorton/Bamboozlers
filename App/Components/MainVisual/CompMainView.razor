@@ -1,5 +1,6 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.Utility
@@ -173,7 +174,8 @@
         InteractionEvent.Unblock,
         InteractionEvent.RequestAccepted,
         InteractionEvent.RequestDeclined,
-        InteractionEvent.RequestRevoked
+        InteractionEvent.RequestRevoked,
+        InteractionEvent.Unfriend
     ];
     
     public async Task OnUpdate(InteractionEvent evt)
@@ -181,4 +183,5 @@
         await GetFriendsData();
         await InvokeAsync(StateHasChanged);
     }
+    
 }

@@ -1,10 +1,10 @@
-@inherits UserViewComponentBase
-
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.Services.UserServices
 @using Blazorise.Utilities
 @using Bamboozlers.Classes.Networking.Packets
-@using Bamboozlers.Classes.Networking.Packets.Serverbound.Relations
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
 
 <CompActionButton ButtonId="@ButtonId"
                   Color="@Color"
@@ -73,65 +73,24 @@
         }
     }
 
-    private async Task SendFriendRequest()
+    private async Task SendFriendRequest() => await SyncedInteraction(InteractionEvent.RequestSent, UserInteractionService.SendFriendRequest);
+
+    private async Task AcceptFriendRequest() => await SyncedInteraction(InteractionEvent.RequestAccepted, UserInteractionService.AcceptFriendRequest);
+
+    private async Task DeclineFriendRequest() => await SyncedInteraction(InteractionEvent.RequestDeclined, UserInteractionService.DeclineFriendRequest);
+
+    private async Task RevokeFriendRequest() => await SyncedInteraction(InteractionEvent.RequestRevoked, UserInteractionService.RevokeFriendRequest);
+
+    private async Task UnblockUser() => await SyncedInteraction(InteractionEvent.Unblock, UserInteractionService.UnblockUser);
+
+    private async Task SyncedInteraction(InteractionEvent eventKind, AsyncConsumer<int?> action)
     {
-        await UserInteractionService.SendFriendRequest(UserId);
-        var sendFriendRequest = new UserRelationC2SPacket
+        await action.Invoke(UserId);
+        var interactionSync = new InteractionSyncC2SPacket
         {
-            Action = UserRelationC2SPacket.RelationAction.SendRequest,
-            SenderId = UserData!.Id!.Value,
+            Event = eventKind,
             ReceiverId = UserId!.Value
         };
-        await SendToServer.InvokeAsync(sendFriendRequest);
+        await SendToServer.InvokeAsync(interactionSync);
     }
-
-    private async Task AcceptFriendRequest()
-    {
-        await UserInteractionService.AcceptFriendRequest(UserId);
-        var acceptFriendRequest = new UserRelationC2SPacket
-        {
-            Action = UserRelationC2SPacket.RelationAction.AcceptRequest,
-            SenderId = UserData!.Id!.Value,
-            ReceiverId = UserId!.Value
-        };
-        await SendToServer.InvokeAsync(acceptFriendRequest);
-    }
-
-    private async Task DeclineFriendRequest()
-    {
-        await UserInteractionService.DeclineFriendRequest(UserId);
-        var declineFriendRequest = new UserRelationC2SPacket
-        {
-            Action = UserRelationC2SPacket.RelationAction.DeclineRequest,
-            SenderId = UserData!.Id!.Value,
-            ReceiverId = UserId!.Value
-        };
-        await SendToServer.InvokeAsync(declineFriendRequest);
-    }
-
-    private async Task RevokeFriendRequest()
-    {
-        await UserInteractionService.RevokeFriendRequest(UserId);
-        var revokeFriendRequest = new UserRelationC2SPacket
-        {
-            Action = UserRelationC2SPacket.RelationAction.RevokeRequest,
-            SenderId = UserData!.Id!.Value,
-            ReceiverId = UserId!.Value
-        };
-        await SendToServer.InvokeAsync(revokeFriendRequest);
-    }
-
-    private async Task UnblockUser()
-    {
-        await UserInteractionService.UnblockUser(UserId);
-        var unblockUser = new UserRelationC2SPacket
-        {
-            Action = UserRelationC2SPacket.RelationAction.Unblock,
-            SenderId = UserData!.Id!.Value,
-            ReceiverId = UserId!.Value
-        };
-        await SendToServer.InvokeAsync(unblockUser);
-    }
-    
-
 }

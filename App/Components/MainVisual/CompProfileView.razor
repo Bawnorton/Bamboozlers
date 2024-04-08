@@ -7,6 +7,9 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Components.Utility
 
@@ -118,6 +121,8 @@
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
     [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
+    
+    [CascadingParameter] private EventCallback<IPacket> SendToServer { get; set; }
 
     [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
     private RenderFragment? ActionButton { get; set; }
@@ -197,7 +202,7 @@
                 ActionButton = GetActionButton(
                     EventCallback.Factory.Create(
                         this,
-                        async () => await UserInteractionService.AcceptFriendRequest(FocusUser.Id)
+                        async () => await SyncedInteraction(InteractionEvent.RequestAccepted, UserInteractionService.AcceptFriendRequest)
                     ),
                     "Accept Friend Request",
                     IconName.UserCheck
@@ -218,7 +223,7 @@
                 ActionButton = GetActionButton(
                     EventCallback.Factory.Create(
                         this,
-                        async () => await UserInteractionService.SendFriendRequest(FocusUser.Id)
+                        async () => await SyncedInteraction(InteractionEvent.RequestSent, UserInteractionService.SendFriendRequest)
                     ),
                     "Send Friend Request",
                     IconName.UserPlus
@@ -272,14 +277,14 @@
                             @if (HasIncomingRequest && !IsBlocked)
                             {
                                 <Button ElementId="decline-request-option" Class="dropdown-option" TextColor="TextColor.Danger"
-                                        Clicked="@(async () => await UserInteractionService.DeclineFriendRequest(FocusUser.Id))">
+                                        Clicked="@DeclineRequest">
                                     Decline Friend Request
                                 </Button>
                             }
                             @if (HasOutgoingRequest)
                             {
                                 <Button ElementId="revoke-request-option" Class="dropdown-option" TextColor="TextColor.Danger"
-                                        Clicked="@(async () => await UserInteractionService.RevokeFriendRequest(FocusUser.Id))">
+                                        Clicked="@RevokeRequest">
                                     Revoke Friend Request
                                 </Button>
                             }
@@ -334,6 +339,17 @@
                     </Div>
                 </text>;
     }
+    
+    private async Task SyncedInteraction(InteractionEvent eventKind, AsyncConsumer<int?> action)
+    {
+        await action(FocusUser.Id);
+        var interactionSync = new InteractionSyncC2SPacket
+        {
+            Event = eventKind,
+            ReceiverId = FocusUser.Id!.Value
+        };
+        await SendToServer.InvokeAsync(interactionSync);
+    }
 
     private async Task OpenUnfriendConfirmation(int? otherId)
     {
@@ -343,7 +359,7 @@
                      This user will be removed as your friend! You will have to send a new friend request to re-add them.
                      You will not be able to direct message them while they are not your friend!
                  </text>,
-                EventCallback.Factory.Create(this, () => UserInteractionService.RemoveFriend(otherId))
+                EventCallback.Factory.Create(this, async () => await SyncedInteraction(InteractionEvent.Unfriend, UserInteractionService.RemoveFriend))
             )
         );
     }
@@ -356,9 +372,19 @@
                      This user will not be able to send or receive messages from you! If they are your friend, they will
                      be removed as your friend!
                  </text>,
-                EventCallback.Factory.Create(this, () => UserInteractionService.BlockUser(otherId))
+                EventCallback.Factory.Create(this, async () => await SyncedInteraction(InteractionEvent.Block, UserInteractionService.BlockUser))
             )
         );
+    }
+    
+    private async Task DeclineRequest()
+    {
+        await SyncedInteraction(InteractionEvent.RequestDeclined, UserInteractionService.DeclineFriendRequest);
+    }
+    
+    private async Task RevokeRequest()
+    {
+        await SyncedInteraction(InteractionEvent.RequestRevoked, UserInteractionService.RevokeFriendRequest);
     }
 
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } =

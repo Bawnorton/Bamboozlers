@@ -1,4 +1,5 @@
 using Bamboozlers.Classes.Networking.Packets.Clientbound;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
 
 namespace Bamboozlers.Classes.Networking;
@@ -13,5 +14,7 @@ public class ClientNetworkHandler : AbstractNetworkHandler
         PacketRegistry.RegisterPacket(MessageEditedS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageDeletedS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessagePinStatusS2CPacket.Type);
+        PacketRegistry.RegisterPacket(InteractionSyncS2CPacket.Type);
+        PacketRegistry.RegisterPacket(GroupInteractionSyncS2CPacket.Type);
     }
 }
