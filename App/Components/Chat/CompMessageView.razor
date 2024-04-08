@@ -112,7 +112,7 @@
 
     [CascadingParameter] private ChatContext ChatContext { get; set; }
     [CascadingParameter] private EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] private Func<IAsyncKeySubscriber, bool> AddKeySubscriber { get; set; }
+    [CascadingParameter] private Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
 
     private bool Loaded { get; set; }
     private User? Self { get; set; }

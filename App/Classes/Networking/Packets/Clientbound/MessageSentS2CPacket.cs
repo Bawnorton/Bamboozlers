@@ -8,15 +8,9 @@ public class MessageSentS2CPacket : IPacket
     public static readonly PacketType<MessageSentS2CPacket> Type =
         PacketType<MessageSentS2CPacket>.Create("message_sent_s2c", json => new MessageSentS2CPacket(json));
 
-<<<<<<< HEAD
     internal int MessageId;
     
     internal MessageSentS2CPacket()
-=======
-    internal DbEntry DbEntry = default!;
-
-    internal ReadDatabaseS2CPacket()
->>>>>>> main
     {
     }
 

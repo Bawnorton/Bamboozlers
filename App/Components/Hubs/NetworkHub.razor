@@ -20,7 +20,7 @@
     public RenderFragment? ChildContent { get; set; }
 
     private EventCallback<IPacket> _sendToServer;
-    private Func<IAsyncPacketSubscriber, bool> _addPacketSubscriber;
+    private Predicate<IAsyncPacketSubscriber> _addPacketSubscriber;
 
     public List<IAsyncPacketSubscriber> Subscribers { get; } = [];
     

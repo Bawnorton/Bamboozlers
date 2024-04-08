@@ -23,7 +23,6 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Utility.Observer
-@using Bamboozlers.Components.VisualUtility
 @using Bunit.Extensions
 
 @inject IDbContextFactory<AppDbContext> Db
@@ -131,7 +130,7 @@
             @if (Chat is GroupChat groupChat)
             {
                 <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
-                <Text ElementId="header-text">@ChatName</Text>
+                <Div ElementId="header-text">@ChatName</Div>
             }
             else if (Chat is not null && Chat is not GroupChat)
             {
@@ -139,11 +138,13 @@
                 {
                     <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(OtherUser.Avatar)}") Class="message-avatar" alt=""/>
                 }
-                <CompInteractUsername User=@OtherUser/>
+                <Div ElementId="header-text">
+                    <CompInteractUsername User=@OtherUser/>
+                </Div>
             }
         </Div>
         <Div Style="position: relative">
-            <Icon ElementId="pin_button" Name="Icons.MapPin" Style="margin-right: 0.5em" Class="button-tooltip tooltip-left" data-tooltip="Pins" role="button" @onclick="() => OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Pins, Self, ChatID, async arg => await JumpToMessage((Message)arg))"/>
+            <Icon ElementId="pin_button" Name="Icons.MapPin" Style="margin-right: 0.5em" Class="button-tooltip tooltip-left" data-tooltip="Pins" role="button" @onclick="() => OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Pins, Self, ChatID, async arg => await JumpToMessage((Message)arg!)))"/>
             @if (Chat is GroupChat)
             {
                 <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.GroupChatSettings, ChatId: ChatID))"/>
@@ -252,8 +253,8 @@
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] public Func<IAsyncPacketSubscriber, bool> AddPacketSubscriber { get; set; }
-    [CascadingParameter] public Func<IAsyncKeySubscriber, bool> AddKeySubscriber { get; set; }
+    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
+    [CascadingParameter] public Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
 
     [Parameter] public int? ChatID { get; set; }
     private Chat? Chat { get; set; }
@@ -275,7 +276,7 @@
         set => _otherUser = value;
     }
     
-    public List<int?> WatchedIDs { get; set; } = [];
+    public List<int?> WatchedIDs { get; private set; } = [];
     
     private User? Self { get; set; }
     private bool IsMod { get; set; }
@@ -436,7 +437,7 @@
         {
             SenderId = Self!.Id,
             ChatId = (int)ChatID!,
-            MessageId = message.ID,
+            MessageId = message.ID
         };
 
         await SendToServer.InvokeAsync(messageDeleted);
@@ -619,7 +620,7 @@
         await db.SaveChangesAsync();
 
         CreateMessageEntry(message, true);
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
         await JumpToMessage(message, false);
         
         var messageSent = new MessageSentC2SPacket

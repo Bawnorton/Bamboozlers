@@ -14,7 +14,7 @@
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
     
-    private Func<IAsyncKeySubscriber, bool> _addKeySubscriber;
+    private Predicate<IAsyncKeySubscriber> _addKeySubscriber;
 
     public List<IAsyncKeySubscriber> Subscribers { get; } = [];
 

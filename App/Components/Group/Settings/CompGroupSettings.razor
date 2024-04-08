@@ -210,7 +210,7 @@
         );
 
         await LoadGroupData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     public async Task<bool> OnAvatarChange(byte[] newAvatar)
@@ -330,7 +330,7 @@
         }
 
         await LoadGroupData();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
 }

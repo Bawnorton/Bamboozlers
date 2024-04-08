@@ -49,7 +49,7 @@
     [Parameter] public AsyncConsumer<Message> OnMessageJump { get; set; }
     
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] public Func<IAsyncPacketSubscriber, bool> AddPacketSubscriber { get; set; }
+    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
 
     private List<Message> PinnedMessages { get; set; } = [];
 
@@ -140,7 +140,7 @@
         };
         await SendToServer.InvokeAsync(packet);
         
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
     
     private async Task JumpToMessage(Message message)

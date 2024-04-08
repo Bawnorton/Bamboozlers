@@ -116,7 +116,7 @@ public class PlaywrightTestBase : IClassFixture<CustomWebApplicationFactory>
             .ClickAsync();
         var dmEntries = page
             .Locator("#dms_dropdown")
-            .Locator(".b-bar-item");
+            .Locator(".dm-entry");
 
         if (dmEntries.CountAsync().Result == 0)
         {

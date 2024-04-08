@@ -63,7 +63,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <_ContentIncludedByDefault Remove="Components\Friend\CurrentFriends.razor" />
+      <_ContentIncludedByDefault Remove="Components\VisualUtility\CompInteractUsername.razor" />
     </ItemGroup>
     
 </Project>

@@ -23,7 +23,9 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         await SetUser((await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync())
             .Users.First(u => u.Id == 0));
 
-        var component = Ctx.RenderComponent<NavLayout>();
+        var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
+            .AddCascadingValue<Predicate<IAsyncKeySubscriber>>(_ => true)
+            .AddCascadingValue<Predicate<IAsyncPacketSubscriber>>(_ => true));
 
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var dms = Self!.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
@@ -53,7 +55,9 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         await SetUser((await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync())
             .Users.First(u => u.Id == 0));
 
-        var component = Ctx.RenderComponent<NavLayout>();
+        var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
+            .AddCascadingValue<Predicate<IAsyncKeySubscriber>>(_ => true)
+            .AddCascadingValue<Predicate<IAsyncPacketSubscriber>>(_ => true));
 
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var groups = Self!.Chats.OfType<GroupChat>().ToList();
@@ -125,7 +129,9 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         await SetUser((await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync())
             .Users.First(u => u.Id == 0));
         
-        var component = Ctx.RenderComponent<NavLayout>();
+        var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
+            .AddCascadingValue<Predicate<IAsyncKeySubscriber>>(_ => true)
+            .AddCascadingValue<Predicate<IAsyncPacketSubscriber>>(_ => true));
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var groups = Self!.Chats.OfType<GroupChat>().ToList();
@@ -152,7 +158,9 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
             .Users.First(u => u.Id == 0);
         await SetUser(user);
         
-        var component = Ctx.RenderComponent<NavLayout>();
+        var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
+            .AddCascadingValue<Predicate<IAsyncKeySubscriber>>(_ => true)
+            .AddCascadingValue<Predicate<IAsyncPacketSubscriber>>(_ => true));
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var groups = Self!.Chats.OfType<GroupChat>().ToList();

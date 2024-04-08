@@ -61,7 +61,7 @@
                                         foreach (var chat in DmChats)
                                         {
                                             <BarItem>
-                                                <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
+                                                <BarLink Class="dm-entry" ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
                                                     <Image Source="@chat.User.GetAvatar()" Class="message-avatar" alt=""/>
                                                     @chat.User.GetName()
                                                 </BarLink>
@@ -292,7 +292,7 @@
         CurrentView = View.Group;
         CurrentChatId = chatId;
 
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     public List<int?> WatchedIDs { get; private set; } = [];
