@@ -1,11 +1,10 @@
 @inherits UserViewComponentBase
 
-@implements IAsyncGroupSubscriber
 @implements IAsyncPacketSubscriber
 @implements IAsyncKeySubscriber
+@implements IGroupSubscriber
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
-@using Microsoft.AspNetCore.SignalR.Client
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Networking
@@ -14,6 +13,13 @@
 @using Bamboozlers.Classes.Networking.Packets.Serverbound
 @using Bamboozlers.Classes.Networking.SignalR
 @using Bamboozlers.Classes.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@using Bamboozlers.Classes
+@using Blazorise.Extensions
+@using AngleSharp.Diffing.Extensions
+@using Microsoft.IdentityModel.Tokens
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Components.Utility
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Utility.Observer
@@ -25,24 +31,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <!--suppress JSVoidFunctionReturnValueUsed, JSUnresolvedReference -->
-<script>
-    function showConfirmDialog(message) {
-        return Swal.fire({
-            title: 'Are you sure?',
-            text: message,
-            color: '#d33',
-            icon: 'warning',
-            iconColor:'#d33',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#247352',
-            confirmButtonText: 'Yes',
-            background: '#343a40',
-        }).then((result) => {
-            return result.isConfirmed;
-        });
-    }
-    
+<script> 
     function waitForElm(selector) {
         return new Promise(resolve => {
             if (document.querySelector(selector)) {
@@ -139,39 +128,29 @@
                   Display="Display.InlineFlex"
                   Class="justify-content-between align-items-center">
         <Div>
-            @if (Chat is GroupChat { Avatar: not null } groupChat)
+            @if (Chat is GroupChat groupChat)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(groupChat.Avatar)}")  Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
+                <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
+                <Text ElementId="header-text">@ChatName</Text>
             }
-            else if (Chat is not null && Chat is not GroupChat && OtherUser!.Avatar != null)
+            else if (Chat is not null && Chat is not GroupChat)
             {
-                <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(OtherUser!.Avatar)}") Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
-            }
-            @if (Chat is GroupChat)
-            {
-                @ChatName
-            }
-            else
-            {
+                @if(OtherUser?.Avatar != null)
+                {
+                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(OtherUser.Avatar)}") Class="message-avatar" alt=""/>
+                }
                 <CompInteractUsername User=@OtherUser/>
             }
         </Div>
         <Div Style="position: relative">
-            <Icon ElementId="pin_button" Name="Icons.MapPin" Style="margin-right: 0.5em" Class="button-tooltip tooltip-left" data-tooltip="Pins" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.Pins, ChatId = ChatID, IsModInChat = IsMod, OnClose = async arg => await JumpToMessage((Message)arg)})"/>
+            <Icon ElementId="pin_button" Name="Icons.MapPin" Style="margin-right: 0.5em" Class="button-tooltip tooltip-left" data-tooltip="Pins" role="button" @onclick="() => OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Pins, Self, ChatID, async arg => await JumpToMessage((Message)arg))"/>
             @if (Chat is GroupChat)
             {
-                <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.GroupChatSettings, ChatId = ChatID })"/>
+                <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.GroupChatSettings, ChatId: ChatID))"/>
             }
         </Div>
     </LayoutHeader>
     <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
-        <Alert Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
-            <AlertMessage>
-                @AlertArguments.AlertMessage
-                <CloseButton Style="--bs-btn-close-white-filter: black;" VerticalAlignment="VerticalAlignment.Middle" Float="Float.End" TextColor="TextColor.Warning"/>
-            </AlertMessage>
-            <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
-        </Alert>
         <Layout>
             <LayoutContent>
                 <Div>
@@ -215,30 +194,37 @@
         </Div>
     </LayoutFooter>
 </Layout>
-@if (Chat is GroupChat)
-{
-    <LayoutSider>
-        <LayoutSiderContent>
-            <Bar Mode="BarMode.VerticalInline"
-                 CollapseMode="BarCollapseMode.Hide"
-                 ThemeContrast="ThemeContrast.Dark"
-                 Class="h-100">
-                <BarMenu>
-                    <BarItem Class="mb-2">
-                        <Div TextColor="TextColor.Primary"
-                             Background="Background.Dark"
-                             Padding="Padding.Is3"
-                             TextSize="TextSize.Heading5">
-                            <Text Class="me-4">Members - @Chat.Users.Count</Text>
+<LayoutSider>
+    <LayoutSiderContent>
+        <Bar Mode="BarMode.VerticalInline"
+             CollapseMode="BarCollapseMode.Hide"
+             ThemeContrast="ThemeContrast.Dark"
+             Class="h-100">
+            <BarMenu>
+                <BarItem Class="mb-2">
+                    <Div TextColor="TextColor.Primary"
+                         Background="Background.Dark"
+                         Padding="Padding.Is3"
+                         TextSize="TextSize.Large">
+                        @if (Chat is GroupChat)
+                        {
+                            <span class="me-4">Members - @Chat.Users.Count</span>
                             @if (IsMod)
                             {
                                 <Icon ElementId="addMembers"
                                       role="button"
                                       Name="IconName.Add"
-                                      onclick="@(() => OpenPopupCallback.InvokeAsync(new PopupCallbackArgs { PopupType = RecognizedPopupType.ChatAddMember, ChatId = ChatID }))"/>
+                                      @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.InviteGroupMembers, null, ChatID))"/>
                             }
-                        </Div>
-                    </BarItem>
+                        }
+                        else
+                        {
+                            <span class="me-4">Direct Message</span>
+                        }
+                    </Div>
+                </BarItem>
+                @if (Chat is not null)
+                {
                     @foreach (var user in Chat.Users)
                     {
                         <BarItem>
@@ -246,24 +232,24 @@
                                 <Div>
                                     @if (user.Avatar != null)
                                     {
-                                        <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(user.Avatar)}") Class="message-avatar" alt=""/>
+                                        <Image Source="@user.GetAvatar()" Class="message-avatar" alt=""/>
                                     }
                                     <CompInteractUsername User="@user"/>
                                 </Div>
                             </BarLink>
                         </BarItem>
                     }
-                </BarMenu>
-            </Bar>
-        </LayoutSiderContent>
-    </LayoutSider>
-}
+                }
+            </BarMenu>
+        </Bar>
+    </LayoutSiderContent>
+</LayoutSider>
 
-
+@* ReSharper disable always InconsistentNaming *@
 @code {
     [Inject] IUserGroupService UserGroupService { get; set; } = default!;
 
-    [CascadingParameter] public EventCallback<PopupCallbackArgs> OpenPopupCallback { get; set; }
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
     [CascadingParameter] public Func<IAsyncPacketSubscriber, bool> AddPacketSubscriber { get; set; }
@@ -288,9 +274,9 @@
         }
         set => _otherUser = value;
     }
-
+    
     public List<int?> WatchedIDs { get; set; } = [];
-
+    
     private User? Self { get; set; }
     private bool IsMod { get; set; }
 
@@ -304,8 +290,6 @@
     
     private MessageEntry? _replyingTo;
     
-    public AlertArguments AlertArguments { get; set; } = new();
-
     protected override async Task OnInitializedAsync()
     {
         UserGroupService.AddSubscriber(this);
@@ -325,7 +309,7 @@
         ChatName = Chat switch
         {
             null => throw new InvalidOperationException($"Chat from ID {ChatID} not found"),
-            GroupChat groupChat => groupChat.Name,
+            GroupChat groupChat => groupChat.GetGroupName(),
             _ => (OtherUser!.DisplayName ?? OtherUser!.UserName)!
         };
 
@@ -377,36 +361,50 @@
     private bool IsModerator()
     {
         if (Chat is not GroupChat)
-        {
             return false;
-        }
-
+        
         using var db = Db.CreateDbContext();
-        var gc = db.GroupChats.Include(i => i.Moderators).First(f => f.ID == ChatID);
+        var gc = db.GroupChats
+            .Include(i => i.Moderators)
+            .AsNoTracking()
+            .First(f => f.ID == ChatID);
         return gc.OwnerID == Self!.Id || gc.Moderators.Any(m => m.Id == Self.Id);
     }
 
     private async Task GetChatData()
     {
         await using var db = await Db.CreateDbContextAsync();
-        Chat = await db.Chats.Include(i => i.Users)
+        Chat = await db.Chats
+            .Include(i => i.Users)
             .Include(i => i.Messages)
             .FirstOrDefaultAsync(c => c.ID == ChatID);
+
+        if (Chat is GroupChat)
+        {
+            Chat = await db.GroupChats
+                .Include(i => i.Users)
+                .Include(i => i.Messages)
+                .Include(i => i.Owner)
+                .FirstOrDefaultAsync(c => c.ID == ChatID);
+        }
 
         if (Self is null || Chat is null)
             return;
 
-        if (Chat is GroupChat groupChat)
+        switch (Chat)
         {
-            ChatName = groupChat.Name;
-        }
-        else if (Chat is not null)
-        {
-            ChatName = (OtherUser!.DisplayName ?? OtherUser!.UserName)!;
-        }
-        else
-        {
-            throw new InvalidOperationException("Chat is null");
+            case null:
+                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
+            case GroupChat gc:
+                ChatName = gc.GetGroupName();
+                break;
+            default:
+            {
+                var self = await AuthService.GetUser();
+                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
+                ChatName = other.GetName();
+                break;
+            }
         }
     }
 
@@ -418,7 +416,7 @@
             MessageIdToIndex[Messages[i].DbMessage.ID] = i;
         }
     }
-
+    
     private async Task OnInput(KeyboardEventArgs eventArgs)
     {
         if (eventArgs.Key != "Enter" || eventArgs.ShiftKey) return;
@@ -679,6 +677,7 @@
                 }
             }
         }
+
         if (_replyingTo != null)
         {
             switch (keyEventArgs.Key)
@@ -690,7 +689,13 @@
         }
     }
 
-    public async Task OnGroupUpdate()
+    public List<GroupEvent> WatchedGroupEvents { get; } = 
+    [
+        GroupEvent.GroupDisplayChange,
+        GroupEvent.RemoveMember
+    ];
+    
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
     {
         await GetChatData();
     }

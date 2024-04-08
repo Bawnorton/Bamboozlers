@@ -3,6 +3,7 @@
 @implements IAsyncPacketSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Networking.Packets.Clientbound
@@ -44,7 +45,7 @@
 @code {
 
     [Parameter] public int? ChatID { get; set; }
-    [Parameter] public bool IsMod { get; set; }
+    [Parameter] public UserRecord FocusUser { get; set; }
     [Parameter] public AsyncConsumer<Message> OnMessageJump { get; set; }
     
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
@@ -53,17 +54,23 @@
     private List<Message> PinnedMessages { get; set; } = [];
 
     private bool IsDm { get; set; }
+    
+    private bool ModInChat { get; set; }
 
-    private bool CanUnpin => IsMod || IsDm;
+    private bool CanUnpin => ModInChat || IsDm;
     
     protected override async Task OnParametersSetAsync()
     {
         if (ChatID == null) throw new ArgumentNullException(nameof(ChatID));
 
         await using var db = await Db.CreateDbContextAsync();
-        var chat = await db.Chats.Include(c => c.Messages)!.ThenInclude(m => m.Sender).FirstOrDefaultAsync(c => c.ID == ChatID);
+        var chat = await db.Chats
+            .Include(c => c.Messages)!
+            .ThenInclude(m => m.Sender)
+            .FirstOrDefaultAsync(c => c.ID == ChatID);
         if (chat == null) throw new ArgumentNullException(nameof(chat));
-        if (chat is not GroupChat) IsDm = true;
+        if (chat is not GroupChat groupChat) IsDm = true;
+        else ModInChat = groupChat.Moderators.Any(m => m.Id == FocusUser.Id);
 
         PinnedMessages = chat.Messages?.Where(m => m.IsPinned).ToList() ?? [];
         PinnedMessages.Sort((a, b) => b.PinnedAt!.Value.CompareTo(a.PinnedAt!.Value));

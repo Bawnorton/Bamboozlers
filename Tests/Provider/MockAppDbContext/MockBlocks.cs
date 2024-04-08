@@ -5,62 +5,39 @@ namespace Tests.Provider.MockAppDbContext;
 
 public class MockBlocks : AbstractMockDbSet<Block>
 {
-    private readonly Func<Block, Block, bool> _matchFunction =
+    protected override Func<Block, Block, bool> MatchPredicate { get; set; } =
         (b0, b1) => b0.BlockedID == b1.BlockedID && b0.BlockerID == b1.BlockerID;
 
-    private Mock<DbSet<Block>> _mockBlocks;
+    public override void RebindMocks()
+    {
+        MockAppDbContext.MockDbContext.Setup(x => x.BlockList).Returns(GetMocks());
+    }
 
     public MockBlocks(MockAppDbContext mockAppDbContext, DbSet<User> users) : base(mockAppDbContext)
     {
+        var user1 = users.First();
         var user2 = users.Skip(1).First();
-        var user3 = users.Last();
+        var user3 = users.Skip(2).First();
+        var user4 = users.Skip(3).First();
+        var user6 = users.Skip(5).First();
 
-        _mockBlocks = MockAppDbContext.SetupMockDbSet(new List<Block>
+        MockDbSet = MockAppDbContext.SetupMockDbSet(new List<Block>
         {
-            new(user2.Id, user3.Id)
+            new(user2.Id,user3.Id)
             {
                 Blocked = user2,
-                Blocker = user3
+                Blocker = user3,
+            },
+            new (user1.Id, user4.Id)
+            {
+                Blocked = user1,
+                Blocker = user4,
+            },
+            new (user6.Id, user1.Id)
+            {
+                Blocked = user6,
+                Blocker = user1,
             }
         });
-
-        MockAppDbContext.MockDbContext.Setup(x => x.BlockList).Returns(_mockBlocks.Object);
-    }
-
-    public override void AddMock(Block block)
-    {
-        _mockBlocks = base.AddMock(
-            block,
-            _mockBlocks,
-            _matchFunction
-        );
-        MockAppDbContext.MockDbContext.Setup(x => x.BlockList).Returns(_mockBlocks.Object);
-    }
-
-    public override void RemoveMock(Block block)
-    {
-        _mockBlocks = base.RemoveMock(
-            block,
-            _mockBlocks,
-            _matchFunction
-        );
-        MockAppDbContext.MockDbContext.Setup(x => x.BlockList).Returns(_mockBlocks.Object);
-    }
-
-    public override void UpdateMock(Block block)
-    {
-        RemoveMock(block);
-        AddMock(block);
-    }
-
-    public override Block? FindMock(int idx)
-    {
-        return _mockBlocks.Object.Skip(idx - 1).FirstOrDefault();
-    }
-
-    public override void ClearAll()
-    {
-        var list = _mockBlocks.Object.ToList();
-        foreach (var block in list) RemoveMock(block);
     }
 }

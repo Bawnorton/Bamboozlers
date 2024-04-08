@@ -1,0 +1,78 @@
+@inherits UserViewComponentBase
+@implements IInteractionSubscriber
+
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Components.Utility
+
+<div style="margin-top: 10px">
+    <Heading>
+        @if (Blocked.Count > 0)
+        {
+            <Badge ElementId="BlockCountBadge"
+                   Color="Color.Dark">
+                @Blocked.Count
+            </Badge>
+        }
+        Blocked Users
+    </Heading>
+    <Divider/>
+    <div class="scrollbar-container" style="display: inline-block; width: 90%; max-height: 100%; margin: 10px;">
+        @if (Blocked.Count > 0)
+        {
+            foreach (var user in Blocked)
+            {
+                var isAlsoBlocker = BlockedBy.FirstOrDefault(u => u.Id == user.Id) is not null;
+                RenderFragment button = @<CompInteractionButton EventKind="InteractionEvent.Unblock"
+                                                                UserId="@user.Id"
+                                                                ButtonId="unblock-button"/>;
+                <CompUserTab @key=@user
+                             User="@user" 
+                             Button="@button" 
+                             IsBlocked="@true" 
+                             IsBlockedBy="@isAlsoBlocker"/>
+                <Divider/>
+            }
+        }
+        else
+        {
+            <p>Nothing to see here...</p>
+            <p>You haven't blocked any users.</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    
+    private User Self { get; set; } = default!;
+    private List<User> Blocked { get; set; } = [];
+    private List<User> BlockedBy { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Self = (await AuthService.GetUser())!;
+        UserInteractionService.AddSubscriber(this);
+        await GetBlockedData();
+    }
+
+    public async Task GetBlockedData()
+    {
+        Blocked = await UserInteractionService.GetAllBlocked();
+        BlockedBy = await UserInteractionService.GetAllBlockedBy();
+    }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
+    [
+        InteractionEvent.Block,
+        InteractionEvent.Unblock
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
+    {
+        await GetBlockedData();
+        await InvokeAsync(StateHasChanged);
+    }
+}

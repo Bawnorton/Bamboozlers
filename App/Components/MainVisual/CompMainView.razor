@@ -1,0 +1,171 @@
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Components.Utility
+@using Bamboozlers.Components.Group
+@using Bamboozlers.Components.Interaction
+
+@inherits UserViewComponentBase
+@implements IInteractionSubscriber
+@implements IGroupSubscriber
+
+<Layout>
+    <LayoutHeader Fixed
+                  Padding="Padding.Is3"
+                  TextSize="TextSize.Heading5"
+                  TextColor="TextColor.Primary"
+                  Background="Background.Dark">
+        <Text ElementId="header-text">@HeaderLabel</Text>
+    </LayoutHeader>
+    <LayoutContent Padding="Padding.Is1"
+                   TextColor="TextColor.Primary">
+        <div style="margin-left: 20px; margin-right: 20px;">
+            <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SelectedTab">
+                <Items>
+                    <Tab Name="All">
+                        @if (Friends.Count > 0)
+                        {
+                            <Badge ElementId="FriendCountBadge"
+                                   Color="Color.Dark">
+                                @Friends.Count
+                            </Badge>
+                        }
+                        All
+                    </Tab>
+                    <Tab Name="Pending">
+                        @if (IncomingFriendRequests.Count > 0)
+                        {
+                            <Badge ElementId="RequestCountBadge"
+                                   Color="Color.Danger">
+                                @IncomingFriendRequests.Count
+                            </Badge>
+                        }
+                        Friend Requests
+                    </Tab>
+                    <Tab Name="GroupInvites">
+                        @if (IncomingGroupInvites.Count > 0)
+                        {
+                            <Badge ElementId="InviteCountBadge"
+                                   Color="Color.Danger">
+                                @IncomingGroupInvites.Count
+                            </Badge>
+                        }
+                        Group Invites
+                    </Tab>
+                    <Tab Name="Blocked">
+                        @if (Blocked.Count > 0)
+                        {
+                            <Badge ElementId="BlockCountBadge"
+                                   Color="Color.Warning">
+                                @Blocked.Count
+                            </Badge>
+                        }
+                        Blocked
+                    </Tab>
+                    <Div class="p-1">
+                        <CompActionButton ColumnWrapped="@false"
+                                          ButtonCaption="Find Friends"
+                                          IconName="@IconName.UserPlus"
+                                          ActionCallback="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.FindFriends)))"/>
+                    </Div>
+                    </Items>
+                <Content>
+                    <TabPanel Name="All">
+                        <CompFriendList/>
+                    </TabPanel>
+                    <TabPanel Name="Pending">
+                        <CompFriendRequests/>
+                    </TabPanel>
+                    <TabPanel Name="Blocked">
+                        <CompBlockedUsers/>
+                    </TabPanel>
+                    <TabPanel Name="GroupInvites">
+                        <CompGroupInvites/>
+                    </TabPanel>
+                </Content>
+            </Tabs>            
+        </div>
+    </LayoutContent>
+</Layout>
+
+@code {
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+
+    [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+
+    private string HeaderLabel { get; set; } = "";
+    private string SelectedTab { get; set; } = "All";
+
+    private User Self { get; set; } = default!;
+
+    private List<User> Friends { get; set; } = [];
+    private List<User> Blocked { get; set; } = [];
+    private List<User> BlockedBy { get; set; } = [];
+    
+    private List<FriendRequest> IncomingFriendRequests { get; set; } = [];
+    private List<FriendRequest> OutgoingFriendRequests { get; set; } = [];
+
+    private List<GroupInvite> IncomingGroupInvites { get; set; } = [];
+    private List<GroupInvite> OutgoingGroupInvites { get; set; } = [];
+    
+    public List<int?> WatchedIDs { get; } = [];
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Self = (await AuthService.GetUser())!;
+        HeaderLabel = $"Hello, {Self.UserName}!";
+
+        UserInteractionService.AddSubscriber(this);
+        UserGroupService.AddSubscriber(this);
+        
+        await GetGroupsData();
+        await GetFriendsData();
+    }
+    
+    private async Task GetFriendsData()
+    {
+        Friends = await UserInteractionService.GetAllFriends();
+        IncomingFriendRequests = await UserInteractionService.GetAllIncomingRequests();
+        OutgoingFriendRequests = await UserInteractionService.GetAllOutgoingRequests();
+        Blocked = await UserInteractionService.GetAllBlocked();
+        BlockedBy = await UserInteractionService.GetAllBlockedBy();
+    }
+    
+    private async Task GetGroupsData()
+    {
+        IncomingGroupInvites = await UserGroupService.GetAllIncomingInvites();
+        OutgoingGroupInvites = await UserGroupService.GetAllOutgoingInvites();
+    }
+
+    public List<GroupEvent> WatchedGroupEvents { get; set; } =
+    [
+        GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.ReceivedInviteDeclined,
+        GroupEvent.SentInviteRevoked,
+        GroupEvent.SentInvite
+    ];
+    
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    {
+        await GetGroupsData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
+    [
+        InteractionEvent.Block,
+        InteractionEvent.Unblock,
+        InteractionEvent.RequestAccepted,
+        InteractionEvent.RequestDeclined,
+        InteractionEvent.RequestRevoked
+    ];
+    
+    public async Task OnUpdate(InteractionEvent evt)
+    {
+        await GetFriendsData();
+        await InvokeAsync(StateHasChanged);
+    }
+}

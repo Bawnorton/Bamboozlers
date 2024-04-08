@@ -15,5 +15,5 @@
 @code {
     [Parameter] public string? DisplayData { get; set; }
     [Parameter] public string? FieldName { get; set; }
-    [Parameter] public RenderFragment Button { get; set; }
+    [Parameter] public RenderFragment Button { get; set; } = default!;
 }

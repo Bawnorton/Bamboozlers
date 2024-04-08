@@ -1,0 +1,30 @@
+<style>
+    .background-div {
+        position: absolute;
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        bottom: 0;
+        background-color: #1d2024;
+        opacity: 1;
+        background: linear-gradient(135deg, #20252855 25%, transparent 25%) -12px 0/ 24px 24px, linear-gradient(225deg, #202528 25%, transparent 25%) -12px 0/ 24px 24px, linear-gradient(315deg, #20252855 25%, transparent 25%) 0px 0/ 24px 24px, linear-gradient(45deg, #202528 25%, #1d2024 25%) 0px 0/ 24px 24px;
+        z-index: -1;
+    }
+    
+    .inner-div {
+        background-color: #212529
+    }
+</style>
+
+<div class="d-flex min-vh-100 min-vw-100">
+    <div class="background-div"></div>
+    <div class="col-md-4 d-flex flex-grow-1 align-items-center justify-content-center">
+        <section class="w-50 p-5 shadow-lg inner-div">
+            @ChildContent
+        </section>
+    </div>
+</div>
+
+@code {
+    [Parameter] public RenderFragment ChildContent { get; set; } = default!;
+}

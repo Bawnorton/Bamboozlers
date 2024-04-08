@@ -15,9 +15,9 @@ public class MockServiceProviderWrapper
         Mock<IServiceScope> mockServiceScope = new();
         ctx.Services.AddSingleton(_mockServices.Object);
         ctx.Services.AddSingleton(mockServiceScope.Object);
-
+        
         var serviceProvider = ctx.Services.BuildServiceProvider();
-
+        
         mockServiceScope.Setup(x => x.ServiceProvider).Returns(serviceProvider);
         _mockServices.Setup(x => x.CreateScope()).Returns(mockServiceScope.Object);
         _mockServices.Setup(x => x.CreateAsyncScope()).Returns(new AsyncServiceScope(mockServiceScope.Object));

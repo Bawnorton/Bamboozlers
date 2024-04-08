@@ -8,14 +8,15 @@ namespace Tests;
 
 public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
 {
-    protected AuthService AuthService;
-    protected MockAuthenticationProvider MockAuthenticationProvider;
     protected MockDatabaseProvider MockDatabaseProvider;
+    protected MockAuthenticationProvider MockAuthenticationProvider;
     protected MockUserManager MockUserManager;
+    
+    protected AuthService AuthService;
+    protected UserService UserService;
+    protected UserInteractionService UserInteractionService;
 
     protected User? Self;
-    protected UserInteractionService UserInteractionService;
-    protected UserService UserService;
 
     protected AuthenticatedBlazoriseTestBase()
     {

@@ -8,19 +8,10 @@ namespace Bamboozlers.Classes.Data;
 ///     Use of UserDisplayRecord avoids EntityFramework tracking, which can cause exceptions and interfere when changing
 ///     the User's database representation.
 /// </summary>
-public record UserRecord(
-    int? Id,
-    string? UserName,
-    string? Email,
-    string? DisplayName,
-    string? Bio,
-    byte[]? AvatarBytes)
-{
-    public UserRecord() : this(null, null, null, null, null, null)
-    {
-    }
 
-    public static UserRecord Default { get; } = new(0, "N/A", "N/A", "N/A", "N/A", null);
+public record UserRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes)
+{
+    public static UserRecord Default { get; } = new UserRecord(0, "N/A", "N/A", "N/A", "N/A", null);
     public string Avatar => GetDisplayableAvatar(AvatarBytes);
 
     /// <summary>
@@ -28,9 +19,14 @@ public record UserRecord(
     /// </summary>
     /// <param name="image">The image to be converted.</param>
     /// <returns>The encoded image string or, if image is null, the default avatar.</returns>
-    private static string GetDisplayableAvatar(byte[]? image)
+    private string GetDisplayableAvatar(byte[]? image)
     {
-        return image is null ? "images/default_profile.png" : $"data:image/png;base64,{Convert.ToBase64String(image)}";
+        return image is null ? GetDefaultAvatar() : $"data:image/png;base64,{Convert.ToBase64String(image)}";
+    }
+    
+    public string GetDefaultAvatar()
+    {
+        return $"images/default_profiles/profile_{Id % 7}.png";
     }
 
     public static UserRecord From(User user)
@@ -44,19 +40,14 @@ public record UserRecord(
             user.Avatar
         );
     }
+    
+    public UserRecord() : this(null, null, null, null, null, null) {}
 }
 
 /// <summary>
 ///     Enum for what User data has been changed (see UserDataRecord.cs)
 /// </summary>
-public enum UserDataType
-{
-    Password,
-    Username,
-    Deletion,
-    Email,
-    Visual
-}
+public enum UserDataType { Password, Username, Deletion, Email, Visual }
 
 /// <summary>
 ///     Record type used to pass changes in user data between components.
@@ -66,21 +57,13 @@ public enum UserDataType
 /// <param name="DisplayName">If set, the display name value to pass.</param>
 /// <param name="Bio">If set, the bio (or description) value to pass.</param>
 /// <param name="Avatar">If set, the avatar value to pass.</param>
-public record UserDataRecord(
-    int? Id,
-    string? UserName,
-    string? Email,
-    string? DisplayName,
-    string? Bio,
-    byte[]? AvatarBytes) : UserRecord
+public record UserDataRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes) : UserRecord(Id,UserName,Email,DisplayName,Bio,AvatarBytes)
 {
-    public UserDataRecord() : this(null, null, null, null, null, null)
-    {
-    }
-
     public UserDataType? DataType { get; init; }
     public string? CurrentPassword { get; init; }
     public string? NewPassword { get; init; }
+    
+    public UserDataRecord() : this(null, null, null, null, null, null) {}
 }
 
 /// <summary>

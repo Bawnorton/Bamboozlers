@@ -9,7 +9,7 @@ public class MessageEditedS2CPacket : IPacket
         PacketType<MessageEditedS2CPacket>.Create("message_edited_s2c", json => new MessageEditedS2CPacket(json));
 
     internal int MessageId;
-    internal string NewContent;
+    internal string NewContent = default!;
 
     internal MessageEditedS2CPacket()
     {
