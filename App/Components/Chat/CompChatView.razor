@@ -547,7 +547,7 @@
         await JsRuntime.InvokeVoidAsync("scrollToMessage", message.ID, highlight);
     }
 
-    private async Task InitMessages()
+    public async Task InitMessages()
     {
         await using var db = await Db.CreateDbContextAsync();
         var messages = await db.Messages

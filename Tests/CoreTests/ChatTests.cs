@@ -28,7 +28,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
 
         var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
             .Add(p => p.ChatID, chat.ID));
-        await component.Instance.UpdateMessages();
+        await component.Instance.InitMessages();
         
         // Assert
         Assert.NotNull(chat.Messages);
