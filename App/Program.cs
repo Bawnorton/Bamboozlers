@@ -8,6 +8,7 @@ using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -65,11 +66,13 @@ builder.Services.AddScoped<IKeyPressService, KeyPressService>();
 
 builder.Services.AddSignalR(e => { e.MaximumReceiveMessageSize = 1024 * 1024; });
 builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-builder.WebHost.UseUrls(builder.Environment.ContentRootPath.Contains("bawnorton")
-    ? "http://192.168.1.199:5152" // Used to test server when hosted on Ben's local machine as the port forwarding needs to map to an exact IP address.
-    : "http://localhost:5152"
-);
+string[] urls = builder.Environment.ContentRootPath.Contains("bawnorton")
+    ? ["http://192.168.1.199:5152"] // Used to test server when hosted on Ben's local machine as the port forwarding needs to map to an exact IP address.
+    : ["http://localhost:5152"];
+
+builder.WebHost.UseUrls(urls);
 
 var app = builder.Build();
 
@@ -91,7 +94,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 
-app.MapHub<BamboozlersHub>(BamboozlersHub.HubUrl);
+app.MapHub<BamboozlersHub>(BamboozlersHub.HubUrl, options =>
+{
+    options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
+});
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

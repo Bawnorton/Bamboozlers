@@ -333,8 +333,10 @@ namespace Bamboozlers.Migrations
                     SenderID = table.Column<int>(type: "int", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Attachment = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
-                    IsPinned = table.Column<bool>(type: "bit", nullable: false),
-                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PinnedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EditedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReplyToID = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {

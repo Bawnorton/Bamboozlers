@@ -1,4 +1,7 @@
 using Bamboozlers.Classes.Networking.Packets.Serverbound;
+using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat;
+using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging;
+using Bamboozlers.Classes.Networking.Packets.Serverbound.Relations;
 
 namespace Bamboozlers.Classes.Networking;
 
@@ -13,5 +16,6 @@ public class ServerNetworkHandler : AbstractNetworkHandler
         PacketRegistry.RegisterPacket(MessageEditedC2SPacket.Type);
         PacketRegistry.RegisterPacket(MessageDeletedC2SPacket.Type);
         PacketRegistry.RegisterPacket(MessagePinStatusC2SPacket.Type);
+        PacketRegistry.RegisterPacket(UserRelationC2SPacket.Type);
     }
 }

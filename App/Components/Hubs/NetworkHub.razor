@@ -1,3 +1,5 @@
+@inherits UserViewComponentBase
+
 @implements IAsyncDisposable 
 @implements IAsyncSimplePublisher<IAsyncPacketSubscriber>
 
@@ -6,6 +8,10 @@
 @using Bamboozlers.Classes.Networking.SignalR
 @using Bamboozlers.Classes.Networking
 @using Bamboozlers.Classes.Utility.Observer
+@using Microsoft.AspNetCore.Http.Connections
+@using System.Text.Json
+@using System.Net
+@using Microsoft.AspNetCore.Http.Connections.Client
 
 @inject NavigationManager NavigationManager
 
@@ -46,11 +52,7 @@
         _hubUrl = baseUrl.TrimEnd('/') + BamboozlersHub.HubUrl;
 
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(_hubUrl, options =>
-            {
-                options.UseDefaultCredentials = true;
-                options.HttpMessageHandlerFactory = innerHandler => new IncludeRequestCredentialsMessageHandler { InnerHandler = innerHandler };
-            })
+            .WithUrl(_hubUrl, ConfigureHttpConnection)
             .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)])
             .Build();
 
@@ -64,7 +66,13 @@
 
         await _hubConnection.StartAsync();
     }
-    
+
+    private async void ConfigureHttpConnection(HttpConnectionOptions options)
+    {
+        options.HttpMessageHandlerFactory = innerHandler => new IncludeRequestCredentialsMessageHandler { InnerHandler = innerHandler };
+        options.Cookies.Add(await AuthService.GetCookie());
+    }
+
     public bool AddSubscriber(IAsyncPacketSubscriber subscriber)
     {
         if (Subscribers.Contains(subscriber)) return false;

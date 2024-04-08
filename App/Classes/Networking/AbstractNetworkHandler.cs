@@ -15,8 +15,7 @@ public abstract class AbstractNetworkHandler
         if (packetId == null) throw new Exception($"Packet: {packetJson} does not have an id");
         var expectedType = PacketRegistry.GetActualType(packetId);
         var packet = PacketRegistry.GetPacketType(packetId).Read(json);
-        if (packet.GetType() != expectedType)
-            throw new Exception($"Packet: {packetJson} is not of type {expectedType}");
+        if (packet.GetType() != expectedType) throw new Exception($"Packet: {packetJson} is not of type {expectedType}");
         await whenRecieved((IPacket)packet);
     }
 }

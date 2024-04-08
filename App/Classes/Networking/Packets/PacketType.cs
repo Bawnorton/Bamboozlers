@@ -4,16 +4,16 @@ namespace Bamboozlers.Classes.Networking.Packets;
 
 public sealed class PacketType<T> : PacketType where T : IPacket
 {
-    private readonly Func<JsonElement, T>? _deserializer;
+    private readonly Func<JsonElement, T> _deserializer;
     private readonly string _id;
 
-    private PacketType(string id, Func<JsonElement, T>? deserializer)
+    private PacketType(string id, Func<JsonElement, T> deserializer)
     {
         _id = id;
         _deserializer = deserializer;
     }
 
-    public static PacketType<T> Create(string id, Func<JsonElement, T>? deserializer = default)
+    public static PacketType<T> Create(string id, Func<JsonElement, T> deserializer)
     {
         return new PacketType<T>(id, deserializer);
     }
@@ -22,12 +22,9 @@ public sealed class PacketType<T> : PacketType where T : IPacket
     {
         return _id;
     }
-
+    
     public override object Read(JsonElement json)
     {
-        if (_deserializer == null)
-            throw new Exception(
-                $"No deserializer provided for packet of type {typeof(T).Name}. It is likely serverbound");
         try
         {
             return _deserializer(json);

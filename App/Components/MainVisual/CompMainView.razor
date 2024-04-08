@@ -10,84 +10,87 @@
 @implements IInteractionSubscriber
 @implements IGroupSubscriber
 
-<Layout>
-    <LayoutHeader Fixed
-                  Padding="Padding.Is3"
-                  TextSize="TextSize.Heading5"
-                  TextColor="TextColor.Primary"
-                  Background="Background.Dark">
-        <Text ElementId="header-text">@HeaderLabel</Text>
-    </LayoutHeader>
-    <LayoutContent Padding="Padding.Is1"
-                   TextColor="TextColor.Primary">
-        <div style="margin-left: 20px; margin-right: 20px;">
-            <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SelectedTab">
-                <Items>
-                    <Tab Name="All">
-                        @if (Friends.Count > 0)
-                        {
-                            <Badge ElementId="FriendCountBadge"
-                                   Color="Color.Dark">
-                                @Friends.Count
-                            </Badge>
-                        }
-                        All
-                    </Tab>
-                    <Tab Name="Pending">
-                        @if (IncomingFriendRequests.Count > 0)
-                        {
-                            <Badge ElementId="RequestCountBadge"
-                                   Color="Color.Danger">
-                                @IncomingFriendRequests.Count
-                            </Badge>
-                        }
-                        Friend Requests
-                    </Tab>
-                    <Tab Name="GroupInvites">
-                        @if (IncomingGroupInvites.Count > 0)
-                        {
-                            <Badge ElementId="InviteCountBadge"
-                                   Color="Color.Danger">
-                                @IncomingGroupInvites.Count
-                            </Badge>
-                        }
-                        Group Invites
-                    </Tab>
-                    <Tab Name="Blocked">
-                        @if (Blocked.Count > 0)
-                        {
-                            <Badge ElementId="BlockCountBadge"
-                                   Color="Color.Warning">
-                                @Blocked.Count
-                            </Badge>
-                        }
-                        Blocked
-                    </Tab>
-                    <Div class="p-1">
-                        <CompActionButton ColumnWrapped="@false"
-                                          ButtonCaption="Find Friends"
-                                          IconName="@IconName.UserPlus"
-                                          ActionCallback="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.FindFriends)))"/>
-                    </Div>
-                    </Items>
-                <Content>
-                    <TabPanel Name="All">
-                        <CompFriendList/>
-                    </TabPanel>
-                    <TabPanel Name="Pending">
-                        <CompFriendRequests/>
-                    </TabPanel>
-                    <TabPanel Name="Blocked">
-                        <CompBlockedUsers/>
-                    </TabPanel>
-                    <TabPanel Name="GroupInvites">
-                        <CompGroupInvites/>
-                    </TabPanel>
-                </Content>
-            </Tabs>            
-        </div>
-    </LayoutContent>
-</Layout>
+@if (Loaded)
+{
+    <Layout>
+        <LayoutHeader Fixed
+                      Padding="Padding.Is3"
+                      TextSize="TextSize.Heading5"
+                      TextColor="TextColor.Primary"
+                      Background="Background.Dark">
+            <Text ElementId="header-text">@HeaderLabel</Text>
+        </LayoutHeader>
+        <LayoutContent Padding="Padding.Is1"
+                       TextColor="TextColor.Primary">
+            <div style="margin-left: 20px; margin-right: 20px;">
+                <Tabs RenderMode="TabsRenderMode.LazyReload" @bind-SelectedTab="SelectedTab">
+                    <Items>
+                        <Tab Name="All">
+                            @if (Friends.Count > 0)
+                            {
+                                <Badge ElementId="FriendCountBadge"
+                                       Color="Color.Dark">
+                                    @Friends.Count
+                                </Badge>
+                            }
+                            All
+                        </Tab>
+                        <Tab Name="Pending">
+                            @if (IncomingFriendRequests.Count > 0)
+                            {
+                                <Badge ElementId="RequestCountBadge"
+                                       Color="Color.Danger">
+                                    @IncomingFriendRequests.Count
+                                </Badge>
+                            }
+                            Friend Requests
+                        </Tab>
+                        <Tab Name="GroupInvites">
+                            @if (IncomingGroupInvites.Count > 0)
+                            {
+                                <Badge ElementId="InviteCountBadge"
+                                       Color="Color.Danger">
+                                    @IncomingGroupInvites.Count
+                                </Badge>
+                            }
+                            Group Invites
+                        </Tab>
+                        <Tab Name="Blocked">
+                            @if (Blocked.Count > 0)
+                            {
+                                <Badge ElementId="BlockCountBadge"
+                                       Color="Color.Warning">
+                                    @Blocked.Count
+                                </Badge>
+                            }
+                            Blocked
+                        </Tab>
+                        <Div class="p-1">
+                            <CompActionButton ColumnWrapped="@false"
+                                              ButtonCaption="Find Friends"
+                                              IconName="@IconName.UserPlus"
+                                              ActionCallback="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.FindFriends)))"/>
+                        </Div>
+                        </Items>
+                    <Content>
+                        <TabPanel Name="All">
+                            <CompFriendList/>
+                        </TabPanel>
+                        <TabPanel Name="Pending">
+                            <CompFriendRequests/>
+                        </TabPanel>
+                        <TabPanel Name="Blocked">
+                            <CompBlockedUsers/>
+                        </TabPanel>
+                        <TabPanel Name="GroupInvites">
+                            <CompGroupInvites/>
+                        </TabPanel>
+                    </Content>
+                </Tabs>            
+            </div>
+        </LayoutContent>
+    </Layout>
+}
 
 @code {
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
@@ -98,7 +101,7 @@
     private string HeaderLabel { get; set; } = "";
     private string SelectedTab { get; set; } = "All";
 
-    private User Self { get; set; } = default!;
+    private User? Self { get; set; } = default!;
 
     private List<User> Friends { get; set; } = [];
     private List<User> Blocked { get; set; } = [];
@@ -112,10 +115,18 @@
     
     public List<int?> WatchedIDs { get; } = [];
     
+    private bool Loaded { get; set; }
+    
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        Self = (await AuthService.GetUser())!;
+        Self = await AuthService.GetUser();
+        if (Self == null)
+        {
+            AuthService.Invalidate();
+            Self = await AuthService.GetUser();
+            if (Self == null) throw new Exception("Corrupted Login State, Please clear cookies and try again.");
+        }
         HeaderLabel = $"Hello, {Self.UserName}!";
 
         UserInteractionService.AddSubscriber(this);
@@ -123,6 +134,8 @@
         
         await GetGroupsData();
         await GetFriendsData();
+        
+        Loaded = true;
     }
     
     private async Task GetFriendsData()

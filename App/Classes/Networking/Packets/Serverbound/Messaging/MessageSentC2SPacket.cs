@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Bamboozlers.Classes.Networking.Packets.Serverbound;
+namespace Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging;
 
 public class MessageSentC2SPacket : AbstractMessageC2SPacket
 {

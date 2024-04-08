@@ -52,4 +52,18 @@ public class ConnectionMapping<T> where T : notnull
             }
         }
     }
+
+    public void RemoveConnection(string contextConnectionId)
+    {
+        lock (_connections)
+        {
+            var key = _connections.FirstOrDefault(x => x.Value.Contains(contextConnectionId)).Key;
+            if (key == null) return;
+            
+            lock (_connections[key])
+            {
+                _connections.Remove(key);
+            }
+        }
+    }
 }

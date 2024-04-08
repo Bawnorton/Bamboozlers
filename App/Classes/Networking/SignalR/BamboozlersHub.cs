@@ -1,21 +1,23 @@
 using Bamboozlers.Classes.Networking.Packets;
-using Bamboozlers.Classes.Networking.Packets.Clientbound;
-using Bamboozlers.Classes.Networking.Packets.Serverbound;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
+using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat;
+using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.Networking.SignalR;
 
-/*
- * Normally you'd auth something like this, which would also give the convenience of using the User property in the Hub
- * Alas, 4 year old issue that is still open
- * https://github.com/dotnet/aspnetcore/issues/25000
- * The workarounds mentioned in the issue do not work with our current setup (Because of course not), I tried all of them
- */
 
 // ReSharper disable UnusedMember.Global - This class is used by the SignalR framework
-public class BamboozlersHub : Hub
+public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory)
+    : Hub
 {
-    public const string HubUrl = "/bamboozlers_chat";
+    private IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; set; } = dbContextFactory;
+
+    public const string HubUrl = "/bamboozlers_hub";
+    
+    private static readonly ConnectionMapping<int> Connections = new();
 
     public async Task ReceivePacketOnServer(string packetJson)
     {
@@ -67,15 +69,51 @@ public class BamboozlersHub : Hub
         await Clients.Groups(chatId.ToString()).SendAsync("RecievePacketOnClient", packet.Serialize());
     }
 
-    public override Task OnConnectedAsync()
+    public override async Task OnConnectedAsync()
     {
-        Console.WriteLine($"Client connected: {Context.ConnectionId}");
-        return base.OnConnectedAsync();
+        var name = Context.User!.Identity?.Name;
+        if (name is null)
+        {
+            Context.Abort();
+            Console.WriteLine($"Client failed to connect: {Context.ConnectionId} (No name)");
+            return;
+        }
+        await using var db = await DbContextFactory.CreateDbContextAsync();
+        var users = db.Users.AsQueryable().ToList();
+        var user = users.Find(u => u.UserName == name);
+        if (user is null)
+        {
+            Context.Abort();
+            Console.WriteLine($"Client failed to connect: {Context.ConnectionId} ({name}) Not in database");
+            return;
+        }
+        Console.WriteLine($"Client connected: {Context.ConnectionId} ({name}) with id {user.Id}");
+        Connections.Add(user.Id, Context.ConnectionId);
+        await base.OnConnectedAsync();
     }
 
-    public override Task OnDisconnectedAsync(Exception? exception)
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        Console.WriteLine($"Client disconnected: {Context.ConnectionId}");
-        return base.OnDisconnectedAsync(exception);
+        var name = Context.User!.Identity?.Name;
+        if (name is null)
+        {
+            Console.WriteLine($"Client disconnected: {Context.ConnectionId} (No name)");
+            Connections.RemoveConnection(Context.ConnectionId);
+            await base.OnDisconnectedAsync(exception);
+            return;
+        }
+        await using var db = await DbContextFactory.CreateDbContextAsync();
+        var users = db.Users.AsQueryable().ToList();
+        var user = users.Find(u => u.UserName == name);
+        if (user is not null)
+        {
+            Connections.Remove(user.Id, Context.ConnectionId);
+            Console.WriteLine($"Client disconnected: {Context.ConnectionId} ({name}) with id {user.Id}");
+            await base.OnDisconnectedAsync(exception);
+            return;
+        }
+        Console.WriteLine($"Client disconnected: {Context.ConnectionId} ({name}) Not in database");
+        Connections.RemoveConnection(Context.ConnectionId);
+        await base.OnDisconnectedAsync(exception);
     }
 }

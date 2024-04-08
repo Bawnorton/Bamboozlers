@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Bamboozlers.Classes.Networking.Packets.Serverbound;
+namespace Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging;
 
 public class MessagePinStatusC2SPacket : AbstractMessageC2SPacket
 {

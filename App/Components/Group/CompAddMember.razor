@@ -14,7 +14,8 @@
 
 @inject IDbContextFactory<AppDbContext> Db
 
-<ModalContent Centered>
+<ModalContent Centered
+              Size="ModalSize.Large">
     <ModalHeader>
         <ModalTitle>Invite Friends to @(Chat is null ? "Group" : Chat.GetGroupName())</ModalTitle>
     </ModalHeader>

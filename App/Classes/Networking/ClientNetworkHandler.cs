@@ -1,4 +1,5 @@
 using Bamboozlers.Classes.Networking.Packets.Clientbound;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
 
 namespace Bamboozlers.Classes.Networking;
 

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Bamboozlers.Classes.Networking.Packets.Clientbound;
+namespace Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
 
 public class MessageEditedS2CPacket : IPacket
 {

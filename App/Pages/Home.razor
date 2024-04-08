@@ -12,9 +12,10 @@
 @using Bamboozlers.Components.Settings
 @using Bamboozlers.Components.Group.Settings
 @using Bamboozlers.Components.Group
+@using Bamboozlers.Components.MainVisual
 @using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Components.Chat
-
+@using Bamboozlers.Account.Shared
 
 @attribute [Authorize]
 
@@ -53,25 +54,19 @@
         </AuthorizeView>
     </ChildContent>
     <ErrorContent Context="exception">
-        <Layout>
-            <LayoutHeader Padding="Padding.Is3"
-                          TextSize="TextSize.Heading1"
-                          TextColor="TextColor.Danger"
-                          Background="Background.Dark">
-                Bamboozlers
-            </LayoutHeader>
-            <LayoutContent Padding="Padding.Is3"
-                           Background="Background.Primary"
-                           TextColor="TextColor.White">
-                <Div Class="h-100 d-flex justify-content-center align-items-center">
-                    <Div Class="rounded-3 border-3 border-warning text-warning p-5 fa-2x"
-                         Background="Background.Dark">
-                        <p>Oops! Something went wrong.</p>
-                        <p>@exception.Message</p>
+        <CompAccountContainer>
+            <Layout Style="height: auto">
+                <LayoutContent Margin="Margin.Is3">
+                    <Div Class="d-flex justify-content-center align-items-center">
+                        <Div Class="rounded-3 border-3 border-warning text-warning p-5 fa-2x"
+                             Background="Background.Dark">
+                            <p>Oops! Something went wrong.</p>
+                            <p>Reload the page or try again later.</p>
+                        </Div>
                     </Div>
-                </Div>
-            </LayoutContent>
-        </Layout>
+                </LayoutContent>
+            </Layout>
+        </CompAccountContainer>
     </ErrorContent>
 </ErrorBoundary>
 
@@ -142,7 +137,8 @@
                                           <CompCreateGroup/>
                                       </text>,
             PopupType.FriendList => @<text>
-                                         <ModalContent Centered>
+                                         <ModalContent Centered
+                                                       Size="ModalSize.Large">
                                              <Container Margin="Margin.Is2">
                                                  <CompFriendList IsPopup="@true"/>
                                              </Container>

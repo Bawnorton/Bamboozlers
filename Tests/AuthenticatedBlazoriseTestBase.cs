@@ -1,6 +1,7 @@
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Services;
 using Bamboozlers.Classes.Services.UserServices;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Tests.Provider;
 
@@ -25,8 +26,9 @@ public class AuthenticatedBlazoriseTestBase : BlazoriseTestBase
         MockAuthenticationProvider = new MockAuthenticationProvider(Ctx);
         _ = new MockJsRuntimeProvider(Ctx);
         MockUserManager = new MockUserManager(Ctx, MockDatabaseProvider);
+        var mockHttpContextAccessor = new Mock<HttpContextAccessor>();
 
-        AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),
+        AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(), mockHttpContextAccessor.Object,
             MockDatabaseProvider.GetDbContextFactory());
         UserService = new UserService(AuthService,
             new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper());
