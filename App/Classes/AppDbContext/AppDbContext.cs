@@ -39,6 +39,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         modelBuilder.Entity<GroupChat>()
             .HasOne(h => h.Owner)
             .WithMany(w => w.OwnedChats);
+        modelBuilder.Entity<Message>()
+            .HasMany(m => m.Attachments);
 
         //default behavior is cascade however all relationships except for chat messages need to be set to no action
         foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))

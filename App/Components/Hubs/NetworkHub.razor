@@ -111,9 +111,19 @@
     private async Task SendPacketToServer(IPacket packet)
     {
         if (_hubConnection is null) throw new InvalidOperationException("Hub connection is not initialized");
-        if (_hubConnection.State != HubConnectionState.Connected) throw new InvalidOperationException("Not connected to server");
+        if (_hubConnection.State != HubConnectionState.Connected)
+        {
+            Console.WriteLine("Hub disconnected, cannot send packet");
+            return;
+        }
         Console.WriteLine($"Sending packet to server: {packet.PacketType().GetId()}");
-        await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());
+        try
+        {
+            await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());
+        } catch (Exception e)
+        {
+            Console.WriteLine($"Failed to send packet to server: {e.Message}");
+        }
     }
     
     async ValueTask IAsyncDisposable.DisposeAsync()

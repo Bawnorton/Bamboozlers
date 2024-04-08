@@ -64,7 +64,8 @@ builder.Services.AddScoped<IUserGroupService, UserGroupService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IKeyPressService, KeyPressService>();
 
-builder.Services.AddSignalR(e => { e.MaximumReceiveMessageSize = 1024 * 1024; });
+builder.Services.Configure<IISServerOptions>(options => { options.MaxRequestBodySize = 1024 * 1024 * 100; });
+builder.Services.AddSignalR(e => { e.MaximumReceiveMessageSize = 1024 * 1024 * 100; });
 builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 

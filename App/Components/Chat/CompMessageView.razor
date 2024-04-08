@@ -8,6 +8,8 @@
 @using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Migrations
+@using Microsoft.IdentityModel.Tokens
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IJSRuntime JsRuntime
@@ -44,8 +46,21 @@
             }
             else
             {
-                <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
-                    <CompMessageContentView Content=@Message.Content EditDate="@Message.EditedAt"/>
+                <Div Style="display: flex; flex-direction: column; gap: 10px">
+                    @if (!string.IsNullOrWhiteSpace(Message.Content))
+                    {
+                        <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
+                            <CompMessageContentView Content=@Message.Content EditDate="@Message.EditedAt"/>
+                        </Div>
+                    }
+                    @if (!MessageAttachments.IsNullOrEmpty())
+                    {
+
+                        @foreach (var attachment in MessageAttachments!)
+                        {
+                            <CompMessageAttachmentView FileName="@attachment.FileName" FileData=@attachment.Data/>
+                        }
+                    }
                 </Div>
                 <Div Class="message-actions">
                     @switch (ShowReply)
@@ -117,6 +132,8 @@
     private bool Loaded { get; set; }
     private User? Self { get; set; }
 
+    private List<MessageAttachment>? MessageAttachments { get; set; }
+    
     private string? _messageEditInput;
     private string? MessageEditInput
     {
@@ -166,6 +183,8 @@
             MessageEditInput = Message.Content;
             await JsRuntime.InvokeVoidAsync("resizeTextarea", "message-edit");
         }
+
+        MessageAttachments = Message.Attachments;
     }
 
     private async Task OnEditStart()

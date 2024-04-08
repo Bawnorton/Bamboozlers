@@ -1,0 +1,28 @@
+@inherits FileHolder
+
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons;
+
+<Div Style="margin: 10px; position: relative">
+    <Button Style="position: absolute; top: 10px; right: 10px" Color="Color.Danger" Class="button-tooltip tooltip-left" data-tooltip="Remove" Clicked="@(async () => await OnRemove.InvokeAsync())">
+        <Icon Class="@Icons.TrashCan" TextColor="TextColor.White"></Icon>
+    </Button>
+    <Div style="justify-content: center; display: flex; padding: 20px; border-top-right-radius: 10px; border-top-left-radius: 10px" Background="Background.Dark">
+        @if (IsImage)
+        {
+            <Image src="@($"data:image/{ImageType!.ToString()!.ToLower()};base64,{Convert.ToBase64String(FileData)}")" Style="width: 200px; height: 200px; object-fit: contain"/>
+        }
+        else
+        {
+            <Div Style="font-size: 140px; height: 200px;">
+                <Icon Class="@Icons.File" TextColor="TextColor.White"></Icon>
+            </Div>
+        }
+    </Div>
+    <Div TextColor="TextColor.White" Background="Background.Primary" Style="padding: 10px; border-bottom-right-radius: 10px; border-bottom-left-radius: 10px; display: inline-block; text-overflow: ellipsis; width: 240px; white-space: nowrap; overflow: hidden; ">
+        @FileName
+    </Div>
+</Div>
+
+@code {
+    [Parameter] public EventCallback OnRemove { get; set; }
+}

@@ -14,7 +14,7 @@ public class Message
     public User? Sender { get; set; }
     public int SenderID { get; set; }
     public string Content { get; set; } = default!;
-    public byte[]? Attachment { get; set; }
+    public List<MessageAttachment>? Attachments { get; set; }
     public DateTime SentAt { get; set; }
     public DateTime? PinnedAt { get; set; }
     public DateTime? EditedAt { get; set; }

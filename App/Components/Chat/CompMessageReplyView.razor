@@ -29,7 +29,7 @@
         <Icon Class="@Icons.Reply" Style="margin-right: 0.3em"/>
         <CompInteractUsername User="ReplyMessage.Sender"/>
         <Div class="reply-message" onclick="@($"scrollToMessage({MessageId}, true)")">
-            @ReplyMessage.Content
+            @Text
         </Div>
     </Div>
 }
@@ -38,14 +38,19 @@
     
     [Parameter] public int MessageId { get; set; }
     
-    [CascadingParameter] public Func<IAsyncPacketSubscriber, bool> AddPacketSubscriber { get; set; }
+    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
 
     private Message? ReplyMessage { get; set; }
+    
+    private string Text => string.IsNullOrWhiteSpace(ReplyMessage?.Content) ? ReplyMessage?.Attachments?.Count > 0 ? "<attachment>" : "Empty message" : ReplyMessage.Content;
 
     protected override async Task OnParametersSetAsync()
     {
         await using var db = await Db.CreateDbContextAsync();
-        ReplyMessage = await db.Messages.Include(m => m.Sender).FirstOrDefaultAsync(m => m.ID == MessageId);
+        ReplyMessage = await db.Messages
+            .Include(m => m.Sender)
+            .Include(m => m.Attachments)
+            .FirstOrDefaultAsync(m => m.ID == MessageId);
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)

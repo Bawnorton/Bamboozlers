@@ -13,10 +13,20 @@
 @using Bamboozlers.Classes.Utility.Observer
 
 @inject IDbContextFactory<AppDbContext> Db
+@inject IJSRuntime JsRuntime
 
 <Div TextColor="TextColor.Light" Position="Position.Absolute" Style="bottom: -25px">
     @TypingString
 </Div>
+
+<script>
+    function isInputEmpty() {
+        let textarea = document.getElementById("message-input");
+        if (textarea === null) return true;
+        
+        return textarea.value.trim() === "";
+    }
+</script>
 
 @code {
 
@@ -101,6 +111,9 @@
     {
         if (_lastTypingTime == null)
         {
+            var inputEmpty = await JsRuntime.InvokeAsync<bool>("isInputEmpty");
+            if (inputEmpty) return;
+            
             var typingState = new TypingStateC2SPacket
             {
                 SenderId = Self!.Id,
