@@ -99,6 +99,8 @@
     private async Task SyncedInteraction(GroupEvent eventKind, AsyncBiConsumer<int?, int?> action)
     {
         await action.Invoke(GroupID, UserId);
+        if(GroupID == null) return;
+        
         var interactionSync = new GroupInteractionSyncC2SPacket
         {
             Event = eventKind,

@@ -86,6 +86,8 @@
     private async Task SyncedInteraction(InteractionEvent eventKind, AsyncConsumer<int?> action)
     {
         await action.Invoke(UserId);
+        if (UserId == null) return;
+        
         var interactionSync = new InteractionSyncC2SPacket
         {
             Event = eventKind,
