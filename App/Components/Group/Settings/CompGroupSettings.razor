@@ -6,6 +6,9 @@
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Components.Utility
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 
@@ -48,7 +51,7 @@
                               Color="Color.Danger"
                               IconName="IconName.Running"
                               ColumnWrapped="@false"
-                              ActionCallback="@(async () => { await UserGroupService.LeaveGroup(ChatID); })"/>
+                              ActionCallback="@LeaveGroup"/>
         }
     </ModalFooter>
 </ModalContent>
@@ -58,7 +61,9 @@
 
     [CascadingParameter] public EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
     [CascadingParameter] public EventCallback DismissPopup { get; set; }
-
+    
+    [CascadingParameter] private EventCallback<IPacket> SendToServer { get; set; }
+    
     [Parameter] public int? ChatID { get; set; }
 
     private GroupChat? Chat { get; set; }
@@ -191,6 +196,13 @@
             return;
 
         var result = await UserGroupService.UpdateGroupAvatar(ChatID, Array.Empty<byte>());
+        var groupInteractionSync = new GroupInteractionSyncC2SPacket
+        {
+            Event = GroupEvent.GroupDisplayChange,
+            GroupId = ChatID!.Value,
+        };
+        await SendToServer.InvokeAsync(groupInteractionSync);
+        
         if (!result.Succeeded)
         {
             AlertArguments = new AlertArguments(
@@ -219,6 +231,12 @@
             return false;
 
         var result = await UserGroupService.UpdateGroupAvatar(ChatID, newAvatar);
+        var groupInteractionSync = new GroupInteractionSyncC2SPacket
+        {
+            Event = GroupEvent.GroupDisplayChange,
+            GroupId = ChatID!.Value,
+        };
+        await SendToServer.InvokeAsync(groupInteractionSync);
 
         return result.Succeeded;
     }
@@ -281,7 +299,7 @@
                               Color="@(isMod ? Color.Warning : Color.Success)"
                               IconName="@(isMod ? IconName.Ban : IconName.ShieldAlt)"
                               ColumnWrapped="@false"
-                              ActionCallback="@(isMod ? async () => await UserGroupService.RevokePermissions(ChatID, user.Id) : async () => await UserGroupService.AssignPermissions(ChatID, user.Id))"/>
+                              ActionCallback="@(isMod ? async () => await RevokePermissions(user.Id) : async () => await AssignPermissions(user.Id))"/>
         </div>;
     }
 
@@ -304,9 +322,40 @@
                 @<text>
                      This user will be removed from the group, and they will have to be invited again to re-join!
                  </text>,
-                EventCallback.Factory.Create(this, () => UserGroupService.RemoveGroupMember(ChatID, memberId))
+                EventCallback.Factory.Create(this, async () => await RemoveMember(memberId))
             )
         );
+    }
+    
+    private async Task RevokePermissions(int? userID)
+    {
+        await SyncedInteraction(GroupEvent.RevokedPermissions, UserGroupService.RevokePermissions, userID);
+    }
+    
+    private async Task AssignPermissions(int? userID)
+    {
+        await SyncedInteraction(GroupEvent.GrantedPermissions, UserGroupService.AssignPermissions, userID);
+    }
+    
+    private async Task RemoveMember(int? userID)
+    {
+        await SyncedInteraction(GroupEvent.RemoveMember, UserGroupService.RemoveGroupMember, userID);
+    }
+
+    private async Task LeaveGroup()
+    {
+        await SyncedInteraction<int?>(GroupEvent.SelfLeftGroup, async (chatId, _) => await UserGroupService.LeaveGroup(chatId));
+    }
+
+    private async Task SyncedInteraction<T>(GroupEvent eventKind, AsyncBiConsumer<int?, T?> action, T? arg = default)
+    {
+        await action.Invoke(ChatID, arg);
+        var groupInteractionSync = new GroupInteractionSyncC2SPacket
+        {
+            Event = eventKind,
+            GroupId = ChatID!.Value,
+        };
+        await SendToServer.InvokeAsync(groupInteractionSync);
     }
 
     public List<GroupEvent> WatchedGroupEvents { get; set; } =
@@ -316,6 +365,7 @@
         GroupEvent.GrantedPermissions,
         GroupEvent.GroupDisplayChange,
         GroupEvent.SelfLeftGroup,
+        GroupEvent.OtherLeftGroup,
         GroupEvent.DeleteGroup
     ];
 
@@ -334,3 +384,4 @@
     }
 
 }
+

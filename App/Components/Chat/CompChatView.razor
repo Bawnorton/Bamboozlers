@@ -27,6 +27,8 @@
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging
 @using Bamboozlers.Classes.Utility.Observer
 @using Bunit.Extensions
+@using System.Timers
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IJSRuntime JsRuntime
@@ -156,7 +158,7 @@
         </Layout>
     </LayoutContent>
     <LayoutFooter>
-        <Div Position="Position.Sticky" Class="m-4" Style="bottom: 0; border-radius: 5px;">
+        <Div Position="Position.Sticky" Style="margin: 20px 20px 35px;border-radius: 5px;">
             @if (_replyingTo != null)
             {
                 <Div Background="Background.Dark" Padding="Padding.Is2">
@@ -175,6 +177,7 @@
                     </textarea>
                 </Div>
             </Div>
+            <CompTypingView ChatID="@ChatID"/>
         </Div>
     </LayoutFooter>
 </Layout>

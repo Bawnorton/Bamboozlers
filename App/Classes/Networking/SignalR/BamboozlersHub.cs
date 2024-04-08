@@ -1,9 +1,11 @@
 using Bamboozlers.Classes.Networking.Packets;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging;
+using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +32,23 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
             {
                 case JoinChatC2SPacket joinChat:
                     await Groups.AddToGroupAsync(Context.ConnectionId, joinChat.ChatId.ToString());
+                    break;
+                case LeaveChatC2SPacket leaveChat:
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveChat.ChatId.ToString());
+                    var updateTypingState = new TypingStateS2CPacket
+                    {
+                        Typing = false,
+                        UserId = leaveChat.SenderId
+                    };
+                    await SendToChat(leaveChat.ChatId, updateTypingState);
+                    break;
+                case TypingStateC2SPacket typingState:
+                    var typingStateResponse = new TypingStateS2CPacket
+                    {
+                        Typing = typingState.Typing,
+                        UserId = typingState.SenderId
+                    };
+                    await SendToChat(typingState.ChatId, typingStateResponse);
                     break;
                 case MessageSentC2SPacket messageSent:
                     var messageSentResponse = new MessageSentS2CPacket
@@ -61,13 +80,31 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     };
                     await SendToChat(messagePinStatus.ChatId, messagePinStatusResponse);
                     break;
-                case InteractionSyncC2SPacket userRelation:
-                    var userRelationResponse = new InteractionSyncS2CPacket
+                case InteractionSyncC2SPacket interactionSync:
+                    var responseEvent = interactionSync.Event switch
                     {
-                        Event = userRelation.Event
+                        InteractionEvent.RequestSent => InteractionEvent.RequestReceived,
+                        _ => interactionSync.Event
                     };
-                    await SendToUser(userRelation.ReceiverId, userRelationResponse);
+                    var interactionSyncResponse = new InteractionSyncS2CPacket
+                    {
+                        Event = responseEvent
+                    };
+                    await SendToUser(interactionSync.ReceiverId, interactionSyncResponse);
                     break;
+                case GroupInteractionSyncC2SPacket groupInteractionSync:
+                    var responseGroupEvent = groupInteractionSync.Event switch
+                    {
+                        GroupEvent.SelfLeftGroup => GroupEvent.OtherLeftGroup,
+                        GroupEvent.SentInvite => GroupEvent.ReceivedInvite,
+                        _ => groupInteractionSync.Event
+                    };
+                    var groupInteractionSyncResponse = new GroupInteractionSyncS2CPacket
+                    {
+                        Event = responseGroupEvent
+                    };
+                    await SendToChat(groupInteractionSync.GroupId, groupInteractionSyncResponse);
+                    break; 
             }
         });
     }

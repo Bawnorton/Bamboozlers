@@ -1,4 +1,5 @@
 using Bamboozlers.Classes.Networking.Packets.Clientbound;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
 
@@ -10,6 +11,7 @@ public class ClientNetworkHandler : AbstractNetworkHandler
 
     private ClientNetworkHandler()
     {
+        PacketRegistry.RegisterPacket(TypingStateS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageSentS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageEditedS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageDeletedS2CPacket.Type);

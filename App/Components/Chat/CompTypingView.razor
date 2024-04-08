@@ -1,0 +1,130 @@
+@inherits UserViewComponentBase
+
+@implements IAsyncPacketSubscriber
+@implements IAsyncKeySubscriber
+@implements IAsyncDisposable
+
+@using System.Timers
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Utility.Observer
+
+@inject IDbContextFactory<AppDbContext> Db
+
+<Div TextColor="TextColor.Light" Position="Position.Absolute" Style="bottom: -25px">
+    @TypingString
+</Div>
+
+@code {
+
+    [Parameter] public int? ChatID { get; set; }
+    
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
+    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
+    [CascadingParameter] public Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
+    
+    private User? Self { get; set; }
+    
+    private Timer _typingTimer = new()
+    {
+        AutoReset = true,
+        Enabled = true,
+        Interval = 7500
+    };
+    private long? _lastTypingTime;
+    private Dictionary<int, string> _typingUsers = [];
+    private string TypingString => _typingUsers.Count switch
+    {
+        0 => "",
+        1 => $"{_typingUsers.First().Value} is typing...",
+        _ => $"{string.Join(", ", _typingUsers.Values)} are typing..."
+    };
+    
+    protected override async Task OnInitializedAsync()
+    {
+        Self = (await AuthService.GetUser())!;
+        
+        _typingTimer.Elapsed += async (_, _) =>
+        {
+            if (_lastTypingTime == null) return;
+            if (!(DateTime.Now.Ticks - _lastTypingTime > 7500)) return;
+            
+            var typingState = new TypingStateC2SPacket
+            {
+                SenderId = Self!.Id,
+                ChatId = (int)ChatID!,
+                Typing = false
+            };
+            await InvokeAsync(() => SendToServer.InvokeAsync(typingState));
+            _lastTypingTime = null;
+        };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        AddPacketSubscriber.Invoke(this);
+        AddKeySubscriber.Invoke(this);
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    public async Task OnPacket(IPacket packet)
+    {
+        switch (packet)
+        {
+            case TypingStateS2CPacket typingState:
+            {
+                if (typingState.UserId == Self!.Id) return;
+                
+                var typing = typingState.Typing;
+                await using var db = await Db.CreateDbContextAsync();
+                var user = await db.Users.FirstAsync(u => u.Id == typingState.UserId);
+                if (typing)
+                {
+                    _typingUsers.Add(typingState.UserId, user.GetName());
+                }
+                else
+                {
+                    _typingUsers.Remove(typingState.UserId);
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+            }
+        }
+    }
+
+    public async Task OnKeyPressed(KeyEventArgs keyEventArgs)
+    {
+        if (_lastTypingTime == null)
+        {
+            var typingState = new TypingStateC2SPacket
+            {
+                SenderId = Self!.Id,
+                ChatId = (int)ChatID!,
+                Typing = true
+            };
+            await SendToServer.InvokeAsync(typingState);
+        }
+        _lastTypingTime = DateTime.Now.Ticks;
+    }
+
+    public Task OnKeyReleased(KeyEventArgs keyEventArgs)
+    {
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _typingTimer.Dispose();
+        var leaveChat = new LeaveChatC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = (int)ChatID!
+        };
+        await SendToServer.InvokeAsync(leaveChat);
+    }
+}

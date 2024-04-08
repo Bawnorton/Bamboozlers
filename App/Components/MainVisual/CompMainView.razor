@@ -159,7 +159,8 @@
         GroupEvent.ReceivedInviteAccepted,
         GroupEvent.ReceivedInviteDeclined,
         GroupEvent.SentInviteRevoked,
-        GroupEvent.SentInvite
+        GroupEvent.SentInvite,
+        GroupEvent.ReceivedInvite
     ];
     
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
@@ -175,6 +176,7 @@
         InteractionEvent.RequestAccepted,
         InteractionEvent.RequestDeclined,
         InteractionEvent.RequestRevoked,
+        InteractionEvent.RequestReceived,
         InteractionEvent.Unfriend
     ];
     

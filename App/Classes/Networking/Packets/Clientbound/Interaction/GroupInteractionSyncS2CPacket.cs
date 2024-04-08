@@ -10,7 +10,7 @@ public class GroupInteractionSyncS2CPacket : IPacket
         .Create("group_interaction_sync_s2c", json => new GroupInteractionSyncS2CPacket(json));
     
     internal GroupEvent Event { get; init; }
-    internal int GroupId { get; init; }
+    internal int GroupId { get; }
     
     private GroupInteractionSyncS2CPacket(JsonElement json)
     {
