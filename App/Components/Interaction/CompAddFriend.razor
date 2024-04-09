@@ -5,6 +5,7 @@
 
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
@@ -63,7 +64,7 @@
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
-    [CascadingParameter] public Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
+    [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
 
     private List<FriendRequest> IncomingRequests { get; set;} = [];
     private List<FriendRequest> OutgoingRequests { get; set;} = [];

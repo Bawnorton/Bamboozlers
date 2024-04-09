@@ -6,6 +6,7 @@
 
 @using System.Timers
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
@@ -33,8 +34,8 @@
     [Parameter] public int? ChatID { get; set; }
     
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
-    [CascadingParameter] public Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
+    [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
     
     private User? Self { get; set; }
     
@@ -130,14 +131,9 @@
         return Task.CompletedTask;
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _typingTimer.Dispose();
-        var leaveChat = new LeaveChatC2SPacket
-        {
-            SenderId = Self!.Id,
-            ChatId = (int)ChatID!
-        };
-        await SendToServer.InvokeAsync(leaveChat);
+        return ValueTask.CompletedTask;
     }
 }

@@ -11,6 +11,7 @@
 @using Microsoft.AspNetCore.Http.Connections
 @using System.Text.Json
 @using System.Net
+@using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction
 @using Bamboozlers.Classes.Services.UserServices
 @using Microsoft.AspNetCore.Http.Connections.Client
@@ -18,8 +19,10 @@
 @inject NavigationManager NavigationManager
 
 <CascadingValue Value="_addPacketSubscriber">
-    <CascadingValue Value="_sendToServer">
-        @ChildContent
+    <CascadingValue Value="_removePacketSubscribers">
+        <CascadingValue Value="_sendToServer">
+            @ChildContent
+        </CascadingValue>
     </CascadingValue>
 </CascadingValue>
 
@@ -31,7 +34,8 @@
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
     private EventCallback<IPacket> _sendToServer;
-    private Predicate<IAsyncPacketSubscriber> _addPacketSubscriber = default!;
+    private Register<IAsyncPacketSubscriber> _addPacketSubscriber = default!;
+    private Unregister<Type[]> _removePacketSubscribers = default!;
 
     public List<IAsyncPacketSubscriber> Subscribers { get; } = [];
 
@@ -42,6 +46,7 @@
     {
         _sendToServer = EventCallback.Factory.Create<IPacket>(this, SendPacketToServer);
         _addPacketSubscriber = AddSubscriber;
+        _removePacketSubscribers = RemoveSubscribers;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -80,9 +85,24 @@
 
     public bool AddSubscriber(IAsyncPacketSubscriber subscriber)
     {
+        Console.WriteLine("Adding subscriber: " + subscriber.GetType().Name);
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
         return true;
+    }
+
+    private int RemoveSubscribers(Type[] types)
+    {
+        var runningCount = 0;
+        foreach (var type in types)
+        {
+            if (type.IsAssignableFrom(typeof(IAsyncPacketSubscriber)))
+            {
+                throw new ArgumentException($"Type {type.Name} is not of type {nameof(IAsyncPacketSubscriber)}");
+            }
+            runningCount += Subscribers.RemoveAll(subscriber => subscriber.GetType() == type);
+        }
+        return runningCount;
     }
     
     private async Task TopLevelHandler(IPacket packet)

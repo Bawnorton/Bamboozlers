@@ -52,7 +52,7 @@
     [Parameter] public AsyncConsumer<Message> OnMessageJump { get; set; } = default!;
     
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
 
     private List<Message> PinnedMessages { get; set; } = [];
 

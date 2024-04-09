@@ -3,18 +3,22 @@
 
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Func
 
 @inject IKeyPressService KeyPressService
 
 <CascadingValue Value="_addKeySubscriber">
-    @ChildContent
+    <CascadingValue Value="_removeKeySubscriber">
+        @ChildContent
+    </CascadingValue>
 </CascadingValue>
 
 @code {
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
     
-    private Predicate<IAsyncKeySubscriber> _addKeySubscriber = default!;
+    private Register<IAsyncKeySubscriber> _addKeySubscriber = default!;
+    private Unregister<IAsyncKeySubscriber> _removeKeySubscriber = default!;
 
     public List<IAsyncKeySubscriber> Subscribers { get; } = [];
 
@@ -37,6 +41,11 @@
         if (Subscribers.Contains(subscriber)) return false;
         Subscribers.Add(subscriber);
         return true;
+    }
+
+    public bool RemoveSubscriber(IAsyncKeySubscriber subscriber)
+    {
+        return Subscribers.Remove(subscriber);
     }
 
     private async void OnKeyPressed(object? sender, KeyEventArgs e)

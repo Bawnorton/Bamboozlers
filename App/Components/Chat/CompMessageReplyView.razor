@@ -1,6 +1,7 @@
 @implements IAsyncPacketSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Networking.Packets.Clientbound
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
@@ -38,7 +39,7 @@
     
     [Parameter] public int MessageId { get; set; }
     
-    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
 
     private Message? ReplyMessage { get; set; }
     

@@ -5,6 +5,7 @@
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes.Utility.Observer
@@ -120,7 +121,7 @@
 
     [CascadingParameter] private ChatContext ChatContext { get; set; } = default!;
     [CascadingParameter] private EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] private Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
+    [CascadingParameter] private Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
 
     private bool Loaded { get; set; }
     private User? Self { get; set; }

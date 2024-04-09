@@ -8,6 +8,9 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Chat
@@ -38,7 +41,7 @@
                      Class="scrollbar-container">
                     <BarMenu>
                         <BarItem>
-                            <BarLink ElementId="home" @onclick="() => {CurrentView = View.Home; CurrentChatId = -1; }">
+                            <BarLink ElementId="home" @onclick="MoveToHome">
                                 <BarIcon Class="fa-home"></BarIcon>
                                 Home
                             </BarLink>
@@ -144,15 +147,15 @@
         }
         else
         {
-            <CompChatView ChatID="@CurrentChatId"/>
+            <CompChatView GoToHome="MoveToHome"/>
         }
     </Layout>
 }
 
 @code {
-    [Inject] protected new IUserService UserService { get; set; } = default!;
-
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
+    [CascadingParameter] public Unregister<Type[]> UnregisterPacketSubscribers { get; set; }
 
     private User? Self { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
@@ -230,6 +233,13 @@
     {
         CurrentView = View.Home;
         CurrentChatId = -1;
+
+        UnregisterPacketSubscribers.Invoke([
+            typeof(CompChatView),
+            typeof(CompMessageReplyView),
+            typeof(CompTypingView),
+            typeof(CompPinsView)
+        ]);
     }
 
     public async Task GetFriendData()
@@ -251,6 +261,15 @@
 
     public async Task OpenDm(int chatId = -1, int? otherId = null, bool reload = false)
     {
+        if (CurrentChatId != -1)
+        {
+            var leaveChat = new LeaveChatC2SPacket
+            {
+                SenderId = Self!.Id,
+                ChatId = CurrentChatId
+            };
+            await SendToServer.InvokeAsync(leaveChat);
+        }
         if (reload)
         {
             await GetUserData();
@@ -259,6 +278,7 @@
 
         if (chatId == -1)
         {
+            
             if (otherId is not null)
             {
                 var dm = await UserInteractionService.FindDm(otherId);
@@ -271,6 +291,7 @@
                 chatId = dm.ID;
                 await GetUserData();
                 GetDmData();
+
             }
             else
             {
@@ -280,11 +301,29 @@
 
         CurrentView = View.Dm;
         CurrentChatId = chatId;
+        
         await InvokeAsync(StateHasChanged);
+        
+        var joinChat = new JoinChatC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = chatId
+        };
+        await SendToServer.InvokeAsync(joinChat);
     }
 
     public async Task OpenGroup(int chatId, bool reload = false)
     {
+        if (CurrentChatId != -1)
+        {
+            var leaveChat = new LeaveChatC2SPacket
+            {
+                SenderId = Self!.Id,
+                ChatId = CurrentChatId
+            };
+            await SendToServer.InvokeAsync(leaveChat);
+        }
+        
         if (reload)
         {
             await GetUserData();
@@ -295,6 +334,13 @@
         CurrentChatId = chatId;
 
         await InvokeAsync(StateHasChanged);
+        
+        var joinChat = new JoinChatC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = chatId
+        };
+        await SendToServer.InvokeAsync(joinChat);
     }
 
     public List<int?> WatchedIDs { get; private set; } = [];
