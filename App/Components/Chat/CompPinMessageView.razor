@@ -38,13 +38,13 @@
 
 @code {
 
-    [Parameter] public Message Message { get; set; }
+    [Parameter] public Message Message { get; set; } = default!;
     
     [Parameter] public bool CanUnpin { get; set; }
     
-    [Parameter] public AsyncConsumer<Message> OnJump { get; set; }
+    [Parameter] public AsyncConsumer<Message> OnJump { get; set; } = default!;
     
-    [Parameter] public AsyncConsumer<Message> OnUnpin { get; set; }
+    [Parameter] public AsyncConsumer<Message> OnUnpin { get; set; } = default!;
     
     private List<MessageAttachment>? MessageAttachments => Message.Attachments;
 }

@@ -347,7 +347,7 @@
                          </h5>
                      }
                  </text>,
-                EventCallback.Factory.Create(this, async () => await LeaveGroup())
+                EventCallback.Factory.Create(this, async () => await InvokeAsync(LeaveGroup))
             )
         );
     }
@@ -357,9 +357,12 @@
         await OpenAlertPopup.InvokeAsync(
             new AlertPopupArgs(
                 @<text>
-                     This group and all its history will be permanently deleted and unrecoverable.
+                     Deleting this group is a permanent and unrecoverable operation.
+                     <h5>
+                         This group and all of its chat history will be <i>permanently</i> deleted!
+                     </h5>
                  </text>,
-                EventCallback.Factory.Create(this, async () => await DeleteGroup())
+                EventCallback.Factory.Create(this, async () => await InvokeAsync(DeleteGroup))
             )
         );
     }

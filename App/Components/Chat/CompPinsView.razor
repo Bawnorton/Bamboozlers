@@ -44,14 +44,15 @@
     <ModalFooter/>
 </ModalContent>
 
+@* ReSharper disable always InconsistentNaming *@
 @code {
 
     [Parameter] public int? ChatID { get; set; }
-    [Parameter] public UserRecord FocusUser { get; set; }
-    [Parameter] public AsyncConsumer<Message> OnMessageJump { get; set; }
+    [Parameter] public UserRecord FocusUser { get; set; } = default!;
+    [Parameter] public AsyncConsumer<Message> OnMessageJump { get; set; } = default!;
     
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
+    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
 
     private List<Message> PinnedMessages { get; set; } = [];
 

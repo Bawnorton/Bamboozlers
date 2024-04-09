@@ -8,7 +8,7 @@ public class MessageEditedC2SPacket : AbstractMessageC2SPacket
     public static readonly PacketType<MessageEditedC2SPacket> Type =
         PacketType<MessageEditedC2SPacket>.Create("message_edited_c2s", json => new MessageEditedC2SPacket(json));
 
-    internal string NewContent;
+    internal string NewContent = default!;
 
     internal MessageEditedC2SPacket()
     {

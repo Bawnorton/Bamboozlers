@@ -48,7 +48,7 @@
                 <Div Style="display: flex; flex-direction: column; gap: 10px">
                     @if (!string.IsNullOrWhiteSpace(Message.Content))
                     {
-                        <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
+                        <Div Style="@(!EchoReceived ? "color: #A0A3A7" : "")">
                             <CompMessageContentView Content=@Message.Content EditDate="@Message.EditedAt"/>
                         </Div>
                     }
@@ -113,14 +113,14 @@
 }
 
 @code {
-    [Parameter] public Message Message { get; set; }
+    [Parameter] public Message Message { get; set; } = default!;
     [Parameter] public Message? PreviousMessage { get; set; }
-    [Parameter] public bool EchoRecieved { get; set; }
+    [Parameter] public bool EchoReceived { get; set; }
     [Parameter] public bool Editing { get; set; }
 
-    [CascadingParameter] private ChatContext ChatContext { get; set; }
+    [CascadingParameter] private ChatContext ChatContext { get; set; } = default!;
     [CascadingParameter] private EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] private Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
+    [CascadingParameter] private Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
 
     private bool Loaded { get; set; }
     private User? Self { get; set; }

@@ -263,10 +263,9 @@ public class UserGroupService(
         if (self is null || group is null) return;
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-
-        var skipChecks = memberId == self.Id;
+        
         var outranks = await Outranks(self.Id, memberId, chatId);
-        if (!skipChecks && !outranks) return;
+        if (!outranks) return;
 
         var chatUser = await dbContext.ChatUsers.FirstOrDefaultAsync(
             cu => cu.ChatId == chatId && cu.UserId == memberId
@@ -280,11 +279,6 @@ public class UserGroupService(
         if (chatMod is not null)
             dbContext.ChatModerators.Remove(chatMod);
         await dbContext.SaveChangesAsync();
-
-        if (skipChecks && self.Id == group.OwnerID)
-        {
-            await FindSuccessorOwner(chatId);
-        }
 
         await NotifySubscribersOf(group.ID, GroupEvent.RemoveMember);
     }
@@ -384,7 +378,24 @@ public class UserGroupService(
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         if (self is null || group is null) return;
 
-        await RemoveGroupMember(chatId, self.Id);
+        var chatUser = await dbContext.ChatUsers.FirstOrDefaultAsync(
+            cu => cu.ChatId == chatId && cu.UserId == self.Id
+        );
+        var chatMod = await dbContext.ChatModerators.FirstOrDefaultAsync(
+            cm => cm.GroupChatId == chatId && cm.UserId == self.Id
+        );
+        
+        if (chatUser is not null) 
+            dbContext.ChatUsers.Remove(chatUser);
+        if (chatMod is not null)
+            dbContext.ChatModerators.Remove(chatMod);
+        await dbContext.SaveChangesAsync();
+        
+        if (self.Id == group.OwnerID)
+        {
+            await FindSuccessorOwner(chatId);
+        }
+        
         await NotifySubscribersOf(-1, GroupEvent.SelfLeftGroup);
     }
 

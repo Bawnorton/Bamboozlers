@@ -38,7 +38,7 @@
     
     [Parameter] public int MessageId { get; set; }
     
-    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
+    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
 
     private Message? ReplyMessage { get; set; }
     

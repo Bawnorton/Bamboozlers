@@ -31,10 +31,10 @@
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
     private EventCallback<IPacket> _sendToServer;
-    private Predicate<IAsyncPacketSubscriber> _addPacketSubscriber;
+    private Predicate<IAsyncPacketSubscriber> _addPacketSubscriber = default!;
 
     public List<IAsyncPacketSubscriber> Subscribers { get; } = [];
-    
+
     private string _hubUrl;
     private HubConnection? _hubConnection;
 

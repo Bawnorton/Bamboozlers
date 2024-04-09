@@ -63,7 +63,7 @@
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
-    [CascadingParameter] public Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
+    [CascadingParameter] public Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
 
     private List<FriendRequest> IncomingRequests { get; set;} = [];
     private List<FriendRequest> OutgoingRequests { get; set;} = [];

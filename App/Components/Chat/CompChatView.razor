@@ -25,7 +25,6 @@
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging
-@using Bamboozlers.Classes.Utility.Observer
 @using Bunit.Extensions
 @using System.Timers
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat
@@ -169,7 +168,7 @@
                                     <CompMessageView
                                         Message="message.DbMessage"
                                         PreviousMessage="@message.Previous?.DbMessage"
-                                        EchoRecieved="@message.EchoRecieved"
+                                        EchoReceived="@message.EchoReceived"
                                         Editing="@message.DbMessage.ID.Equals(_editingMessage?.DbMessage.ID)"/>
                                 }
                                 else
@@ -281,12 +280,14 @@
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
-    [CascadingParameter] public Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
+    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
+    [CascadingParameter] public Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
 
     [Parameter] public int? ChatID { get; set; }
+    private int? PrevChatID { get; set; }
+    
     private Chat? Chat { get; set; }
-    private string ChatName { get; set; }
+    private string ChatName { get; set; } = default!;
     private bool ChatLoaded { get; set; }
 
     /// <summary>
@@ -302,7 +303,7 @@
     private List<MessageEntry> Messages { get; set; } = [];
     private Dictionary<int, int> MessageIdToIndex { get; set; } = new();
     private List<int> EphemeralMessages { get; set; } = [];
-    private string MessageInput { get; set; }
+    private string MessageInput { get; set; } = default!;
 
     private MessageEntry? _editingMessage;
     private string? LastEdit { get; set; }
@@ -331,6 +332,7 @@
         await InitMessages();
 
         ChatLoaded = true;
+        PrevChatID = ChatID;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -348,7 +350,7 @@
         switch (packet)
         {
             case MessageSentS2CPacket messageSent:
-                await RecieveMessage(messageSent.MessageId);
+                await ReceiveMessage(messageSent.MessageId);
                 await InvokeAsync(StateHasChanged);
                 break;
             case MessageDeletedS2CPacket messageDeleted:
@@ -407,21 +409,12 @@
         
         if (Self is null || Chat is null) return;
 
-        switch (Chat)
+        ChatName = Chat switch
         {
-            case null:
-                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
-            case GroupChat gc:
-                ChatName = gc.GetGroupName();
-                break;
-            default:
-            {
-                var self = await AuthService.GetUser();
-                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
-                ChatName = other.GetName();
-                break;
-            }
-        }
+            null => throw new InvalidOperationException($"Chat from ID {ChatID} not found"),
+            GroupChat gc => gc.GetGroupName(),
+            _ => OtherUser?.GetName() ?? Self!.GetName()
+        };
     }
 
     private void ReIndexMessages()
@@ -553,7 +546,7 @@
         var pinStatus = new MessagePinStatusC2SPacket
         {
             SenderId = Self!.Id,
-            ChatId = (int)ChatID!,
+            ChatId = (int) ChatID!,
             MessageId = message.ID,
             Pinned = message.IsPinned
         };
@@ -567,10 +560,13 @@
 
     public async Task InitMessages()
     {
-        EphemeralMessages.Clear();
-        Messages.Clear();
-        MessageIdToIndex.Clear();
-        
+        if (ChatID != PrevChatID)
+        {
+            EphemeralMessages.Clear();
+            Messages.Clear();
+            MessageIdToIndex.Clear();
+        }
+
         await using var db = await Db.CreateDbContextAsync();
         var messages = await db.Messages
             .Include(m => m.Sender)
@@ -583,7 +579,7 @@
             if (EphemeralMessages.Contains(message.ID))
             {
                 EphemeralMessages.Remove(message.ID);
-                Messages[MessageIdToIndex[message.ID]].EchoRecieved = true;
+                Messages[MessageIdToIndex[message.ID]].EchoReceived = true;
             }
             else if (MessageIdToIndex.TryGetValue(message.ID, out var messageIndex))
             {
@@ -596,16 +592,16 @@
         }
     }
 
-    private async Task RecieveMessage(int messageId)
+    private async Task ReceiveMessage(int messageId)
     {
         if (EphemeralMessages.Contains(messageId))
         {
             EphemeralMessages.Remove(messageId);
-            Messages[MessageIdToIndex[messageId]].EchoRecieved = true;
+            Messages[MessageIdToIndex[messageId]].EchoReceived = true;
         }
         else if (MessageIdToIndex.TryGetValue(messageId, out var messageIndex))
         {
-            Messages[messageIndex].EchoRecieved = true;
+            Messages[messageIndex].EchoReceived = true;
         }
         else
         {
@@ -742,7 +738,7 @@
             DbMessage = message,
             Previous = lastMessage,
             Next = null,
-            EchoRecieved = !ephemeral,
+            EchoReceived = !ephemeral,
             SystemMessage = systemMessage
         };
         if (lastMessage != null)
@@ -814,19 +810,19 @@
             return false;
         }
         
-        if (_otherUser is null)
+        if (OtherUser is null)
         {
             await CreateSystemMessage(SystemErrorType.NullRecipient);
             return false;
         }
             
-        if (await UserInteractionService.FindIfBlockedBy(_otherUser.Id) is not null)
+        if (await UserInteractionService.FindIfBlockedBy(OtherUser.Id) is not null)
         {
             await CreateSystemMessage(SystemErrorType.SenderIsBlocked);
             return false;
         }
 
-        if (await UserInteractionService.FindFriendship(_otherUser.Id) is null)
+        if (await UserInteractionService.FindFriendship(OtherUser.Id) is null)
         {
             await CreateSystemMessage(SystemErrorType.RecipientIsStranger);
             return false;
@@ -857,8 +853,8 @@
     {
         public MessageEntry? Next { get; set; }
         public MessageEntry? Previous { get; set; }
-        public Message DbMessage { get; set; }
-        public bool EchoRecieved { get; set; }
+        public Message DbMessage { get; set; } = default!;
+        public bool EchoReceived { get; set; } 
         public bool SystemMessage { get; set; }
 
         public bool HasNext => Next != null;
