@@ -357,45 +357,47 @@ public class UserInteractionService(
     }
 
     public List<IInteractionSubscriber> Subscribers { get; } = [];
-    private SemaphoreSlim SubscribersLock { get; } = new(1, 1);
     
-    public async Task NotifySubscribersOf(InteractionEvent evt)
+    public Task NotifySubscribersOf(InteractionEvent evt)
     {
-        await SubscribersLock.WaitAsync();
-        try
+        lock (Subscribers)
         {
             if (evt is InteractionEvent.General)
             {
                 foreach (var sub in Subscribers.ToList())
                 {
-                    await sub.OnUpdate(InteractionEvent.General);
+                    sub.OnUpdate(InteractionEvent.General);
                 }
             }
             else
             {
                 foreach (var sub in Subscribers.Where(s => s.WatchedInteractionEvents.Contains(evt) || s.WatchedInteractionEvents.Contains(InteractionEvent.General)).ToList())
                 {
-                    await sub.OnUpdate(evt);
+                    sub.OnUpdate(evt);
                 }
             }
-        } 
-        finally
-        {
-            SubscribersLock.Release();
+            return Task.CompletedTask;
         }
     }
     public bool AddSubscriber(IInteractionSubscriber subscriber) 
     {
-        if (Subscribers.Contains(subscriber)) return false;
-        Subscribers.Add(subscriber);
-        return true;
+        lock (Subscribers)
+        {
+            if (Subscribers.Contains(subscriber)) return false;
+            Subscribers.Add(subscriber);
+            return true;
+        }
     }
 
-    public async Task NotifyAllAsync()
+    public Task NotifyAllAsync()
     {
-        foreach (var sub in Subscribers)
+        lock (Subscribers)
         {
-            await sub.OnUpdate(InteractionEvent.General);
+            foreach (var sub in Subscribers)
+            {
+                sub.OnUpdate(InteractionEvent.General);
+            }
+            return Task.CompletedTask;
         }
     }
 }

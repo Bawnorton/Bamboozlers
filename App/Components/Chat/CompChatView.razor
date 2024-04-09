@@ -289,21 +289,10 @@
     private string ChatName { get; set; }
     private bool ChatLoaded { get; set; }
 
-    private User? _otherUser;
-
     /// <summary>
     ///     Null if the chat is a group chat
     /// </summary>
-    private User? OtherUser
-    {
-        get
-        {
-            if (Chat is GroupChat) return null;
-
-            return _otherUser ??= Chat?.Users.FirstOrDefault(u => u.Id != Self!.Id);
-        }
-        set => _otherUser = value;
-    }
+    private User? OtherUser { get; set; }
 
     public List<int?> WatchedIDs { get; private set; } = [];
 
@@ -331,20 +320,14 @@
     protected override async Task OnParametersSetAsync()
     {
         WatchedIDs = [ChatID];
+        
+        LastEdit = null;
+        _editingMessage = null;
+        _replyingTo = null;
+        
         await GetChatData();
         IsMod = IsModerator();
-
-        await using var db = await Db.CreateDbContextAsync();
-        Chat = await db.Chats
-            .Include(c => c.Users)
-            .FirstOrDefaultAsync(c => c.ID == ChatID);
-        ChatName = Chat switch
-        {
-            null => throw new InvalidOperationException($"Chat from ID {ChatID} not found"),
-            GroupChat groupChat => groupChat.GetGroupName(),
-            _ => (OtherUser!.DisplayName ?? OtherUser!.UserName)!
-        };
-
+        
         await InitMessages();
 
         ChatLoaded = true;
@@ -420,8 +403,9 @@
                 .FirstOrDefaultAsync(c => c.ID == ChatID);
         }
 
-        if (Self is null || Chat is null)
-            return;
+        OtherUser = Chat?.Users.FirstOrDefault(u => u.Id != Self!.Id);
+        
+        if (Self is null || Chat is null) return;
 
         switch (Chat)
         {
@@ -583,6 +567,10 @@
 
     public async Task InitMessages()
     {
+        EphemeralMessages.Clear();
+        Messages.Clear();
+        MessageIdToIndex.Clear();
+        
         await using var db = await Db.CreateDbContextAsync();
         var messages = await db.Messages
             .Include(m => m.Sender)
