@@ -35,5 +35,5 @@ public interface IGroupSubscriber : IAsyncSubscriber
     /// <summary>
     /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
-    Task OnUpdate(GroupEvent evt, int? specifiedGroup = null);
+    Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null);
 }

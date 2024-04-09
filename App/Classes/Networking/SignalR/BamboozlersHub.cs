@@ -101,7 +101,8 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     };
                     var groupInteractionSyncResponse = new GroupInteractionSyncS2CPacket
                     {
-                        Event = responseGroupEvent
+                        Event = responseGroupEvent,
+                        SpecificUserId = groupInteractionSync.SpecificUserId
                     };
                     await SendToChat(groupInteractionSync.GroupId, groupInteractionSyncResponse);
                     break; 

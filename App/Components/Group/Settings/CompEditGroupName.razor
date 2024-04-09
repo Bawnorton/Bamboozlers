@@ -55,7 +55,7 @@
     [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
 
     [Parameter] public EventCallback<AlertArguments> AlertCallback { get; set; }
-    [Parameter] public int ChatID { get; set; } = default!;
+    [Parameter] public int ChatID { get; set; }
 
     private GroupChat? Group { get; set; }
 
@@ -133,7 +133,7 @@
         GroupEvent.GroupDisplayChange
     ];
     
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetGroupData();
     }

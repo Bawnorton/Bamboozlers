@@ -844,7 +844,7 @@
         GroupEvent.RemoveMember
     ];
 
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetChatData();
     }

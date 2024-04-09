@@ -384,21 +384,22 @@
 
     private async Task LeaveGroup()
     {
-        await SyncedInteraction<int?>(GroupEvent.SelfLeftGroup, async (chatId, _) => await UserGroupService.LeaveGroup(chatId));
+        await SyncedInteraction(GroupEvent.SelfLeftGroup, async (chatId, _) => await UserGroupService.LeaveGroup(chatId));
     }
 
     private async Task DeleteGroup()
     {
-        await SyncedInteraction<int?>(GroupEvent.DeleteGroup, async (chatId, _) => await UserGroupService.DeleteGroup(chatId));
+        await SyncedInteraction(GroupEvent.DeleteGroup, async (chatId, _) => await UserGroupService.DeleteGroup(chatId));
     }
 
-    private async Task SyncedInteraction<T>(GroupEvent eventKind, AsyncBiConsumer<int?, T?> action, T? arg = default)
+    private async Task SyncedInteraction(GroupEvent eventKind, AsyncBiConsumer<int?, int?> action, int? userId = default)
     {
-        await action.Invoke(ChatID, arg);
+        await action.Invoke(ChatID, userId);
         var groupInteractionSync = new GroupInteractionSyncC2SPacket
         {
             Event = eventKind,
             GroupId = ChatID!.Value,
+            SpecificUserId = userId
         };
         await SendToServer.InvokeAsync(groupInteractionSync);
     }
@@ -416,7 +417,7 @@
 
     public List<int?> WatchedIDs { get; set; } = [];
 
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         if (evt is GroupEvent.SelfLeftGroup or GroupEvent.DeleteGroup)
         {

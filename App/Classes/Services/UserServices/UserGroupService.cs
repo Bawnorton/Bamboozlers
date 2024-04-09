@@ -453,7 +453,7 @@ public class UserGroupService(
         return true;
     }
 
-    public async Task NotifySubscribersOf(int groupId, GroupEvent evt)
+    public async Task NotifySubscribersOf(int groupId, GroupEvent evt, int? specificUserId = null)
     {
         var subscribersToGroup = groupId == -1 ? Subscribers : Subscribers.Where(s => s.WatchedIDs.Contains(groupId)).ToList();
         if (evt is GroupEvent.General)
@@ -501,5 +501,5 @@ public interface IUserGroupService : IAsyncPublisher<IGroupSubscriber>
     Task<List<GroupChat>> GetAllModeratedGroups();
     Task<List<GroupInvite>> GetAllIncomingInvites();
     Task<List<GroupInvite>> GetAllOutgoingInvites();
-    Task NotifySubscribersOf(int groupId, GroupEvent evt);
+    Task NotifySubscribersOf(int groupId, GroupEvent evt, int? specificUserId = null);
 }

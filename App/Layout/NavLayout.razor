@@ -176,6 +176,7 @@
     public async Task Refresh()
     {
         await GetDataAsync();
+        MoveToHome();
     }
 
     private async Task GetDataAsync()
@@ -223,11 +224,12 @@
                 chat.Users.First(u => u.Id != Self.Id),
                 chat.Users.First(u => u.Id != Self.Id).Avatar)
             ).ToList();
-
-        if (CurrentView != View.Dm || DmChats.FirstOrDefault(c => c.User.Id == CurrentChatId) is not null) return;
-
-        CurrentChatId = -1;
+    }
+    
+    private void MoveToHome()
+    {
         CurrentView = View.Home;
+        CurrentChatId = -1;
     }
 
     public async Task GetFriendData()
@@ -315,10 +317,21 @@
         GroupEvent.DeleteGroup
     ];
 
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetUserData();
         GetGroupData();
+        if (CurrentView == View.Group && CurrentChatId == specifiedGroup)
+        {
+            if (evt is GroupEvent.DeleteGroup or GroupEvent.SelfLeftGroup) // I left or group was deleted
+            {
+                MoveToHome();
+            }
+            else if (Self!.Id == specifiedUser && evt is GroupEvent.RemoveMember) // I was kicked
+            {
+                MoveToHome();
+            }
+        }
         await InvokeAsync(StateHasChanged);
     }
 
