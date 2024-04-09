@@ -8,9 +8,15 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
+<<<<<<< HEAD
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
+=======
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
+>>>>>>> 5634344a782ecf6c53fc1126432b407ee5199763
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Chat
@@ -359,6 +365,7 @@
         GroupEvent.CreateGroup,
         GroupEvent.ReceivedInviteAccepted,
         GroupEvent.SelfLeftGroup,
+        GroupEvent.OtherLeftGroup,
         GroupEvent.GroupDisplayChange,
         GroupEvent.DeleteGroup
     ];
@@ -394,7 +401,7 @@
         await GetDataAsync();
         await base.OnUpdate(data);
     }
-
+    
     private enum View
     {
         Dm,
@@ -403,5 +410,4 @@
     }
 
     private record DmChat(int ID, User User, byte[]? Avatar);
-
 }
