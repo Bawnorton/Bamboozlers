@@ -436,8 +436,11 @@ else
                 .Include(i => i.Owner)
                 .FirstOrDefaultAsync(c => c.ID == ChatID);
         }
+        else
+        {
+            OtherUser = Chat?.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? User.Deleted;
+        }
 
-        OtherUser = Chat?.Users.FirstOrDefault(u => u.Id != Self!.Id);
         
         if (Self is null) return;
         if (Chat is null)
@@ -864,7 +867,13 @@ else
             await CreateSystemMessage(SystemErrorType.NullRecipient);
             return false;
         }
-            
+        
+        if (OtherUser.Id == User.Deleted.Id)
+        {
+            await CreateSystemMessage(SystemErrorType.DeletedRecipient);
+            return false;
+        }
+        
         if (await UserInteractionService.FindIfBlockedBy(OtherUser.Id) is not null)
         {
             await CreateSystemMessage(SystemErrorType.SenderIsBlocked);
@@ -913,6 +922,7 @@ else
     private enum SystemErrorType
     {
         NullRecipient,
+        DeletedRecipient,
         RecipientIsStranger,
         SenderIsBlocked
     }

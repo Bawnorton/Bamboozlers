@@ -31,4 +31,12 @@ public class User : IdentityUser<int>
     {
         return $"images/default_profiles/profile_{Id % 7}.png";
     }
+    
+    public static readonly User Deleted = new()
+    {
+        DisplayName = "Deleted User",
+        Avatar = null,
+        UserName = "Deleted User",
+        Id = -1
+    };
 }

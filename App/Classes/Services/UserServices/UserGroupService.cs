@@ -2,7 +2,6 @@ using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Bamboozlers.Classes.Services.UserServices;
