@@ -3,7 +3,7 @@
 ### Sprint Planning Checklist
 | Preparation | Meeting | Follow Up |
 | --- | --- | --- |
-| Completed | | | <!--INCOMPLETE-->
+| Completed | Completed | Not necessary |
 
 ### Sprint Team Members
 | Name               | Role        |
@@ -24,25 +24,25 @@
   </tr>
   <tr>
     <th>Issues Completed</th>
-    <td>_ issues</td> <!--INCOMPLETE-->
+    <td>7 issues</td>
   </tr>
   <tr>
     <th>Issues Left</th>
-    <td>_ Issues</td> <!--INCOMPLETE-->
+    <td>2 Issues</td>
   </tr>
   <tr>
     <th>Team Capacity</th>
     <td>
-      Bridgette Hunt - _ issues<br> <!--INCOMPLETE-->
-      MacKenzie Richards - _ issues<br> <!--INCOMPLETE-->
-      Zahra Kagda - _ issues<br> <!--INCOMPLETE-->
-      Ben Norton - _ issues<br> <!--INCOMPLETE-->
-      Ryan Osmond - _ issues <!--INCOMPLETE-->
+      Bridgette Hunt - 4 issues<br>
+      MacKenzie Richards - 1 issue<br>
+      Zahra Kagda - 1 issues<br>
+      Ben Norton - 4 issues<br> 
+      Ryan Osmond - 1 issues 
     </td>
   </tr>
   <tr>
     <th>Summary</th>
-    <td></td> <!--INCOMPLETE--> 
+    <td>All except one development-related issue was completed in time for the Sprint, but it is under active review and will be completed immediately.</td> 
   </tr>
 </table>
 
@@ -66,16 +66,16 @@
   </tr>
   <tr>
     <th>Issues Capacity</th>
-    <td>1 Issue</td> <!--INCOMPLETE-->
+    <td>2 Issues</td>
   </tr>
   <tr>
     <th>Individual Capacity</th>
         <td>
-      Bridgette Hunt - _ issues<br> <!--INCOMPLETE-->
-      MacKenzie Richards - _ issues<br> <!--INCOMPLETE-->
-      Zahra Kagda - _ issues<br> <!--INCOMPLETE-->
-      Ben Norton - _ issues<br> <!--INCOMPLETE-->
-      Ryan Osmond - _ issues <!--INCOMPLETE-->
+      Bridgette Hunt - 1 issue<br>
+      MacKenzie Richards - 1 issue<br>
+      Zahra Kagda - 1 issue<br>
+      Ben Norton - 2 issues<br>
+      Ryan Osmond - 1 issue
     </td>
   </tr>
   <tr>
@@ -84,6 +84,6 @@
   </tr>
   <tr>
     <th>Mitigations</th>
-    <td>No more development work can be done. The focus of all teammates must be the completion of the Milestone.</td>
+    <td>Development work is all but done. The focus of all teammates will be on the completion of the milestone and final development tasks.</td>
   </tr>
 </table>
