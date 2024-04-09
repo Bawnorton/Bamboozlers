@@ -366,14 +366,14 @@ public class UserInteractionService(
         {
             if (evt is InteractionEvent.General)
             {
-                foreach (var sub in Subscribers)
+                foreach (var sub in Subscribers.ToList())
                 {
                     await sub.OnUpdate(InteractionEvent.General);
                 }
             }
             else
             {
-                foreach (var sub in Subscribers.Where(s => s.WatchedInteractionEvents.Contains(evt) || s.WatchedInteractionEvents.Contains(InteractionEvent.General)))
+                foreach (var sub in Subscribers.Where(s => s.WatchedInteractionEvents.Contains(evt) || s.WatchedInteractionEvents.Contains(InteractionEvent.General)).ToList())
                 {
                     await sub.OnUpdate(evt);
                 }

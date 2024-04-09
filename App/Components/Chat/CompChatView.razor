@@ -164,11 +164,19 @@
                         <CascadingValue Value="new ChatContext(IsMod,  SetReplying, DeleteMessage, StartEditMessage, SetLastEdit, EndEditMessage, PinMessage)">
                             @foreach (var message in Messages)
                             {
-                                <CompMessageView
-                                    Message="message.DbMessage"
-                                    PreviousMessage="@message.Previous?.DbMessage"
-                                    EchoRecieved="@message.EchoRecieved"
-                                    Editing="@message.DbMessage.ID.Equals(_editingMessage?.DbMessage.ID)"/>
+                                if (!message.SystemMessage)
+                                {
+                                    <CompMessageView
+                                        Message="message.DbMessage"
+                                        PreviousMessage="@message.Previous?.DbMessage"
+                                        EchoRecieved="@message.EchoRecieved"
+                                        Editing="@message.DbMessage.ID.Equals(_editingMessage?.DbMessage.ID)"/>
+                                }
+                                else
+                                {
+                                    <CompSystemMessageView
+                                        Message="message.DbMessage"/>
+                                }
                             }
                         </CascadingValue>
                     }
@@ -268,7 +276,8 @@
 @* ReSharper disable always InconsistentNaming *@
 @code {
     [Inject] IUserGroupService UserGroupService { get; set; } = default!;
-
+    [Inject] IUserInteractionService UserInteractionService { get; set; } = default!;
+    
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
@@ -624,6 +633,8 @@
 
     private async Task SendMessage(string messageText)
     {
+        if (await ValidateUserChatStatus() is false) return;
+        
         if (string.IsNullOrWhiteSpace(messageText) && FileData.Count == 0) return;
         messageText = string.IsNullOrWhiteSpace(messageText) ? "" : messageText;
 
@@ -714,7 +725,28 @@
         await JsRuntime.InvokeVoidAsync("focusInput");
     }
 
-    private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false)
+    private async Task CreateSystemMessage(SystemErrorType systemErrorType)
+    {
+        var lastMessage = Messages.Count == 0 ? null : Messages[^1];
+        if (lastMessage is not null && lastMessage.SystemMessage)
+            return;
+        
+        var systemMessage = new Message
+        {
+            SentAt = DateTime.Now
+        };
+        systemMessage.Content = systemErrorType switch
+        {
+            SystemErrorType.NullRecipient => "Cannot send message to specified user at this time.",
+            SystemErrorType.RecipientIsStranger => "You are not friends with this user and cannot send messages to them.",
+            SystemErrorType.SenderIsBlocked => "You are blocked by this user and cannot send messages to them.",
+            _ => systemMessage.Content
+        };
+        CreateMessageEntry(systemMessage, false, true);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false, bool systemMessage = false)
     {
         var lastMessage = Messages.Count == 0 ? null : Messages[^1];
         var messageEntry = new MessageEntry
@@ -722,7 +754,8 @@
             DbMessage = message,
             Previous = lastMessage,
             Next = null,
-            EchoRecieved = !ephemeral
+            EchoRecieved = !ephemeral,
+            SystemMessage = systemMessage
         };
         if (lastMessage != null)
         {
@@ -782,6 +815,37 @@
             }
         }
     }
+
+    private async Task<bool> ValidateUserChatStatus()
+    {
+        var self = await AuthService.GetUser();
+        if (Chat is GroupChat) return true; // No system messages for GroupChat yet
+
+        if (self is null)
+        {
+            return false;
+        }
+        
+        if (_otherUser is null)
+        {
+            await CreateSystemMessage(SystemErrorType.NullRecipient);
+            return false;
+        }
+            
+        if (await UserInteractionService.FindIfBlockedBy(_otherUser.Id) is not null)
+        {
+            await CreateSystemMessage(SystemErrorType.SenderIsBlocked);
+            return false;
+        }
+
+        if (await UserInteractionService.FindFriendship(_otherUser.Id) is null)
+        {
+            await CreateSystemMessage(SystemErrorType.RecipientIsStranger);
+            return false;
+        }
+        
+        return true;
+    }
     
     public override async Task OnUpdate(UserRecord? data)
     {
@@ -807,8 +871,16 @@
         public MessageEntry? Previous { get; set; }
         public Message DbMessage { get; set; }
         public bool EchoRecieved { get; set; }
+        public bool SystemMessage { get; set; }
 
         public bool HasNext => Next != null;
         public bool HasPrevious => Previous != null;
+    }
+
+    private enum SystemErrorType
+    {
+        NullRecipient,
+        RecipientIsStranger,
+        SenderIsBlocked
     }
 }
