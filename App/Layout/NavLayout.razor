@@ -5,25 +5,16 @@
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
 
-@using Bamboozlers.Classes.AppDbContext
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
-<<<<<<< HEAD
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
-=======
-@using Bamboozlers.Classes.Networking.Packets
-@using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction
-@using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
->>>>>>> 5634344a782ecf6c53fc1126432b407ee5199763
-@using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.Services.UserServices
-@using Bamboozlers.Components.Chat
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Components.MainVisual
-@using Bamboozlers.Components.Utility
-@using Blazorise.Extensions
-
+@using Bamboozlers.Components.Chat
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IUserGroupService UserGroupService;
@@ -147,7 +138,7 @@
                 </Div>
             </LayoutSiderContent>
         </LayoutSider>
-        @if(CurrentView == View.Home)
+        @if (CurrentView == View.Home)
         {
             <CompMainView/>
         }
@@ -234,7 +225,7 @@
                 chat.Users.First(u => u.Id != Self.Id).Avatar)
             ).ToList();
     }
-    
+
     private void MoveToHome()
     {
         CurrentView = View.Home;
@@ -276,6 +267,7 @@
             };
             await SendToServer.InvokeAsync(leaveChat);
         }
+
         if (reload)
         {
             await GetUserData();
@@ -284,7 +276,6 @@
 
         if (chatId == -1)
         {
-            
             if (otherId is not null)
             {
                 var dm = await UserInteractionService.FindDm(otherId);
@@ -297,7 +288,6 @@
                 chatId = dm.ID;
                 await GetUserData();
                 GetDmData();
-
             }
             else
             {
@@ -307,9 +297,9 @@
 
         CurrentView = View.Dm;
         CurrentChatId = chatId;
-        
+
         await InvokeAsync(StateHasChanged);
-        
+
         var joinChat = new JoinChatC2SPacket
         {
             SenderId = Self!.Id,
@@ -329,7 +319,7 @@
             };
             await SendToServer.InvokeAsync(leaveChat);
         }
-        
+
         if (reload)
         {
             await GetUserData();
@@ -340,7 +330,7 @@
         CurrentChatId = chatId;
 
         await InvokeAsync(StateHasChanged);
-        
+
         var joinChat = new JoinChatC2SPacket
         {
             SenderId = Self!.Id,
@@ -385,6 +375,7 @@
                 MoveToHome();
             }
         }
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -401,7 +392,7 @@
         await GetDataAsync();
         await base.OnUpdate(data);
     }
-    
+
     private enum View
     {
         Dm,
@@ -410,4 +401,5 @@
     }
 
     private record DmChat(int ID, User User, byte[]? Avatar);
+
 }
