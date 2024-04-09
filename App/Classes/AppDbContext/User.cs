@@ -13,9 +13,10 @@ public class User : IdentityUser<int>
     public ICollection<Chat> Chats { get; set; } = default!;
     public ICollection<GroupChat> ModeratedChats { get; set; } = default!;
     public ICollection<GroupChat> OwnedChats { get; set; } = default!;
-
     public ICollection<ChatUser> UserChats { get; set; } = default!;
-    
+
+    public ICollection<ChatModerator> UserModeratedChats { get; set; } = default!;
+
     public string GetName()
     {
         return DisplayName.IsNullOrEmpty() ? UserName! : DisplayName!;

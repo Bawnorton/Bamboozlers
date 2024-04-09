@@ -44,14 +44,20 @@
         </Div>
     </ModalBody>
     <ModalFooter>
-        @if (Chat?.OwnerID != Self?.Id)
+        <CompActionButton ButtonId="leaveGroup"
+                          ButtonCaption="Leave Group"
+                          Color="Color.Danger"
+                          IconName="IconName.Running"
+                          ColumnWrapped="@false"
+                          ActionCallback="@(async () => await OpenLeaveConfirmation())"/>
+        @if (Chat?.OwnerID == Self?.Id)
         {
-            <CompActionButton ButtonId="leaveGroup"
-                              ButtonCaption="Leave Group"
+            <CompActionButton ButtonId="deleteGroup"
+                              ButtonCaption="Delete Group"
                               Color="Color.Danger"
-                              IconName="IconName.Running"
+                              IconName="IconName.Delete"
                               ColumnWrapped="@false"
-                              ActionCallback="@LeaveGroup"/>
+                              ActionCallback="@(async () => await OpenDeleteConfirmation())"/>
         }
     </ModalFooter>
 </ModalContent>
@@ -327,24 +333,60 @@
         );
     }
     
-    private async Task RevokePermissions(int? userID)
+    private async Task OpenLeaveConfirmation()
     {
-        await SyncedInteraction(GroupEvent.RevokedPermissions, UserGroupService.RevokePermissions, userID);
+        await OpenAlertPopup.InvokeAsync(
+            new AlertPopupArgs(
+                @<text>
+                     You'll have to be re-invited by the owner or a moderator to rejoin after you leave!
+                     @if (Self?.Id == Chat?.OwnerID)
+                     {
+                         <h5>
+                             As you are the owner of this group, a new owner will be automatically selected.
+                             If there are no eligible users in this group, the group will be permanently deleted!
+                         </h5>
+                     }
+                 </text>,
+                EventCallback.Factory.Create(this, async () => await LeaveGroup())
+            )
+        );
     }
     
-    private async Task AssignPermissions(int? userID)
+    private async Task OpenDeleteConfirmation()
     {
-        await SyncedInteraction(GroupEvent.GrantedPermissions, UserGroupService.AssignPermissions, userID);
+        await OpenAlertPopup.InvokeAsync(
+            new AlertPopupArgs(
+                @<text>
+                     This group and all its history will be permanently deleted and unrecoverable.
+                 </text>,
+                EventCallback.Factory.Create(this, async () => await DeleteGroup())
+            )
+        );
     }
     
-    private async Task RemoveMember(int? userID)
+    private async Task RevokePermissions(int? userId)
     {
-        await SyncedInteraction(GroupEvent.RemoveMember, UserGroupService.RemoveGroupMember, userID);
+        await SyncedInteraction(GroupEvent.RevokedPermissions, UserGroupService.RevokePermissions, userId);
+    }
+    
+    private async Task AssignPermissions(int? userId)
+    {
+        await SyncedInteraction(GroupEvent.GrantedPermissions, UserGroupService.AssignPermissions, userId);
+    }
+    
+    private async Task RemoveMember(int? userId)
+    {
+        await SyncedInteraction(GroupEvent.RemoveMember, UserGroupService.RemoveGroupMember, userId);
     }
 
     private async Task LeaveGroup()
     {
         await SyncedInteraction<int?>(GroupEvent.SelfLeftGroup, async (chatId, _) => await UserGroupService.LeaveGroup(chatId));
+    }
+
+    private async Task DeleteGroup()
+    {
+        await SyncedInteraction<int?>(GroupEvent.DeleteGroup, async (chatId, _) => await UserGroupService.DeleteGroup(chatId));
     }
 
     private async Task SyncedInteraction<T>(GroupEvent eventKind, AsyncBiConsumer<int?, T?> action, T? arg = default)
@@ -384,4 +426,3 @@
     }
 
 }
-

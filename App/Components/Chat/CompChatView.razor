@@ -131,16 +131,18 @@
         <Div>
             @if (Chat is GroupChat groupChat)
             {
-                <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
-                <Div ElementId="header-text">@ChatName</Div>
+                <Div ElementId="header-text">
+                    <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
+                    @ChatName
+                </Div>
             }
             else if (Chat is not null && Chat is not GroupChat)
             {
-                @if(OtherUser?.Avatar != null)
-                {
-                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(OtherUser.Avatar)}") Class="message-avatar" alt=""/>
-                }
                 <Div ElementId="header-text">
+                    @if (OtherUser is not null)
+                    {
+                        <Image Source="@OtherUser.GetAvatar()" Class="message-avatar" alt=""/>
+                    }
                     <CompInteractUsername User=@OtherUser/>
                 </Div>
             }
@@ -251,10 +253,7 @@
                         <BarItem>
                             <BarLink Flex="Flex.JustifyContent.Between" class="align-items-center rounded" Display="Display.Flex">
                                 <Div>
-                                    @if (user.Avatar != null)
-                                    {
-                                        <Image Source="@user.GetAvatar()" Class="message-avatar" alt=""/>
-                                    }
+                                    <Image Source="@user.GetAvatar()" Class="message-avatar" alt=""/>
                                     <CompInteractUsername User="@user"/>
                                 </Div>
                             </BarLink>
@@ -783,6 +782,13 @@
             }
         }
     }
+    
+    public override async Task OnUpdate(UserRecord? data)
+    {
+        Self = (await AuthService.GetUser())!;
+        await base.OnUpdate(data);
+        await InvokeAsync(StateHasChanged);
+    }
 
     public List<GroupEvent> WatchedGroupEvents { get; } =
     [
@@ -805,5 +811,4 @@
         public bool HasNext => Next != null;
         public bool HasPrevious => Previous != null;
     }
-
 }

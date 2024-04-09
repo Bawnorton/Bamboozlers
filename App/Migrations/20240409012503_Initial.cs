@@ -201,7 +201,8 @@ namespace Bamboozlers.Migrations
                         name: "FK_Chats_AspNetUsers_OwnerID",
                         column: x => x.OwnerID,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -250,46 +251,49 @@ namespace Bamboozlers.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ChatUser",
+                name: "ChatModerators",
                 columns: table => new
                 {
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    ChatId = table.Column<int>(type: "int", nullable: false),
-                    LastAccess = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                    GroupChatId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ChatUser", x => new { x.UserId, x.ChatId });
+                    table.PrimaryKey("PK_ChatModerators", x => new { x.UserId, x.GroupChatId });
                     table.ForeignKey(
-                        name: "FK_ChatUser_AspNetUsers_UserId",
+                        name: "FK_ChatModerators_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ChatUser_Chats_ChatId",
-                        column: x => x.ChatId,
+                        name: "FK_ChatModerators_Chats_GroupChatId",
+                        column: x => x.GroupChatId,
                         principalTable: "Chats",
                         principalColumn: "ID");
                 });
 
             migrationBuilder.CreateTable(
-                name: "GroupChatUser",
+                name: "ChatUsers",
                 columns: table => new
                 {
-                    ModeratedChatsID = table.Column<int>(type: "int", nullable: false),
-                    ModeratorsId = table.Column<int>(type: "int", nullable: false)
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ChatId = table.Column<int>(type: "int", nullable: false),
+                    LastAccess = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    JoinDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_GroupChatUser", x => new { x.ModeratedChatsID, x.ModeratorsId });
+                    table.PrimaryKey("PK_ChatUsers", x => new { x.UserId, x.ChatId });
                     table.ForeignKey(
-                        name: "FK_GroupChatUser_AspNetUsers_ModeratorsId",
-                        column: x => x.ModeratorsId,
+                        name: "FK_ChatUsers_AspNetUsers_UserId",
+                        column: x => x.UserId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_GroupChatUser_Chats_ModeratedChatsID",
-                        column: x => x.ModeratedChatsID,
+                        name: "FK_ChatUsers_Chats_ChatId",
+                        column: x => x.ChatId,
                         principalTable: "Chats",
                         principalColumn: "ID");
                 });
@@ -332,7 +336,6 @@ namespace Bamboozlers.Migrations
                     ChatID = table.Column<int>(type: "int", nullable: false),
                     SenderID = table.Column<int>(type: "int", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Attachment = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
                     SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     PinnedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EditedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -352,6 +355,26 @@ namespace Bamboozlers.Migrations
                         principalTable: "Chats",
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MessageAttachment",
+                columns: table => new
+                {
+                    ID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Data = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
+                    MessageID = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MessageAttachment", x => x.ID);
+                    table.ForeignKey(
+                        name: "FK_MessageAttachment_Messages_MessageID",
+                        column: x => x.MessageID,
+                        principalTable: "Messages",
+                        principalColumn: "ID");
                 });
 
             migrationBuilder.CreateIndex(
@@ -399,13 +422,18 @@ namespace Bamboozlers.Migrations
                 column: "BlockerID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ChatModerators_GroupChatId",
+                table: "ChatModerators",
+                column: "GroupChatId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Chats_OwnerID",
                 table: "Chats",
                 column: "OwnerID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ChatUser_ChatId",
-                table: "ChatUser",
+                name: "IX_ChatUsers_ChatId",
+                table: "ChatUsers",
                 column: "ChatId");
 
             migrationBuilder.CreateIndex(
@@ -419,11 +447,6 @@ namespace Bamboozlers.Migrations
                 column: "User2ID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_GroupChatUser_ModeratorsId",
-                table: "GroupChatUser",
-                column: "ModeratorsId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_GroupInvites_GroupID",
                 table: "GroupInvites",
                 column: "GroupID");
@@ -432,6 +455,11 @@ namespace Bamboozlers.Migrations
                 name: "IX_GroupInvites_RecipientID",
                 table: "GroupInvites",
                 column: "RecipientID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MessageAttachment_MessageID",
+                table: "MessageAttachment",
+                column: "MessageID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Messages_ChatID",
@@ -466,7 +494,10 @@ namespace Bamboozlers.Migrations
                 name: "BlockList");
 
             migrationBuilder.DropTable(
-                name: "ChatUser");
+                name: "ChatModerators");
+
+            migrationBuilder.DropTable(
+                name: "ChatUsers");
 
             migrationBuilder.DropTable(
                 name: "FriendRequests");
@@ -475,16 +506,16 @@ namespace Bamboozlers.Migrations
                 name: "FriendShips");
 
             migrationBuilder.DropTable(
-                name: "GroupChatUser");
-
-            migrationBuilder.DropTable(
                 name: "GroupInvites");
 
             migrationBuilder.DropTable(
-                name: "Messages");
+                name: "MessageAttachment");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "Messages");
 
             migrationBuilder.DropTable(
                 name: "Chats");

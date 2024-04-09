@@ -2,6 +2,7 @@ using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Bamboozlers.Classes.Services.UserServices;
@@ -15,30 +16,18 @@ public class UserGroupService(
     private IUserInteractionService UserInteractionService { get; } = userInteractionService;
     private IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; } = dbContextFactory;
     
-    private static bool IsOwner(GroupChat groupChat, User user)
+    private async Task<bool> Outranks(int? firstId, int? secondId, int? chatId)
     {
-        return groupChat.OwnerID == user.Id;
-    }
-    
-    private static bool IsModerator(GroupChat groupChat, User user)
-    {
-        return groupChat.Moderators.FirstOrDefault(u => u.Id == user.Id) is not null;
-    }
-    
-    private static bool IsMemberOf(Chat chat, User user)
-    {
-        return chat.Users.FirstOrDefault(u => u.Id == user.Id) is not null;
-    }
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var groupChat = await dbContext.GroupChats.FirstOrDefaultAsync(gc => gc.ID == chatId);
+        if (groupChat is null) return false;
+        
+        if (groupChat.OwnerID == firstId) return true;
+        if (groupChat.OwnerID == secondId) return false;
 
-    private static bool HasPermissions(GroupChat groupChat, User user)
-    {
-        return IsOwner(groupChat, user) || IsModerator(groupChat, user);
-    }
-    
-    private static bool Outranks(User first, User second, GroupChat groupChat)
-    {
-        return IsOwner(groupChat, first) ||
-               (IsModerator(groupChat, first) && !IsModerator(groupChat, second) && !IsOwner(groupChat,second));
+        var firstIsMod = await dbContext.ChatModerators.FirstOrDefaultAsync(cm => cm.GroupChatId == chatId && cm.UserId == firstId) is not null;
+        var secondIsMod = await dbContext.ChatModerators.FirstOrDefaultAsync(cm => cm.GroupChatId == chatId && cm.UserId == secondId) is not null;
+        return firstIsMod && !secondIsMod;
     }
     
     private async Task<(User?, GroupChat?)> GetUserAndGroup(int? chatId)
@@ -63,6 +52,40 @@ public class UserGroupService(
         return (self, group);
     }
 
+    private async Task FindSuccessorOwner(int? chatId)
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var group = await dbContext.GroupChats.FirstOrDefaultAsync(g => g.ID == chatId);
+        if (group is null) return;
+
+        var modList = dbContext.ChatModerators.Where(cm => cm.GroupChatId == chatId)
+            .Select(cm => cm.UserId)
+            .ToList();
+        var chatUsers = dbContext.ChatUsers.Where(cu => cu.ChatId == chatId)
+            .OrderBy(cu => cu.JoinDate)
+            .ToList();
+        var eligibleSuccessors = chatUsers.Where(u => modList.Contains(u.UserId))
+            .OrderBy(cu => cu.JoinDate)
+            .ToList();
+        eligibleSuccessors.AddRange(chatUsers.Except(eligibleSuccessors));
+        
+        var successor = eligibleSuccessors.FirstOrDefault();
+        if (successor is not null)
+        {
+            group.OwnerID = successor.UserId;
+            var modEntry = await dbContext.ChatModerators.FirstOrDefaultAsync(cm => cm.GroupChatId == chatId && cm.UserId == successor.UserId);
+            if (modEntry is not null)
+            {
+                dbContext.ChatModerators.Remove(modEntry);
+            }
+            await dbContext.SaveChangesAsync();
+            return;
+        }
+
+        await DeleteGroup(chatId, true);
+    }
+
     public async Task<IdentityResult> CreateGroup(byte[]? avatar = null, string? name = null, List<User>? sendInvites = null)
     {
         var self = await AuthService.GetUser(query => 
@@ -74,17 +97,14 @@ public class UserGroupService(
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var entityEntry = dbContext.GroupChats.Add(new GroupChat(self.Id));
         await dbContext.SaveChangesAsync();
-        var newChatId = entityEntry.Entity.ID;
         
+        var newChatId = entityEntry.Entity.ID;
         var group = dbContext.GroupChats.First(gc => gc.ID == newChatId);
-        dbContext.AttachRange([self, group]);
-
         group.Name = name.IsNullOrEmpty() ? null : name;
         group.Avatar = avatar;
+        await dbContext.SaveChangesAsync();
         
-        group.Users = [self];
-
-        dbContext.GroupChats.Update(group);
+        dbContext.ChatUsers.Add(new ChatUser(self.Id, group.ID));
         await dbContext.SaveChangesAsync();
 
         if (sendInvites is not null && sendInvites.Count > 0)
@@ -99,32 +119,48 @@ public class UserGroupService(
         await NotifySubscribersOf(-1, GroupEvent.CreateGroup);
         return IdentityResult.Success;
     }
-
-    private static bool Exists(User? self, GroupChat? group)
-    {
-        return self is not null && group is not null;
-    }
-
-    private static bool HasPerms(User self, GroupChat group)
-    {
-        return IsModerator(group, self) || IsOwner(group, self);
-    }
     
-    private static bool ExistsAndHasPerms(User? self, GroupChat? group)
+    public async Task<IdentityResult> DeleteGroup(int? chatId, bool overridePerms = false)
     {
-        return Exists(self, group) && HasPerms(self!, group!);
+        if (!overridePerms)
+        {
+            var (self, group) = await GetUserAndGroup(chatId);
+            if (self is null || group is null) return IdentityResult.Failed();
+        
+            if (group.OwnerID != self.Id) return IdentityResult.Failed();
+        }
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var grp = dbContext.GroupChats.First(gc => gc.ID == chatId);
+        foreach (var chatUser in dbContext.ChatUsers.Where(cu => cu.ChatId == chatId).ToList())
+        {
+            dbContext.ChatUsers.Remove(chatUser);
+        }
+        foreach (var chatModerator in dbContext.ChatModerators.Where(cm => cm.GroupChatId == chatId).ToList())
+        {
+            dbContext.ChatModerators.Remove(chatModerator);
+        }
+        dbContext.Remove(grp);
+        await dbContext.SaveChangesAsync();
+
+        await NotifySubscribersOf(-1, GroupEvent.DeleteGroup);
+        return IdentityResult.Success;
     }
     
     public async Task<IdentityResult> UpdateGroupAvatar(int? chatId, byte[]? avatar)
     {
         var (self, group) = await GetUserAndGroup(chatId);
+        if (self is null || group is null) return IdentityResult.Failed();
         
-        if (!ExistsAndHasPerms(self,group))
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var isMod = await dbContext.ChatModerators.FirstOrDefaultAsync(cm 
+            => cm.GroupChatId == chatId && cm.UserId == self.Id
+        ) is not null;
+        
+        if (!isMod && group.OwnerID != self.Id)
         {
             return IdentityResult.Failed([new IdentityError{Description = "Issue occurred that prevented group changes from being saved."}]);
         }
-
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        
         group = dbContext.GroupChats.First(gc => gc.ID == chatId);
         avatar = avatar.IsNullOrEmpty() ? null : avatar;
         
@@ -138,13 +174,18 @@ public class UserGroupService(
     public async Task<IdentityResult> UpdateGroupName(int? chatId, string? name)
     {
         var (self, group) = await GetUserAndGroup(chatId);
-
-        if (!ExistsAndHasPerms(self,group))
+        if (self is null || group is null) return IdentityResult.Failed();
+        
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var isMod = await dbContext.ChatModerators.FirstOrDefaultAsync(cm 
+            => cm.GroupChatId == chatId && cm.UserId == self.Id
+        ) is not null;
+        
+        if (!isMod && group.OwnerID != self.Id)
         {
             return IdentityResult.Failed([new IdentityError{Description = "Issue occurred that prevented group changes from being saved."}]);
         }
-
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        
         group = dbContext.GroupChats.Include(gc => gc.Owner)
                     .First(gc => gc.ID == chatId);
         group.Name = name.IsNullOrEmpty() ? null : name;
@@ -196,15 +237,7 @@ public class UserGroupService(
         if (self is null || group is null) return;
 
         dbContext.GroupInvites.Remove(invite);
-        
-        var id = self.Id;
-        self = dbContext.Users.Include(c => c.Chats).First(u => u.Id == id);
-        group = dbContext.GroupChats.Include(g => g.Users).First(g => g.ID == chatId);
-        
-        group.Users.Add(self);
-        await dbContext.SaveChangesAsync();
-        
-        self.Chats.Add(group);
+        dbContext.ChatUsers.Add(new ChatUser(self.Id, (int)chatId!));
         await dbContext.SaveChangesAsync();
         
         await NotifySubscribersOf(-1, GroupEvent.ReceivedInviteAccepted);
@@ -228,34 +261,29 @@ public class UserGroupService(
     {
         var (self, group) = await GetUserAndGroup(chatId);
         if (self is null || group is null) return;
-
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        var other = await dbContext.Users.Where(u => u.Id == memberId)
-            .Include(u => u.Chats)
-            .FirstOrDefaultAsync();
         
-        if (other is null || !IsMemberOf(group, other)) return;
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
-        var skipChecks = other.Id == self.Id;
-        if (!skipChecks && !Outranks(self, other, group)) return;
+        var skipChecks = memberId == self.Id;
+        var outranks = await Outranks(self.Id, memberId, chatId);
+        if (!skipChecks && !outranks) return;
 
-        var isMod = IsModerator(group, other);
-        other = dbContext.Users.First(u => u.Id == memberId);
-        group.Users.Remove(other);
-        if (isMod)
-            group.Moderators.Remove(other);
+        var chatUser = await dbContext.ChatUsers.FirstOrDefaultAsync(
+            cu => cu.ChatId == chatId && cu.UserId == memberId
+        );
+        var chatMod = await dbContext.ChatModerators.FirstOrDefaultAsync(
+            cm => cm.GroupChatId == chatId && cm.UserId == memberId
+        );
+        
+        if (chatUser is not null) 
+            dbContext.ChatUsers.Remove(chatUser);
+        if (chatMod is not null)
+            dbContext.ChatModerators.Remove(chatMod);
         await dbContext.SaveChangesAsync();
 
-        group = dbContext.GroupChats.First(g => g.ID == chatId);
-        other = dbContext.Users.Include(u => u.Chats).First(u => u.Id == memberId);
-        other.Chats.Remove(group);
-        await dbContext.SaveChangesAsync();
-
-        if (isMod)
+        if (skipChecks && self.Id == group.OwnerID)
         {
-            other = dbContext.Users.Include(u => u.ModeratedChats).First(u => u.Id == memberId);
-            other.ModeratedChats.Remove(group);
-            await dbContext.SaveChangesAsync();
+            await FindSuccessorOwner(chatId);
         }
 
         await NotifySubscribersOf(group.ID, GroupEvent.RemoveMember);
@@ -267,21 +295,13 @@ public class UserGroupService(
         if (self is null || group is null) return;
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        var mod = await dbContext.Users.Where(u => u.Id == modId)
-            .Include(u => u.Chats)
-            .Include(u => u.ModeratedChats)
-            .FirstOrDefaultAsync();
-        if (mod is null || !IsMemberOf(group, mod)) return;
         
-        var selfOutranks = Outranks(self, mod, group);
-
-        if (!selfOutranks || IsModerator(group, mod)) return;
-
-        group.Moderators.Add(mod);
-        await dbContext.SaveChangesAsync();
-
-        group = dbContext.GroupChats.First(g => g.ID == chatId);
-        mod.ModeratedChats.Add(group);
+        var selfOutranks = await Outranks(self.Id, modId, chatId);
+        var chatMod = await dbContext.ChatModerators
+            .FirstOrDefaultAsync(cm => cm.GroupChatId == chatId && cm.UserId == modId);
+        if (!selfOutranks || chatMod is not null) return;
+        
+        dbContext.ChatModerators.Add(new ChatModerator((int) modId!, (int) chatId!));
         await dbContext.SaveChangesAsync();
         
         await NotifySubscribersOf(group.ID, GroupEvent.GrantedPermissions);
@@ -293,26 +313,25 @@ public class UserGroupService(
         if (self is null || group is null) return;
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        var mod = await dbContext.Users.Where(u => u.Id == modId)
-            .Include(u => u.Chats)
-            .Include(u => u.ModeratedChats)
-            .FirstOrDefaultAsync();
-        if (mod is null || !IsMemberOf(group, mod)) return;
 
-        var selfOutranks = Outranks(self, mod, group);
-        if (!selfOutranks || !IsModerator(group, mod)) return;
-        
-        // Re-query to avoid Change Tracker issues
-        mod = dbContext.Users.First(u => u.Id == modId);
-        group.Moderators.Remove(mod);
+        var selfOutranks = await Outranks(self.Id, modId, chatId);
+        if (!selfOutranks) return;
+
+        var chatMod = await dbContext.ChatModerators
+            .FirstOrDefaultAsync(cm => cm.GroupChatId == chatId && cm.UserId == modId);
+        if (chatMod is not null)
+        {
+            dbContext.ChatModerators.Remove(chatMod);
+            await dbContext.SaveChangesAsync();
+        }
+
+        var invitesToClear = dbContext.GroupInvites.Where(i => i.SenderID == modId && i.GroupID == chatId).ToList();
+        foreach (var inv in invitesToClear)
+        {
+            dbContext.GroupInvites.Remove(inv);
+        }
         await dbContext.SaveChangesAsync();
-        
-        // Re-query to avoid Change Tracker issues
-        mod = dbContext.Users.Include(u => u.ModeratedChats).First(u => u.Id == modId);
-        group = dbContext.GroupChats.First(g => g.ID == chatId);
-        mod.ModeratedChats.Remove(group);
-        await dbContext.SaveChangesAsync();
-        
+
         await NotifySubscribersOf(group.ID, GroupEvent.RevokedPermissions);
     }
 
@@ -328,7 +347,10 @@ public class UserGroupService(
         if (other is null) return;
         
         var invite = await FindOutgoingGroupInvite(chatId,recipientId);
-        if (invite is null && (IsModerator(group, self) || IsOwner(group, self)))
+        var isMod = await dbContext.ChatModerators.FirstOrDefaultAsync(cm 
+            => cm.GroupChatId == chatId && cm.UserId == self.Id
+        ) is not null;
+        if (invite is null && (group.OwnerID == self.Id || isMod))
         {
             invite = new GroupInvite(self.Id, other.Id, group.ID);
             dbContext.GroupInvites.Add(invite);
@@ -452,6 +474,7 @@ public class UserGroupService(
 public interface IUserGroupService : IAsyncPublisher<IGroupSubscriber>
 {
     Task<IdentityResult> CreateGroup(byte[]? avatar = null, string? name = null, List<User>? sendInvites = null);
+    Task<IdentityResult> DeleteGroup(int? chatId, bool overridePerms = false);
     Task<IdentityResult> UpdateGroupAvatar(int? chatId, byte[]? avatar);
     Task<IdentityResult> UpdateGroupName(int? chatId, string? name);
     Task<GroupInvite?> FindIncomingGroupInvite(int? chatId, int? senderId);
