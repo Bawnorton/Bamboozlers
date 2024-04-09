@@ -9,15 +9,17 @@ public class MockAppDbContext
     public Mock<AppDbContext> MockDbContext { get; set; }
     public MockUsers MockUsers { get; set; }
     public MockChats MockChats { get; set; }
+    public MockChatUsers MockChatUsers { get; set; }
+    public MockChatModerators MockChatModerators { get; set; }
     public MockMessages MockMessages { get; set; }
     public MockBlocks MockBlocks { get; set; }
     public MockFriendRequests MockFriendRequests { get; set; }
     public MockFriendships MockFriendships{ get; set; }
     public MockGroupInvites MockGroupInvites { get; set; }
 
-    public MockAppDbContext(Mock<AppDbContext> _mockDbContext)
+    public MockAppDbContext(Mock<AppDbContext> mockDbContext)
     {
-        MockDbContext = _mockDbContext;
+        MockDbContext = mockDbContext;
 
         MockUsers = new MockUsers(this);
         MockChats = new MockChats(this, MockUsers.MockDbSet.Object);
@@ -26,6 +28,10 @@ public class MockAppDbContext
         MockFriendRequests = new MockFriendRequests(this, MockUsers.MockDbSet.Object);
         MockFriendships = new MockFriendships(this, MockUsers.MockDbSet.Object);
         MockGroupInvites = new MockGroupInvites(this, MockUsers.MockDbSet.Object, MockChats.MockDbSet.Object);
+        MockChatUsers = new MockChatUsers(this, MockChats.MockDbSet.Object);
+        MockChatModerators = new MockChatModerators(this, MockChats.GetGroups());
+        
+        MockChats.SetupChatRelationships(MockChats.MockDbSet.Object.ToList());
         
         BindMocks();
     }
@@ -137,6 +143,34 @@ public class MockAppDbContext
             {
                 MockUsers.RemoveMock(user);
                 return new MockEntityEntry<User>(user).GetEntry();
+            });
+        
+        MockDbContext.Setup(x => x.ChatUsers).Returns(MockChatUsers.GetMocks());
+        MockDbContext.Setup(x => x.ChatUsers.Add(It.IsAny<ChatUser>()))
+            .Returns((ChatUser chatUser) =>
+            {
+                MockChatUsers.AddMock(chatUser);
+                return new MockEntityEntry<ChatUser>(chatUser).GetEntry();
+            });
+        MockDbContext.Setup(x => x.ChatUsers.Remove(It.IsAny<ChatUser>()))
+            .Returns((ChatUser chatUser) =>
+            {
+                MockChatUsers.RemoveMock(chatUser);
+                return new MockEntityEntry<ChatUser>(chatUser).GetEntry();
+            });
+        
+        MockDbContext.Setup(x => x.ChatModerators).Returns(MockChatModerators.GetMocks());
+        MockDbContext.Setup(x => x.ChatModerators.Add(It.IsAny<ChatModerator>()))
+            .Returns((ChatModerator chatModerator) =>
+            {
+                MockChatModerators.AddMock(chatModerator);
+                return new MockEntityEntry<ChatModerator>(chatModerator).GetEntry();
+            });
+        MockDbContext.Setup(x => x.ChatModerators.Remove(It.IsAny<ChatModerator>()))
+            .Returns((ChatModerator chatModerator) =>
+            {
+                MockChatModerators.RemoveMock(chatModerator);
+                return new MockEntityEntry<ChatModerator>(chatModerator).GetEntry();
             });
     }
     

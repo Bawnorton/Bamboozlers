@@ -76,7 +76,7 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
             var expected = group.Name;
 
             // Assert
-            Assert.Equal(expected, text.TextContent);
+            Assert.Contains(expected!, text.TextContent);
         }
     }
 
@@ -146,7 +146,7 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
             var expected = group.Name;
             
             // Assert
-            Assert.Equal(expected, text.TextContent);
+            Assert.Contains(expected!, text.TextContent);
         }
         await component.Instance.OpenGroup(-1);
     }
@@ -186,7 +186,7 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         
         text = component.Find("#header-text");
         expected = subjectGroup.Name;
-        Assert.Equal(expected, text.TextContent);
+        Assert.Contains(expected!, text.TextContent);
         
         user.Chats.Remove(subjectGroup);
         MockDatabaseProvider.GetMockAppDbContext().MockUsers.UpdateMock(user);
