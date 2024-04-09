@@ -613,6 +613,11 @@
 
     private async Task SendMessage(string messageText)
     {
+        if (Chat is not GroupChat)
+        {
+            if (_otherUser is null) return;
+            if (await UserInteractionService.FindFriendship(_otherUser.Id) is null) return;
+        }
         if (string.IsNullOrWhiteSpace(messageText) && FileData.Count == 0) return;
         messageText = string.IsNullOrWhiteSpace(messageText) ? "" : messageText;
 
