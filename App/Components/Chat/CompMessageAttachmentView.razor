@@ -32,7 +32,7 @@
     </Button>
     @if (IsImage)
     {
-        <Image src="@($"data:image/{ImageType!.ToString()!.ToLower()};base64,{Convert.ToBase64String(FileData)}")" Style="max-width: 600px; max-height: 600px; object-fit: contain; cursor: pointer"/>
+        <Image src="@($"data:image/{ImageType!.ToString()!.ToLower()};base64,{Convert.ToBase64String(FileData)}")" Style="@($"max-width: {MaxWidth}; max-height: {MaxHeight}; object-fit: contain; cursor: pointer")"/>
     }
     else
     {
@@ -49,6 +49,18 @@
 </Div>
 
 @code {
+    
+    [Parameter] public string? MaxWidth { get; set; }
+    
+    [Parameter] public string? MaxHeight { get; set; }
+
+    protected override Task OnParametersSetAsync()
+    {
+        MaxHeight ??= "600px";
+        MaxWidth ??= "600px";
+        
+        return base.OnParametersSetAsync();
+    }
 
     private async Task DownloadFile()
     {

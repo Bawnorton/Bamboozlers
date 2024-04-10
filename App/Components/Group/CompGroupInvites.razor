@@ -116,8 +116,6 @@
     private List<GroupInvite> IncomingGroupInvites { get; set; } = [];
     private List<GroupInvite> OutgoingGroupInvites { get; set; } = [];
     
-    private User Self { get; set; } = default!;
-
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -137,12 +135,13 @@
         GroupEvent.ReceivedInvite,
         GroupEvent.SentInviteRevoked,
         GroupEvent.ReceivedInviteAccepted,
-        GroupEvent.ReceivedInviteDeclined
+        GroupEvent.ReceivedInviteDeclined,
+        GroupEvent.ReceivedInviteRevoked
     ];
     
     public List<int?> WatchedIDs { get; set; } = [];
     
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetGroupsData();
         await InvokeAsync(StateHasChanged);

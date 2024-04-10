@@ -10,12 +10,14 @@ public class GroupInteractionSyncS2CPacket : IPacket
         .Create("group_interaction_sync_s2c", json => new GroupInteractionSyncS2CPacket(json));
     
     internal GroupEvent Event { get; init; }
-    internal int GroupId { get; }
+    internal int GroupId { get; init; }
+    internal int SpecificUserId { get; init; }
     
     private GroupInteractionSyncS2CPacket(JsonElement json)
     {
         Event = (GroupEvent)json.GetProperty("group_interaction").GetInt32();
         GroupId = json.GetProperty("group_id").GetInt32();
+        SpecificUserId = json.GetProperty("specific_user_id").GetInt32();
     }
 
     internal GroupInteractionSyncS2CPacket()
@@ -26,11 +28,12 @@ public class GroupInteractionSyncS2CPacket : IPacket
     {
         return Type;
     }
-    
+
     public void Write(JsonObject obj)
     {
         obj["group_interaction"] = (int)Event;
         obj["group_id"] = GroupId;
+        obj["specific_user_id"] = SpecificUserId;
     }
-    
+
 }

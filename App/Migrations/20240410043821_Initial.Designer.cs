@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bamboozlers.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240408030550_Initial")]
+    [Migration("20240410043821_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -62,6 +62,21 @@ namespace Bamboozlers.Migrations
                     b.UseTphMappingStrategy();
                 });
 
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.ChatModerator", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GroupChatId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "GroupChatId");
+
+                    b.HasIndex("GroupChatId");
+
+                    b.ToTable("ChatModerators");
+                });
+
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.ChatUser", b =>
                 {
                     b.Property<int>("UserId")
@@ -69,6 +84,11 @@ namespace Bamboozlers.Migrations
 
                     b.Property<int>("ChatId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("JoinDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("LastAccess")
                         .ValueGeneratedOnAdd()
@@ -79,7 +99,7 @@ namespace Bamboozlers.Migrations
 
                     b.HasIndex("ChatId");
 
-                    b.ToTable("ChatUser");
+                    b.ToTable("ChatUsers");
                 });
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.FriendRequest", b =>
@@ -146,10 +166,7 @@ namespace Bamboozlers.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
 
-                    b.Property<byte[]>("Attachment")
-                        .HasColumnType("varbinary(max)");
-
-                    b.Property<int>("ChatID")
+                    b.Property<int?>("ChatID")
                         .HasColumnType("int");
 
                     b.Property<string>("Content")
@@ -165,7 +182,7 @@ namespace Bamboozlers.Migrations
                     b.Property<int?>("ReplyToID")
                         .HasColumnType("int");
 
-                    b.Property<int>("SenderID")
+                    b.Property<int?>("SenderID")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("SentAt")
@@ -178,6 +195,24 @@ namespace Bamboozlers.Migrations
                     b.HasIndex("SenderID");
 
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.MessageAttachment", b =>
+                {
+                    b.Property<int>("ID")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("MessageAttachment");
                 });
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.User", b =>
@@ -255,21 +290,6 @@ namespace Bamboozlers.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
-                });
-
-            modelBuilder.Entity("GroupChatUser", b =>
-                {
-                    b.Property<int>("ModeratedChatsID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ModeratorsId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ModeratedChatsID", "ModeratorsId");
-
-                    b.HasIndex("ModeratorsId");
-
-                    b.ToTable("GroupChatUser");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
@@ -442,6 +462,25 @@ namespace Bamboozlers.Migrations
                     b.Navigation("Blocker");
                 });
 
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.ChatModerator", b =>
+                {
+                    b.HasOne("Bamboozlers.Classes.AppDbContext.GroupChat", "GroupChat")
+                        .WithMany("ChatModeratorUsers")
+                        .HasForeignKey("GroupChatId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Bamboozlers.Classes.AppDbContext.User", "User")
+                        .WithMany("UserModeratedChats")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GroupChat");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.ChatUser", b =>
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.Chat", "Chat")
@@ -453,7 +492,7 @@ namespace Bamboozlers.Migrations
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "User")
                         .WithMany("UserChats")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Chat");
@@ -504,7 +543,7 @@ namespace Bamboozlers.Migrations
                     b.HasOne("Bamboozlers.Classes.AppDbContext.GroupChat", "Group")
                         .WithMany()
                         .HasForeignKey("GroupID")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Recipient")
@@ -531,32 +570,24 @@ namespace Bamboozlers.Migrations
                     b.HasOne("Bamboozlers.Classes.AppDbContext.Chat", "Chat")
                         .WithMany("Messages")
                         .HasForeignKey("ChatID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Sender")
                         .WithMany()
                         .HasForeignKey("SenderID")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Chat");
 
                     b.Navigation("Sender");
                 });
 
-            modelBuilder.Entity("GroupChatUser", b =>
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.MessageAttachment", b =>
                 {
-                    b.HasOne("Bamboozlers.Classes.AppDbContext.GroupChat", null)
-                        .WithMany()
-                        .HasForeignKey("ModeratedChatsID")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Bamboozlers.Classes.AppDbContext.User", null)
-                        .WithMany()
-                        .HasForeignKey("ModeratorsId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                    b.HasOne("Bamboozlers.Classes.AppDbContext.Message", null)
+                        .WithMany("Attachments")
+                        .HasForeignKey("ID")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
@@ -616,7 +647,7 @@ namespace Bamboozlers.Migrations
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Owner")
                         .WithMany("OwnedChats")
                         .HasForeignKey("OwnerID")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.SetNull)
                         .IsRequired();
 
                     b.Navigation("Owner");
@@ -629,11 +660,23 @@ namespace Bamboozlers.Migrations
                     b.Navigation("Messages");
                 });
 
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.Message", b =>
+                {
+                    b.Navigation("Attachments");
+                });
+
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.User", b =>
                 {
                     b.Navigation("OwnedChats");
 
                     b.Navigation("UserChats");
+
+                    b.Navigation("UserModeratedChats");
+                });
+
+            modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.GroupChat", b =>
+                {
+                    b.Navigation("ChatModeratorUsers");
                 });
 #pragma warning restore 612, 618
         }

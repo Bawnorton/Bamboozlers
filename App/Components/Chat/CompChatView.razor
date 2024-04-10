@@ -5,30 +5,19 @@
 @implements IGroupSubscriber
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
-@using Bamboozlers.Classes.Services.UserServices
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Networking
-@using Bamboozlers.Classes.Networking.Packets
-@using Bamboozlers.Classes.Networking.Packets.Clientbound
-@using Bamboozlers.Classes.Networking.Packets.Serverbound
-@using Bamboozlers.Classes.Networking.SignalR
-@using Bamboozlers.Classes.Services
-@using Microsoft.AspNetCore.SignalR.Client
-@using Bamboozlers.Classes
-@using Blazorise.Extensions
-@using AngleSharp.Diffing.Extensions
 @using Microsoft.IdentityModel.Tokens
+@using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
-@using Bamboozlers.Components.Utility
-@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging
-@using Bamboozlers.Classes.Utility.Observer
-@using Bunit.Extensions
-@using System.Timers
-@using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Components.Utility
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IJSRuntime JsRuntime
@@ -70,8 +59,9 @@
     }
     
     function scrollToBottom() {
-        const messageContainer = document.getElementById('message-container');
-        messageContainer.scrollTop = messageContainer.scrollHeight;
+        waitForElm('#message-container').then(messageContainer => {
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        });
     }
     
     function scrollToElement(elementId) {
@@ -120,171 +110,201 @@
         overflow-y: hidden;
     }
 </style>
-<Layout>
-    <LayoutHeader Fixed
-                  Padding="Padding.Is3"
-                  TextSize="TextSize.Heading5"
-                  TextColor="TextColor.Primary"
-                  Background="Background.Dark"
-                  Display="Display.InlineFlex"
-                  Class="justify-content-between align-items-center">
-        <Div>
-            @if (Chat is GroupChat groupChat)
-            {
-                <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
-                <Div ElementId="header-text">@ChatName</Div>
-            }
-            else if (Chat is not null && Chat is not GroupChat)
-            {
-                @if(OtherUser?.Avatar != null)
+@if (ChatLoaded)
+{
+    
+    <Layout>
+        <LayoutHeader Fixed
+                      Padding="Padding.Is3"
+                      TextSize="TextSize.Heading5"
+                      TextColor="TextColor.Primary"
+                      Background="Background.Dark"
+                      Display="Display.InlineFlex"
+                      Class="justify-content-between align-items-center">
+            <Div>
+                @if (Chat is GroupChat groupChat)
                 {
-                    <Image Source=@($"data:image/png;base64,{Convert.ToBase64String(OtherUser.Avatar)}") Class="message-avatar" alt=""/>
+                    <Div ElementId="header-text" Style="display: flex; flex-direction: row; align-items: center">
+                        <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
+                        <Div Class="clipping-text" Style="width: 300px;">
+                            @ChatName
+                        </Div>
+                    </Div>
                 }
-                <Div ElementId="header-text">
-                    <CompInteractUsername User=@OtherUser/>
-                </Div>
-            }
-        </Div>
-        <Div Style="position: relative">
-            <Icon ElementId="pin_button" Name="Icons.MapPin" Style="margin-right: 0.5em" Class="button-tooltip tooltip-left" data-tooltip="Pins" role="button" @onclick="() => OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Pins, Self, ChatID, async arg => await JumpToMessage((Message)arg!)))"/>
-            @if (Chat is GroupChat)
-            {
-                <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.GroupChatSettings, ChatId: ChatID))"/>
-            }
-        </Div>
-    </LayoutHeader>
-    <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
-        <Layout>
-            <LayoutContent>
-                <Div>
-                    @if (ChatLoaded)
-                    {
+                else if (Chat is not null && Chat is not GroupChat)
+                {
+                    <Div ElementId="header-text" Style="display: flex; flex-direction: row; align-items: center">
+                        @if (OtherUser is not null)
+                        {
+                            <Image Source="@OtherUser.GetAvatar()" Class="message-avatar" alt=""/>
+                        }
+                        <CompInteractUsername User=@OtherUser MaxWidth="400px"/>
+                    </Div>
+                }
+            </Div>
+            <Div Style="align-items: center; display: flex; flex-direction: row; gap: 1em; margin-right: 10px">
+                <Icon ElementId="pin_button" Name="Icons.MapPin" Style="position: relative; padding: 5px" Class="button-tooltip tooltip-down" data-tooltip="Pins" role="button" @onclick="() => OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Pins, Self, ChatID, async arg => await JumpToMessage((Message)arg!)))"/>
+                @if (Chat is GroupChat)
+                {
+                    <Icon ElementId="settingsbtn" Name="IconName.Settings" Style="position: relative; padding: 5px" Class="button-tooltip tooltip-down" data-tooltip="Settings" role="button" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.GroupChatSettings, ChatId: ChatID))"/>
+                }
+            </Div>
+        </LayoutHeader>
+        <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
+            <Layout>
+                <LayoutContent>
+                    <Div>
                         <CascadingValue Value="new ChatContext(IsMod,  SetReplying, DeleteMessage, StartEditMessage, SetLastEdit, EndEditMessage, PinMessage)">
                             @foreach (var message in Messages)
                             {
-                                <CompMessageView
-                                    Message="message.DbMessage"
-                                    PreviousMessage="@message.Previous?.DbMessage"
-                                    EchoRecieved="@message.EchoRecieved"
-                                    Editing="@message.DbMessage.ID.Equals(_editingMessage?.DbMessage.ID)"/>
+                                if (!message.SystemMessage)
+                                {
+                                    <CompMessageView @key="message"
+                                        Message="message.DbMessage"
+                                        PreviousMessage="@message.Previous?.DbMessage"
+                                        EchoReceived="@message.EchoReceived"
+                                        Editing="@message.DbMessage.ID.Equals(_editingMessage?.DbMessage.ID)"/>
+                                }
+                                else
+                                {
+                                    <CompSystemMessageView
+                                        Message="message.DbMessage"/>
+                                }
                             }
                         </CascadingValue>
-                    }
-                </Div>
-            </LayoutContent>
-        </Layout>
-    </LayoutContent>
-    <LayoutFooter>
-        <Div Position="Position.Sticky" Style="margin: 20px 20px 35px; border-radius: 5px;">
-            @if (_replyingTo != null)
-            {
-                <Div Background="Background.Dark" Padding="Padding.Is2">
-                    <Div class="text-muted" style="display: flex; flex-direction: row; align-items: center" Width="Width.Is100">
-                        Replying to
-                        <Div style="font-size: 16px; font-weight: bold; margin-left: 5px">
-                            @(_replyingTo.DbMessage.Sender!.DisplayName ?? _replyingTo.DbMessage.Sender.UserName)
-                        </Div>
-                        <Icon Name="Icons.CircleXmark" @onclick="() => _replyingTo = null" Style="margin-left: auto; margin-right: 5px; cursor: pointer;" Class="fa-lg"/>
                     </Div>
-                </Div>
-            }
-            @if(FileData.Count >0)
-            {
-                <Div Background="Background.Secondary" Class="file-upload-display scrollbar-container">
-                    @foreach (var file in FileData)
-                    {
-                        <CompFileUpload FileName="@file.Key" FileData="@file.Value" OnRemove="@(async () => await RemoveFile(file.Key))"/>
-                    }
-                </Div>
-            }
-            <Div Background="Background.Secondary" TextColor="TextColor.Light" Style="display: flex; flex-direction: row; align-items: center; flex-grow: initial">
-                <Div Style="margin-left: 20px; position: relative">
-                    <Label for="input-file" Style="margin-bottom: 0">
-                        <Div Class="button-tooltip tooltip-right file-upload-button" data-tooltip="Upload File">
-                            <Icon Class="@Icons.FileCirclePlus"></Icon>
-                        </Div>
-                    </Label>
-                    <InputFile id="input-file" OnChange="@OnFileUpload" hidden multiple/>
-                </Div>
-                <Div Display="Display.Flex" Overflow="Overflow.Hidden" Width="Width.Is100">
-                    <textarea id="message-input" placeholder="@($"Message {ChatName}")" class="message-input p-3" style="padding-left: 0 !important;" @onkeyup="OnInput" @bind="MessageInput" @bind:event="oninput">
-                    </textarea>
-                </Div>
-            </Div>
-            <CompTypingView ChatID="@ChatID"/>
-        </Div>
-    </LayoutFooter>
-</Layout>
-<LayoutSider>
-    <LayoutSiderContent>
-        <Bar Mode="BarMode.VerticalInline"
-             CollapseMode="BarCollapseMode.Hide"
-             ThemeContrast="ThemeContrast.Dark"
-             Class="h-100">
-            <BarMenu>
-                <BarItem Class="mb-2">
-                    <Div TextColor="TextColor.Primary"
-                         Background="Background.Dark"
-                         Padding="Padding.Is3"
-                         TextSize="TextSize.Large">
-                        @if (Chat is GroupChat)
-                        {
-                            <span class="me-4">Members - @Chat.Users.Count</span>
-                            @if (IsMod)
-                            {
-                                <Icon ElementId="addMembers"
-                                      role="button"
-                                      Name="IconName.Add"
-                                      @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.InviteGroupMembers, null, ChatID))"/>
-                            }
-                        }
-                        else
-                        {
-                            <span class="me-4">Direct Message</span>
-                        }
-                    </Div>
-                </BarItem>
-                @if (Chat is not null)
+                </LayoutContent>
+            </Layout>
+        </LayoutContent>
+        <LayoutFooter>
+            <Div Position="Position.Sticky" Style="margin: 20px 20px 35px; border-radius: 5px;">
+                @if (_replyingTo != null)
                 {
-                    @foreach (var user in Chat.Users)
-                    {
-                        <BarItem>
-                            <BarLink Flex="Flex.JustifyContent.Between" class="align-items-center rounded" Display="Display.Flex">
-                                <Div>
-                                    @if (user.Avatar != null)
-                                    {
-                                        <Image Source="@user.GetAvatar()" Class="message-avatar" alt=""/>
-                                    }
-                                    <CompInteractUsername User="@user"/>
-                                </Div>
-                            </BarLink>
-                        </BarItem>
-                    }
+                    <Div Background="Background.Dark" Padding="Padding.Is2">
+                        <Div class="text-muted" style="display: flex; flex-direction: row; align-items: center" Width="Width.Is100">
+                            Replying to
+                            <Div style="font-size: 16px; font-weight: bold; margin-left: 5px">
+                                @(_replyingTo.DbMessage.Sender!.DisplayName ?? _replyingTo.DbMessage.Sender.UserName)
+                            </Div>
+                            <Icon Name="Icons.CircleXmark" @onclick="() => _replyingTo = null" Style="margin-left: auto; margin-right: 5px; cursor: pointer;" Class="fa-lg"/>
+                        </Div>
+                    </Div>
                 }
-            </BarMenu>
-        </Bar>
-    </LayoutSiderContent>
-</LayoutSider>
+                @if(FileData.Count >0)
+                {
+                    <Div Background="Background.Secondary" Class="file-upload-display scrollbar-container">
+                        @foreach (var file in FileData)
+                        {
+                            <CompFileUpload FileName="@file.Key" FileData="@file.Value" OnRemove="@(async () => await RemoveFile(file.Key))"/>
+                        }
+                    </Div>
+                }
+                <Div Background="Background.Secondary" TextColor="TextColor.Light" Style="display: flex; flex-direction: row; align-items: center; flex-grow: initial">
+                    <Div Style="margin-left: 20px; position: relative">
+                        <Label for="input-file" Style="margin-bottom: 0">
+                            <Div Class="button-tooltip tooltip-right file-upload-button" data-tooltip="Upload File">
+                                <Icon Class="@Icons.FileCirclePlus"></Icon>
+                            </Div>
+                        </Label>
+                        <InputFile id="input-file" OnChange="@OnFileUpload" hidden multiple/>
+                    </Div>
+                    <Div Display="Display.Flex" Overflow="Overflow.Hidden" Width="Width.Is100">
+                        <textarea id="message-input" placeholder="@($"Message {(ChatName.Length >= 50 ? ChatName[..47] + "..." : ChatName)}")" class="message-input p-3" style="padding-left: 0 !important;" @onkeyup="OnInput" @bind="MessageInput" @bind:event="oninput">
+                        </textarea>
+                    </Div>
+                </Div>
+                @if (CanSeeTyping)
+                {
+                    <CompTypingView ChatID="@ChatID"/>
+                } 
+            </Div>
+        </LayoutFooter>
+    </Layout>
+    <LayoutSider>
+        <LayoutSiderContent>
+            <Bar Mode="BarMode.VerticalInline"
+                 CollapseMode="BarCollapseMode.Hide"
+                 ThemeContrast="ThemeContrast.Dark"
+                 Class="h-100">
+                <BarMenu>
+                    <BarItem Class="mb-2">
+                        <Div TextColor="TextColor.Primary"
+                             Background="Background.Dark"
+                             Padding="Padding.Is3"
+                             TextSize="TextSize.Large">
+                            @if (Chat is GroupChat)
+                            {
+                                <span class="me-4">Members - @Chat.Users.Count</span>
+                                @if (IsMod)
+                                {
+                                    <Icon ElementId="addMembers"
+                                          role="button"
+                                          Name="IconName.Add"
+                                          @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.InviteGroupMembers, null, ChatID))"/>
+                                }
+                            }
+                            else
+                            {
+                                <span class="me-4">Direct Message</span>
+                            }
+                        </Div>
+                    </BarItem>
+                    @if (Chat is not null)
+                    {
+                        @foreach (var user in Chat.Users)
+                        {
+                            <BarItem>
+                                <BarLink Flex="Flex.JustifyContent.Between" class="align-items-center rounded" Display="Display.Flex">
+                                    <Div Style="display: flex; flex-direction: row; align-items: center">
+                                        <Image Source="@user.GetAvatar()" Class="message-avatar" alt=""/>
+                                        <CompInteractUsername User="@user" MaxWidth="140px"/>
+                                    </Div>
+                                </BarLink>
+                            </BarItem>
+                        }
+                    }
+                </BarMenu>
+            </Bar>
+        </LayoutSiderContent>
+    </LayoutSider>
+} 
+else
+{
+    <Layout>
+        <LayoutContent Padding="Padding.Is3" ElementId="message-container" Class="scrollbar-container h-100">
+            <Div Class="d-flex justify-content-center align-items-center h-100">
+                I am a spinner, use your imagination
+            </Div>
+        </LayoutContent>
+    </Layout>
+}
 
 @* ReSharper disable always InconsistentNaming *@
 @code {
-    [Inject] IUserGroupService UserGroupService { get; set; } = default!;
-
+    [Inject] IUserGroupService UserGroupService { get; set; }
+    [Inject] IUserInteractionService UserInteractionService { get; set; }
+    
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
-    [CascadingParameter] public Predicate<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
+    
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
+    [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
 
-    [Parameter] public int? ChatID { get; set; }
+    [Parameter] public EventCallback GoToHome { get; set; }
+    [Parameter] public int ChatID { get; set; } = -1;
+    
     private Chat? Chat { get; set; }
     private string ChatName { get; set; }
     private bool ChatLoaded { get; set; }
+    
+    private bool InitialLoad { get; set; }
 
     /// <summary>
     ///     Null if the chat is a group chat
     /// </summary>
     private User? OtherUser { get; set; }
+    private bool CanSeeTyping { get; set; }
 
     public List<int?> WatchedIDs { get; private set; } = [];
 
@@ -294,7 +314,7 @@
     private List<MessageEntry> Messages { get; set; } = [];
     private Dictionary<int, int> MessageIdToIndex { get; set; } = new();
     private List<int> EphemeralMessages { get; set; } = [];
-    private string MessageInput { get; set; }
+    private string MessageInput { get; set; } = default!;
 
     private MessageEntry? _editingMessage;
     private string? LastEdit { get; set; }
@@ -305,42 +325,66 @@
     
     protected override async Task OnInitializedAsync()
     {
+        InitialLoad = true;
+        
         UserGroupService.AddSubscriber(this);
         Self = (await AuthService.GetUser())!;
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        WatchedIDs = [ChatID];
         
-        LastEdit = null;
-        _editingMessage = null;
-        _replyingTo = null;
+        AddPacketSubscriber.Invoke(this);
+        AddKeySubscriber.Invoke(this);
+
+        await RefreshState();
+        
+        InitialLoad = false;
+    }
+    
+    private async Task RefreshState()
+    {
+        ChatLoaded = false;
+        
+        WatchedIDs = [ChatID];
+     
+        MessageInput = "";
+        FileData.Clear();
+        if (_replyingTo != null)
+        {
+            await JsRuntime.InvokeVoidAsync("unhighlightMessage", _replyingTo!.DbMessage.ID);
+            _replyingTo = null;
+        }
+        if(_editingMessage != null)
+        {
+            _editingMessage = null;
+            LastEdit = null;
+        } 
         
         await GetChatData();
         IsMod = IsModerator();
-
+        CanSeeTyping = Chat is GroupChat || OtherUser is not null && await IsFriendsWith(OtherUser);
+        
         await InitMessages();
 
         ChatLoaded = true;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-
-        AddPacketSubscriber.Invoke(this);
-        AddKeySubscriber.Invoke(this);
-        await SendToServer.InvokeAsync(new JoinChatC2SPacket { ChatId = (int)ChatID! });
-        await JsRuntime.InvokeVoidAsync("setTimeout", "scrollToBottom()", 200);
+        
+        await InvokeAsync(StateHasChanged);
+        
+        await JsRuntime.InvokeVoidAsync("scrollToBottom");
     }
 
     public async Task OnPacket(IPacket packet)
     {
         switch (packet)
         {
+            case DidJoinChatS2CPacket:
+                if (!InitialLoad)
+                {
+                    await RefreshState();
+                }
+                break;
+            case DidLeaveChatS2CPacket:
+                // probably useful for something
+                break;
             case MessageSentS2CPacket messageSent:
-                await RecieveMessage(messageSent.MessageId);
+                await ReceiveMessage(messageSent.MessageId);
                 await InvokeAsync(StateHasChanged);
                 break;
             case MessageDeletedS2CPacket messageDeleted:
@@ -349,7 +393,10 @@
             case MessageEditedS2CPacket messageEdited:
             {
                 await using var db = await Db.CreateDbContextAsync();
-                var message = await db.Messages.Include(m => m.Sender).FirstAsync(m => m.ID == messageEdited.MessageId);
+                var message = await db.Messages
+                    .Include(m => m.Sender)
+                    .Include(m => m.Attachments)
+                    .FirstAsync(m => m.ID == messageEdited.MessageId);
                 Messages[MessageIdToIndex[messageEdited.MessageId]].DbMessage = message;
                 await InvokeAsync(StateHasChanged);
                 break;
@@ -357,9 +404,11 @@
             case MessagePinStatusS2CPacket pinStatus:
             {
                 await using var db = await Db.CreateDbContextAsync();
-                var message = await db.Messages.Include(m => m.Sender).FirstAsync(m => m.ID == pinStatus.MessageId);
+                var message = await db.Messages
+                    .Include(m => m.Sender)
+                    .Include(m => m.Attachments)
+                    .FirstAsync(m => m.ID == pinStatus.MessageId);
                 Messages[MessageIdToIndex[pinStatus.MessageId]].DbMessage = message;
-                await InvokeAsync(StateHasChanged);
                 break;
             }
         }
@@ -376,6 +425,13 @@
             .AsNoTracking()
             .First(f => f.ID == ChatID);
         return gc.OwnerID == Self!.Id || gc.Moderators.Any(m => m.Id == Self.Id);
+    }
+    
+    private async Task<bool> IsFriendsWith(User user)
+    {
+        if (Self is null) return false;
+
+        return await UserInteractionService.FindFriendship(user.Id) is not null;
     }
 
     private async Task GetChatData()
@@ -394,26 +450,26 @@
                 .Include(i => i.Owner)
                 .FirstOrDefaultAsync(c => c.ID == ChatID);
         }
-
-        OtherUser = Chat?.Users.FirstOrDefault(u => u.Id != Self!.Id);
-        
-        if (Self is null || Chat is null) return;
-
-        switch (Chat)
+        else
         {
-            case null:
-                throw new InvalidOperationException($"Chat from ID {ChatID} not found");
-            case GroupChat gc:
-                ChatName = gc.GetGroupName();
-                break;
-            default:
-            {
-                var self = await AuthService.GetUser();
-                var other = Chat.Users.FirstOrDefault(u => u.Id != self!.Id) ?? self!;
-                ChatName = other.GetName();
-                break;
-            }
+            OtherUser = Chat?.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? User.Deleted;
         }
+
+        
+        if (Self is null) return;
+        if (Chat is null)
+        {
+            Console.WriteLine($"Chat with ID {ChatID} not found");
+            await GoToHome.InvokeAsync();
+            return;
+        }
+
+        ChatName = Chat switch
+        {
+            null => throw new InvalidOperationException($"Chat from ID {ChatID} not found"),
+            GroupChat gc => gc.GetGroupName(),
+            _ => OtherUser?.GetName() ?? Self!.GetName()
+        };
     }
 
     private void ReIndexMessages()
@@ -442,7 +498,7 @@
         var messageDeleted = new MessageDeletedC2SPacket
         {
             SenderId = Self!.Id,
-            ChatId = (int)ChatID!,
+            ChatId = ChatID,
             MessageId = message.ID
         };
 
@@ -505,6 +561,12 @@
             return;
         }
 
+        if (await ValidateUserChatStatus() is false)
+        {
+            await StopEditing();
+            return;
+        }
+
         if (LastEdit.Equals(string.Empty))
         {
             await DeleteMessage(_editingMessage.DbMessage);
@@ -522,7 +584,7 @@
         {
             SenderId = Self!.Id,
             MessageId = _editingMessage.DbMessage.ID,
-            ChatId = (int)ChatID!,
+            ChatId = ChatID,
             NewContent = LastEdit
         };
         await SendToServer.InvokeAsync(messageEdited);
@@ -532,6 +594,7 @@
     private async Task StopEditing()
     {
         _editingMessage = null;
+        LastEdit = null;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -541,11 +604,11 @@
         message.PinnedAt = message.IsPinned ? null : DateTime.Now;
         db.Messages.Update(message);
         await db.SaveChangesAsync();
-
+        
         var pinStatus = new MessagePinStatusC2SPacket
         {
             SenderId = Self!.Id,
-            ChatId = (int)ChatID!,
+            ChatId = ChatID,
             MessageId = message.ID,
             Pinned = message.IsPinned
         };
@@ -562,12 +625,12 @@
         EphemeralMessages.Clear();
         Messages.Clear();
         MessageIdToIndex.Clear();
-        
+
         await using var db = await Db.CreateDbContextAsync();
         var messages = await db.Messages
             .Include(m => m.Sender)
             .Include(m => m.Attachments)
-            .Where(m => m.ChatID == Chat!.ID)
+            .Where(m => m.ChatID == ChatID)
             .ToListAsync();
 
         foreach (var message in messages)
@@ -575,7 +638,7 @@
             if (EphemeralMessages.Contains(message.ID))
             {
                 EphemeralMessages.Remove(message.ID);
-                Messages[MessageIdToIndex[message.ID]].EchoRecieved = true;
+                Messages[MessageIdToIndex[message.ID]].EchoReceived = true;
             }
             else if (MessageIdToIndex.TryGetValue(message.ID, out var messageIndex))
             {
@@ -588,16 +651,16 @@
         }
     }
 
-    private async Task RecieveMessage(int messageId)
+    private async Task ReceiveMessage(int messageId)
     {
         if (EphemeralMessages.Contains(messageId))
         {
             EphemeralMessages.Remove(messageId);
-            Messages[MessageIdToIndex[messageId]].EchoRecieved = true;
+            Messages[MessageIdToIndex[messageId]].EchoReceived = true;
         }
         else if (MessageIdToIndex.TryGetValue(messageId, out var messageIndex))
         {
-            Messages[messageIndex].EchoRecieved = true;
+            Messages[messageIndex].EchoReceived = true;
         }
         else
         {
@@ -613,11 +676,15 @@
 
     private async Task SendMessage(string messageText)
     {
-        if (Chat is not GroupChat)
+        if (await ValidateUserChatStatus() is false)
         {
-            if (_otherUser is null) return;
-            if (await UserInteractionService.FindFriendship(_otherUser.Id) is null) return;
+            if (_replyingTo != null)
+            {
+                await StopReplying();
+            }
+            return;
         }
+        
         if (string.IsNullOrWhiteSpace(messageText) && FileData.Count == 0) return;
         messageText = string.IsNullOrWhiteSpace(messageText) ? "" : messageText;
 
@@ -627,7 +694,7 @@
         var self = await AuthService.GetUser();
         var message = new Message
         {
-            ChatID = (int)ChatID!,
+            ChatID = ChatID,
             SenderID = self!.Id,
             Content = messageText,
             SentAt = DateTime.Now
@@ -663,7 +730,7 @@
 
         var typingPacket = new TypingStateC2SPacket
         {
-            ChatId = (int)ChatID!,
+            ChatId = ChatID,
             SenderId = self.Id,
             Typing = false
         };
@@ -672,7 +739,7 @@
         var messageSent = new MessageSentC2SPacket
         {
             SenderId = self.Id,
-            ChatId = (int)ChatID!,
+            ChatId = ChatID,
             MessageId = message.ID
         };
         await SendToServer.InvokeAsync(messageSent);
@@ -708,7 +775,29 @@
         await JsRuntime.InvokeVoidAsync("focusInput");
     }
 
-    private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false)
+    private async Task CreateSystemMessage(SystemErrorType systemErrorType)
+    {
+        var lastMessage = Messages.Count == 0 ? null : Messages[^1];
+        if (lastMessage is not null && lastMessage.SystemMessage)
+            return;
+        
+        var systemMessage = new Message
+        {
+            SentAt = DateTime.Now
+        };
+        systemMessage.Content = systemErrorType switch
+        {
+            SystemErrorType.NullRecipient => "Cannot send message to specified user at this time.",
+            SystemErrorType.RecipientIsStranger => "You are not friends with this user and cannot send messages to them.",
+            SystemErrorType.SenderIsBlocked => "You are blocked by this user and cannot send messages to them.",
+            _ => systemMessage.Content
+        };
+        CreateMessageEntry(systemMessage, false, true);
+        await InvokeAsync(StateHasChanged);
+        await JumpToMessage(systemMessage, false);
+    }
+
+    private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false, bool systemMessage = false)
     {
         var lastMessage = Messages.Count == 0 ? null : Messages[^1];
         var messageEntry = new MessageEntry
@@ -716,7 +805,8 @@
             DbMessage = message,
             Previous = lastMessage,
             Next = null,
-            EchoRecieved = !ephemeral
+            EchoReceived = !ephemeral,
+            SystemMessage = systemMessage
         };
         if (lastMessage != null)
         {
@@ -777,26 +867,82 @@
         }
     }
 
+    private async Task<bool> ValidateUserChatStatus()
+    {
+        var self = await AuthService.GetUser();
+        if (Chat is GroupChat) return true; // No system messages for GroupChat yet
+
+        if (self is null)
+        {
+            return false;
+        }
+        
+        if (OtherUser is null)
+        {
+            await CreateSystemMessage(SystemErrorType.NullRecipient);
+            return false;
+        }
+        
+        if (OtherUser.Id == User.Deleted.Id)
+        {
+            await CreateSystemMessage(SystemErrorType.DeletedRecipient);
+            return false;
+        }
+        
+        if (await UserInteractionService.FindIfBlockedBy(OtherUser.Id) is not null)
+        {
+            await CreateSystemMessage(SystemErrorType.SenderIsBlocked);
+            return false;
+        }
+
+        if (await UserInteractionService.FindFriendship(OtherUser.Id) is null)
+        {
+            await CreateSystemMessage(SystemErrorType.RecipientIsStranger);
+            return false;
+        }
+        
+        CanSeeTyping = true;
+        return true;
+    }
+    
+    public override async Task OnUpdate(UserRecord? data)
+    {
+        Self = (await AuthService.GetUser())!;
+        await base.OnUpdate(data);
+        await InvokeAsync(StateHasChanged);
+    }
+
     public List<GroupEvent> WatchedGroupEvents { get; } =
     [
         GroupEvent.GroupDisplayChange,
-        GroupEvent.RemoveMember
+        GroupEvent.RemoveMember,
+        GroupEvent.OtherLeftGroup,
+        GroupEvent.ReceivedInviteAccepted
     ];
 
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetChatData();
+        await InvokeAsync(StateHasChanged);
     }
 
     private class MessageEntry
     {
         public MessageEntry? Next { get; set; }
         public MessageEntry? Previous { get; set; }
-        public Message DbMessage { get; set; }
-        public bool EchoRecieved { get; set; }
+        public Message DbMessage { get; set; } = default!;
+        public bool EchoReceived { get; set; } 
+        public bool SystemMessage { get; set; }
 
         public bool HasNext => Next != null;
         public bool HasPrevious => Previous != null;
     }
 
+    private enum SystemErrorType
+    {
+        NullRecipient,
+        DeletedRecipient,
+        RecipientIsStranger,
+        SenderIsBlocked
+    }
 }

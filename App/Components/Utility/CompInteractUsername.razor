@@ -4,10 +4,12 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bunit.Extensions
 
-<Div id="interact-username" Class="message-username" Style="display: inline-block" onclick="@(async () => await OpenProfilePopup())">
+<Div id="interact-username" Class="message-username" onclick="@(async () => await OpenProfilePopup())">
     @if (User is not null)
     {
-        @User.GetName()
+        <Div Class="clipping-text" Style="@("max-width: " + MaxWidth)">
+            @User.GetName()
+        </Div>
     }
     else
     {
@@ -21,6 +23,8 @@
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     
     [Parameter] public User? User { get; set; }
+    
+    [Parameter] public string? MaxWidth { get; set; }
 
     private async Task OpenProfilePopup()
     {

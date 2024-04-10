@@ -4,8 +4,8 @@ namespace Bamboozlers.Components.Chat;
 
 public class FileHolder : ComponentBase
 {
-    [Parameter] public byte[] FileData { get; set; }
-    [Parameter] public string FileName { get; set; }
+    [Parameter] public byte[] FileData { get; set; } = default!;
+    [Parameter] public string FileName { get; set; } = default!;
     protected ImageTypes? ImageType { get; set; }
     
     protected bool IsImage => ImageType.HasValue;

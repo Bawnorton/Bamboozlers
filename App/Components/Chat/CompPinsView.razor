@@ -44,14 +44,15 @@
     <ModalFooter/>
 </ModalContent>
 
+@* ReSharper disable always InconsistentNaming *@
 @code {
 
     [Parameter] public int? ChatID { get; set; }
-    [Parameter] public UserRecord FocusUser { get; set; }
-    [Parameter] public AsyncConsumer<Message> OnMessageJump { get; set; }
+    [Parameter] public UserRecord FocusUser { get; set; } = default!;
+    [Parameter] public AsyncConsumer<Message> OnMessageJump { get; set; } = default!;
     
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] public Predicate<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
 
     private List<Message> PinnedMessages { get; set; } = [];
 
@@ -68,7 +69,9 @@
         await using var db = await Db.CreateDbContextAsync();
         var chat = await db.Chats
             .Include(c => c.Messages)!
-            .ThenInclude(m => m.Sender)
+                .ThenInclude(m => m.Sender)
+            .Include(c => c.Messages)!
+                .ThenInclude(m => m.Attachments)
             .FirstOrDefaultAsync(c => c.ID == ChatID);
         if (chat == null) throw new ArgumentNullException(nameof(chat));
         if (chat is not GroupChat) IsDm = true;
@@ -101,7 +104,10 @@
             case MessagePinStatusS2CPacket pinStatus:
             {
                 await using var db = await Db.CreateDbContextAsync();
-                var message = await db.Messages.Include(m => m.Sender).FirstOrDefaultAsync(m => m.ID == pinStatus.MessageId);
+                var message = await db.Messages
+                    .Include(m => m.Sender)
+                    .Include(m => m.Attachments)
+                    .FirstOrDefaultAsync(m => m.ID == pinStatus.MessageId);
                 if (message == null) return;
                 
                 if (pinStatus.Pinned)

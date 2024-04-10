@@ -17,7 +17,14 @@
 
 <ModalContent Centered Size="ModalSize.Large">
     <ModalHeader>
-        <ModalTitle>@(Chat is null ? "Group" : Chat.GetGroupName()) Settings</ModalTitle>
+        <ModalTitle>
+            <Div Style="display: flex; flex-direction: row; align-items: center; gap: 0.25em">
+                <Div Class="clipping-text" Style="max-width: 400px">
+                    @(Chat is null ? "Group" : Chat.GetGroupName())
+                </Div>
+                Settings
+            </Div>
+        </ModalTitle>
     </ModalHeader>
     <ModalBody>
         <Alert ElementId="settings-alert" Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
@@ -44,14 +51,20 @@
         </Div>
     </ModalBody>
     <ModalFooter>
-        @if (Chat?.OwnerID != Self?.Id)
+        <CompActionButton ButtonId="leaveGroup"
+                          ButtonCaption="Leave Group"
+                          Color="Color.Danger"
+                          IconName="IconName.Running"
+                          ColumnWrapped="@false"
+                          ActionCallback="@(async () => await OpenLeaveConfirmation())"/>
+        @if (Chat?.OwnerID == Self?.Id)
         {
-            <CompActionButton ButtonId="leaveGroup"
-                              ButtonCaption="Leave Group"
+            <CompActionButton ButtonId="deleteGroup"
+                              ButtonCaption="Delete Group"
                               Color="Color.Danger"
-                              IconName="IconName.Running"
+                              IconName="IconName.Delete"
                               ColumnWrapped="@false"
-                              ActionCallback="@LeaveGroup"/>
+                              ActionCallback="@(async () => await OpenDeleteConfirmation())"/>
         }
     </ModalFooter>
 </ModalContent>
@@ -127,7 +140,6 @@
                            {
                                <div id="@($"{Chat.Name}_memberDisplay")">
                                    @GetUserFragment(owner)
-                                   <Divider/>
                                </div>
                            }
                            @foreach (var user in Chat.Moderators)
@@ -234,7 +246,7 @@
         var groupInteractionSync = new GroupInteractionSyncC2SPacket
         {
             Event = GroupEvent.GroupDisplayChange,
-            GroupId = ChatID!.Value,
+            GroupId = ChatID!.Value
         };
         await SendToServer.InvokeAsync(groupInteractionSync);
 
@@ -250,12 +262,12 @@
         var isMod = Chat.Moderators.Contains(user);
         
         return @<div id="@($"{user.UserName}_section")">
-                   <div style="display: inline-block">
+                   <div style="display: flex; flex-direction: row; align-items: center">
                        <Image ElementId="@($"{user.UserName}_avatar")"
                               Class="_32x32 message-avatar"
                               Source="@user.GetAvatar()"
                               alt=""/>
-                       <CompInteractUsername User="@user"/>
+                       <CompInteractUsername User="@user" MaxWidth="300px"/>
                        @if (isOwner)
                        {
                            <Badge ElementId="@($"{user.UserName}_badge")"
@@ -327,33 +339,73 @@
         );
     }
     
-    private async Task RevokePermissions(int? userID)
+    private async Task OpenLeaveConfirmation()
     {
-        await SyncedInteraction(GroupEvent.RevokedPermissions, UserGroupService.RevokePermissions, userID);
+        await OpenAlertPopup.InvokeAsync(
+            new AlertPopupArgs(
+                @<text>
+                     You'll have to be re-invited by the owner or a moderator to rejoin after you leave!
+                     @if (Self?.Id == Chat?.OwnerID)
+                     {
+                         <h5>
+                             As you are the owner of this group, a new owner will be automatically selected.
+                             If there are no eligible users in this group, the group will be permanently deleted!
+                         </h5>
+                     }
+                 </text>,
+                EventCallback.Factory.Create(this, async () => await InvokeAsync(LeaveGroup))
+            )
+        );
     }
     
-    private async Task AssignPermissions(int? userID)
+    private async Task OpenDeleteConfirmation()
     {
-        await SyncedInteraction(GroupEvent.GrantedPermissions, UserGroupService.AssignPermissions, userID);
+        await OpenAlertPopup.InvokeAsync(
+            new AlertPopupArgs(
+                @<text>
+                     Deleting this group is a permanent and unrecoverable operation.
+                     <h5>
+                         This group and all of its chat history will be <i>permanently</i> deleted!
+                     </h5>
+                 </text>,
+                EventCallback.Factory.Create(this, async () => await InvokeAsync(DeleteGroup))
+            )
+        );
     }
     
-    private async Task RemoveMember(int? userID)
+    private async Task RevokePermissions(int? userId)
     {
-        await SyncedInteraction(GroupEvent.RemoveMember, UserGroupService.RemoveGroupMember, userID);
+        await SyncedInteraction(GroupEvent.RevokedPermissions, UserGroupService.RevokePermissions, userId);
+    }
+    
+    private async Task AssignPermissions(int? userId)
+    {
+        await SyncedInteraction(GroupEvent.GrantedPermissions, UserGroupService.AssignPermissions, userId);
+    }
+    
+    private async Task RemoveMember(int? userId)
+    {
+        await SyncedInteraction(GroupEvent.RemoveMember, UserGroupService.RemoveGroupMember, userId);
     }
 
     private async Task LeaveGroup()
     {
-        await SyncedInteraction<int?>(GroupEvent.SelfLeftGroup, async (chatId, _) => await UserGroupService.LeaveGroup(chatId));
+        await SyncedInteraction(GroupEvent.SelfLeftGroup, async (chatId, _) => await UserGroupService.LeaveGroup(chatId));
     }
 
-    private async Task SyncedInteraction<T>(GroupEvent eventKind, AsyncBiConsumer<int?, T?> action, T? arg = default)
+    private async Task DeleteGroup()
     {
-        await action.Invoke(ChatID, arg);
+        await SyncedInteraction(GroupEvent.DeleteGroup, async (chatId, _) => await UserGroupService.DeleteGroup(chatId));
+    }
+
+    private async Task SyncedInteraction(GroupEvent eventKind, AsyncBiConsumer<int?, int?> action, int? userId = default)
+    {
+        await action.Invoke(ChatID, userId);
         var groupInteractionSync = new GroupInteractionSyncC2SPacket
         {
             Event = eventKind,
             GroupId = ChatID!.Value,
+            SpecificUserId = userId ?? -1
         };
         await SendToServer.InvokeAsync(groupInteractionSync);
     }
@@ -371,7 +423,7 @@
 
     public List<int?> WatchedIDs { get; set; } = [];
 
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         if (evt is GroupEvent.SelfLeftGroup or GroupEvent.DeleteGroup)
         {
@@ -384,4 +436,3 @@
     }
 
 }
-

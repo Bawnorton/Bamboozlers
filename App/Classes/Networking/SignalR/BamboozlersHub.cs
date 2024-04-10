@@ -6,7 +6,6 @@ using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging;
 using Bamboozlers.Classes.Utility.Observer;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +31,11 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
             {
                 case JoinChatC2SPacket joinChat:
                     await Groups.AddToGroupAsync(Context.ConnectionId, joinChat.ChatId.ToString());
+                    var didJoinChat = new DidJoinChatS2CPacket
+                    {
+                        ChatId = joinChat.ChatId
+                    };
+                    await SendToUser(joinChat.SenderId, didJoinChat);
                     break;
                 case LeaveChatC2SPacket leaveChat:
                     await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveChat.ChatId.ToString());
@@ -41,6 +45,11 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                         UserId = leaveChat.SenderId
                     };
                     await SendToChat(leaveChat.ChatId, updateTypingState);
+                    var didLeaveChat = new DidLeaveChatS2CPacket
+                    {
+                        ChatId = leaveChat.ChatId
+                    };
+                    await SendToUser(leaveChat.SenderId, didLeaveChat);
                     break;
                 case TypingStateC2SPacket typingState:
                     var typingStateResponse = new TypingStateS2CPacket
@@ -97,13 +106,20 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     {
                         GroupEvent.SelfLeftGroup => GroupEvent.OtherLeftGroup,
                         GroupEvent.SentInvite => GroupEvent.ReceivedInvite,
+                        GroupEvent.SentInviteRevoked => GroupEvent.ReceivedInviteRevoked,
                         _ => groupInteractionSync.Event
                     };
                     var groupInteractionSyncResponse = new GroupInteractionSyncS2CPacket
                     {
-                        Event = responseGroupEvent
+                        Event = responseGroupEvent,
+                        SpecificUserId = groupInteractionSync.SpecificUserId,
+                        GroupId = groupInteractionSync.GroupId
                     };
                     await SendToChat(groupInteractionSync.GroupId, groupInteractionSyncResponse);
+                    if (groupInteractionSync.SpecificUserId != -1)
+                    {
+                        await SendToUser(groupInteractionSync.SpecificUserId, groupInteractionSyncResponse);
+                    }
                     break; 
             }
         });

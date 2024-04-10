@@ -9,6 +9,7 @@ public class GroupChat(int OwnerID) : Chat
     public User Owner { get; set; } = default!;
     public int OwnerID { get; set; } = OwnerID;
     public ICollection<User> Moderators { get; set; } = default!;
+    public ICollection<ChatModerator> ChatModeratorUsers { get; set; } = default!;
     public string? Name { get; set; }
     public byte[]? Avatar { get; set; }
 

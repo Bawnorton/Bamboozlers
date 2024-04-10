@@ -5,16 +5,16 @@
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
 
-@using Bamboozlers.Classes.AppDbContext
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
 @using Bamboozlers.Classes.Services.UserServices
-@using Bamboozlers.Components.Chat
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Components.MainVisual
-@using Bamboozlers.Components.Utility
-@using Blazorise.Extensions
-
+@using Bamboozlers.Components.Chat
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IUserGroupService UserGroupService;
@@ -38,7 +38,7 @@
                      Class="scrollbar-container">
                     <BarMenu>
                         <BarItem>
-                            <BarLink ElementId="home" @onclick="() => {CurrentView = View.Home; CurrentChatId = -1; }">
+                            <BarLink ElementId="home" @onclick="MoveToHome">
                                 <BarIcon Class="fa-home"></BarIcon>
                                 Home
                             </BarLink>
@@ -61,9 +61,11 @@
                                         foreach (var chat in DmChats)
                                         {
                                             <BarItem>
-                                                <BarLink Class="dm-entry" ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
+                                                <BarLink Style="display: flex; flex-direction: row; align-items: center" Class="dm-entry" ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
                                                     <Image Source="@chat.User.GetAvatar()" Class="message-avatar" alt=""/>
-                                                    @chat.User.GetName()
+                                                    <Div Class="clipping-text">
+                                                        @chat.User.GetName()
+                                                    </Div>
                                                 </BarLink>
                                             </BarItem>
                                         }
@@ -99,9 +101,11 @@
                                         foreach (var chat in GroupChats)
                                         {
                                             <BarItem>
-                                                <BarLink ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
+                                                <BarLink Style="display: flex; flex-direction: row; align-items: center" ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
                                                     <Image Source="@chat.GetGroupAvatar()" Class="message-avatar" alt=""/>
-                                                    @chat.GetGroupName()
+                                                    <Div Class="clipping-text">
+                                                        @chat.GetGroupName()
+                                                    </Div>
                                                 </BarLink>
                                             </BarItem>
                                         }
@@ -124,9 +128,9 @@
                      Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
                      id="profile-button"
                      @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Settings))">
-                    <Text>
+                    <Div Class="clipping-text" Style="max-width: 150px">
                         @(Self is null ? UserRecord.Default.UserName : Self.GetName())
-                    </Text>
+                    </Div>
                     @if (Self?.Avatar is not null)
                     {
                         <Image Source="@Self.GetAvatar()" Class="message-avatar" alt=""/>
@@ -138,21 +142,21 @@
                 </Div>
             </LayoutSiderContent>
         </LayoutSider>
-        @if(CurrentView == View.Home)
+        @if (CurrentView == View.Home)
         {
             <CompMainView/>
         }
         else
         {
-            <CompChatView ChatID="CurrentChatId"/>
+            <CompChatView ChatID="@CurrentChatId" GoToHome="MoveToHome" @key="CurrentChatId"/>
         }
     </Layout>
 }
 
 @code {
-    [Inject] protected new IUserService UserService { get; set; } = default!;
-
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
+    [CascadingParameter] public Unregister<Type[]> UnregisterPacketSubscribers { get; set; }
 
     private User? Self { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
@@ -176,6 +180,7 @@
     public async Task Refresh()
     {
         await GetDataAsync();
+        MoveToHome();
     }
 
     private async Task GetDataAsync()
@@ -208,26 +213,37 @@
 
         if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
 
-        CurrentChatId = -1;
-        CurrentView = View.Home;
+        MoveToHome();
     }
 
     public void GetDmData()
     {
-        if (Self is null)
-            throw new InvalidOperationException("User and/or chats were not found.");
+        if (Self is null) throw new InvalidOperationException("User and/or chats were not found.");
 
-        DmChats = Self.Chats.Except(Self.Chats.OfType<GroupChat>())
-            .Select(chat => new DmChat(
-                chat.ID,
-                chat.Users.First(u => u.Id != Self.Id),
-                chat.Users.First(u => u.Id != Self.Id).Avatar)
-            ).ToList();
+        DmChats.Clear();
+        var dms = Self.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
+        foreach (var dm in dms)
+        {
+            var otherUser = dm.Users.FirstOrDefault(u => u.Id != Self.Id) ?? User.Deleted;
+            DmChats.Add(new DmChat(dm.ID, otherUser, otherUser.Avatar));
+        }
 
-        if (CurrentView != View.Dm || DmChats.FirstOrDefault(c => c.User.Id == CurrentChatId) is not null) return;
+        if (CurrentView != View.Dm || DmChats.FirstOrDefault(dm => dm.ID == CurrentChatId) is not null) return;
 
-        CurrentChatId = -1;
+        MoveToHome();
+    }
+
+    private void MoveToHome()
+    {
         CurrentView = View.Home;
+        CurrentChatId = -1;
+
+        UnregisterPacketSubscribers.Invoke([
+            typeof(CompChatView),
+            typeof(CompMessageReplyView),
+            typeof(CompTypingView),
+            typeof(CompPinsView)
+        ]);
     }
 
     public async Task GetFriendData()
@@ -247,6 +263,26 @@
         }
     }
 
+    private async Task JoinChat()
+    {
+        var joinChat = new JoinChatC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = CurrentChatId
+        };
+        await SendToServer.InvokeAsync(joinChat);
+    }
+
+    private async Task LeaveChat()
+    {
+        var leaveChat = new LeaveChatC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = CurrentChatId
+        };
+        await SendToServer.InvokeAsync(leaveChat);
+    }
+
     public async Task OpenDm(int chatId = -1, int? otherId = null, bool reload = false)
     {
         if (reload)
@@ -257,28 +293,32 @@
 
         if (chatId == -1)
         {
-            if (otherId is not null)
+            if (otherId is null) return;
+            
+            var dm = await UserInteractionService.FindDm(otherId);
+            if (dm is null)
             {
-                var dm = await UserInteractionService.FindDm(otherId);
-                if (dm is null)
-                {
-                    dm = await UserInteractionService.CreateDm(otherId);
-                    if (dm is null) return;
-                }
+                dm = await UserInteractionService.CreateDm(otherId);
+                if (dm is null) return;
+            }
 
-                chatId = dm.ID;
-                await GetUserData();
-                GetDmData();
-            }
-            else
-            {
-                return;
-            }
+            chatId = dm.ID;
+            await GetUserData();
+            GetDmData();
+        }
+        if (chatId == CurrentChatId) return;
+        
+        if (CurrentChatId != -1)
+        {
+            await LeaveChat();
         }
 
         CurrentView = View.Dm;
         CurrentChatId = chatId;
+
         await InvokeAsync(StateHasChanged);
+
+        await JoinChat();
     }
 
     public async Task OpenGroup(int chatId, bool reload = false)
@@ -288,11 +328,19 @@
             await GetUserData();
             GetGroupData();
         }
+        if (chatId == CurrentChatId) return;
+        
+        if (CurrentChatId != -1)
+        {
+            await LeaveChat();
+        }
 
         CurrentView = View.Group;
         CurrentChatId = chatId;
 
         await InvokeAsync(StateHasChanged);
+
+        await JoinChat();
     }
 
     public List<int?> WatchedIDs { get; private set; } = [];
@@ -310,15 +358,29 @@
     [
         GroupEvent.CreateGroup,
         GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.RemoveMember,
         GroupEvent.SelfLeftGroup,
+        GroupEvent.OtherLeftGroup,
         GroupEvent.GroupDisplayChange,
         GroupEvent.DeleteGroup
     ];
 
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetUserData();
         GetGroupData();
+        if (CurrentView == View.Group && CurrentChatId == specifiedGroup)
+        {
+            if (evt is GroupEvent.DeleteGroup or GroupEvent.SelfLeftGroup) // I left or group was deleted
+            {
+                MoveToHome();
+            }
+            else if (Self!.Id == specifiedUser && evt is GroupEvent.RemoveMember) // I was kicked
+            {
+                MoveToHome();
+            }
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 
