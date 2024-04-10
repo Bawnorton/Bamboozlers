@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bamboozlers.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240409012503_Initial")]
+    [Migration("20240410003947_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -166,7 +166,7 @@ namespace Bamboozlers.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
 
-                    b.Property<int>("ChatID")
+                    b.Property<int?>("ChatID")
                         .HasColumnType("int");
 
                     b.Property<string>("Content")
@@ -182,7 +182,7 @@ namespace Bamboozlers.Migrations
                     b.Property<int?>("ReplyToID")
                         .HasColumnType("int");
 
-                    b.Property<int>("SenderID")
+                    b.Property<int?>("SenderID")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("SentAt")
@@ -200,10 +200,7 @@ namespace Bamboozlers.Migrations
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.MessageAttachment", b =>
                 {
                     b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
 
                     b.Property<byte[]>("Data")
                         .IsRequired()
@@ -213,12 +210,7 @@ namespace Bamboozlers.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("MessageID")
-                        .HasColumnType("int");
-
                     b.HasKey("ID");
-
-                    b.HasIndex("MessageID");
 
                     b.ToTable("MessageAttachment");
                 });
@@ -578,14 +570,12 @@ namespace Bamboozlers.Migrations
                     b.HasOne("Bamboozlers.Classes.AppDbContext.Chat", "Chat")
                         .WithMany("Messages")
                         .HasForeignKey("ChatID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Sender")
                         .WithMany()
                         .HasForeignKey("SenderID")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Chat");
 
@@ -596,8 +586,9 @@ namespace Bamboozlers.Migrations
                 {
                     b.HasOne("Bamboozlers.Classes.AppDbContext.Message", null)
                         .WithMany("Attachments")
-                        .HasForeignKey("MessageID")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .HasForeignKey("ID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
@@ -656,7 +647,7 @@ namespace Bamboozlers.Migrations
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Owner")
                         .WithMany("OwnedChats")
                         .HasForeignKey("OwnerID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.SetNull)
                         .IsRequired();
 
                     b.Navigation("Owner");

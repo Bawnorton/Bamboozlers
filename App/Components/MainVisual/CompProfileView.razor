@@ -149,6 +149,9 @@
         ActionOptions = null;
         StatusBadge = null;
 
+        if (FocusUser.Id == -1)
+            return;
+        
         UserData ??= await UserService.GetUserDataAsync();
 
         IsSelf = FocusUser.Id == UserData.Id;
@@ -157,7 +160,7 @@
         IsBlockedBy = await UserInteractionService.FindIfBlockedBy(FocusUser.Id) is not null;
         HasIncomingRequest = await UserInteractionService.FindIncomingRequest(FocusUser.Id) is not null;
         HasOutgoingRequest = await UserInteractionService.FindOutgoingRequest(FocusUser.Id) is not null;
-
+        
         if (IsSelf)
         {
             ActionButton = GetActionButton(

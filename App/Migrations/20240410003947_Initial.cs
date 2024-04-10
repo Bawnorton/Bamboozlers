@@ -202,7 +202,7 @@ namespace Bamboozlers.Migrations
                         column: x => x.OwnerID,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -333,8 +333,8 @@ namespace Bamboozlers.Migrations
                 {
                     ID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ChatID = table.Column<int>(type: "int", nullable: false),
-                    SenderID = table.Column<int>(type: "int", nullable: false),
+                    ChatID = table.Column<int>(type: "int", nullable: true),
+                    SenderID = table.Column<int>(type: "int", nullable: true),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     PinnedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -348,7 +348,8 @@ namespace Bamboozlers.Migrations
                         name: "FK_Messages_AspNetUsers_SenderID",
                         column: x => x.SenderID,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Messages_Chats_ChatID",
                         column: x => x.ChatID,
@@ -361,20 +362,19 @@ namespace Bamboozlers.Migrations
                 name: "MessageAttachment",
                 columns: table => new
                 {
-                    ID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ID = table.Column<int>(type: "int", nullable: false),
                     FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Data = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
-                    MessageID = table.Column<int>(type: "int", nullable: true)
+                    Data = table.Column<byte[]>(type: "varbinary(max)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MessageAttachment", x => x.ID);
                     table.ForeignKey(
-                        name: "FK_MessageAttachment_Messages_MessageID",
-                        column: x => x.MessageID,
+                        name: "FK_MessageAttachment_Messages_ID",
+                        column: x => x.ID,
                         principalTable: "Messages",
-                        principalColumn: "ID");
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -455,11 +455,6 @@ namespace Bamboozlers.Migrations
                 name: "IX_GroupInvites_RecipientID",
                 table: "GroupInvites",
                 column: "RecipientID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_MessageAttachment_MessageID",
-                table: "MessageAttachment",
-                column: "MessageID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Messages_ChatID",

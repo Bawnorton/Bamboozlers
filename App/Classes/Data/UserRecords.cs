@@ -26,7 +26,9 @@ public record UserRecord(int? Id, string? UserName, string? Email, string? Displ
     
     public string GetDefaultAvatar()
     {
-        return $"images/default_profiles/profile_{Id % 7}.png";
+        return Id == -1 
+            ? "images/default_profiles/profile_deleted.png" 
+            : $"images/default_profiles/profile_{Id % 7}.png";
     }
 
     public static UserRecord From(User user)

@@ -166,7 +166,7 @@
                             {
                                 if (!message.SystemMessage)
                                 {
-                                    <CompMessageView
+                                    <CompMessageView @key="message.DbMessage"
                                         Message="message.DbMessage"
                                         PreviousMessage="@message.Previous?.DbMessage"
                                         EchoReceived="@message.EchoReceived"
