@@ -11,8 +11,10 @@
 @using Microsoft.AspNetCore.Http.Connections
 @using System.Text.Json
 @using System.Net
+@using System.Text.Json.Nodes
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.User
 @using Bamboozlers.Classes.Services.UserServices
 @using Microsoft.AspNetCore.Http.Connections.Client
 
@@ -41,7 +43,7 @@
 
     private string _hubUrl;
     private HubConnection? _hubConnection;
-
+    
     protected override void OnInitialized()
     {
         _sendToServer = EventCallback.Factory.Create<IPacket>(this, SendPacketToServer);
@@ -51,6 +53,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await base.OnAfterRenderAsync(firstRender);
         if (!firstRender) return;
 
         await Connect();
@@ -70,6 +73,7 @@
         {
             await ClientNetworkHandler.Instance.Handle(packetJson, async packet =>
             {
+                Console.WriteLine($"Client: {Self?.UserName} - Recieved packet from server: {packetJson.Replace("\n", "")}"); 
                 await OnPacketRecieved(packet);
             });
         });
@@ -116,12 +120,15 @@
                 Console.WriteLine($"Syncing Group Event: {groupInteractionSync.Event}");
                 await UserGroupService.NotifySubscribersOf(groupInteractionSync.Event, groupInteractionSync.GroupId, groupInteractionSync.SpecificUserId);
                 break;
+            case UserDataSyncS2CPacket userDataSync:
+                Console.WriteLine($"Syncing User Data for User: {userDataSync.UserId}");
+                await UserInteractionService.NotifySubscribersOf(InteractionEvent.UserUpdated);
+                break;
         }
     }
     
     private async Task OnPacketRecieved(IPacket packet)
     {
-        Console.WriteLine($"Recieved packet from server: {packet.PacketType().GetId()}");
         await TopLevelHandler(packet);
         foreach (var subscriber in Subscribers)
         {
@@ -137,7 +144,7 @@
             Console.WriteLine("Hub disconnected, cannot send packet");
             return;
         }
-        Console.WriteLine($"Sending packet to server: {packet.PacketType().GetId()}");
+        Console.WriteLine($"Client: {Self?.UserName} - Sending packet to server: {packet.Serialize().Replace("\n", "")}");
         try
         {
             await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());

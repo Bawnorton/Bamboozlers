@@ -1,6 +1,7 @@
 @inherits UserViewComponentBase
 
 @implements IGroupSubscriber
+@implements IInteractionSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
 @using Microsoft.IdentityModel.Tokens
@@ -71,6 +72,7 @@
 
 @code{
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
 
     [CascadingParameter] public EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
     [CascadingParameter] public EventCallback DismissPopup { get; set; }
@@ -80,7 +82,6 @@
     [Parameter] public int? ChatID { get; set; }
 
     private GroupChat? Chat { get; set; }
-    private User? Self { get; set; }
 
     public AlertArguments AlertArguments { get; set; } = new();
 
@@ -93,6 +94,7 @@
         await base.OnInitializedAsync();
         WatchedIDs = [ChatID];
         UserGroupService.AddSubscriber(this);
+        UserInteractionService.AddSubscriber(this);
         await LoadGroupData();
     }
 
@@ -469,6 +471,17 @@
             return;
         }
 
+        await LoadGroupData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; } =
+    [
+        InteractionEvent.UserUpdated
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
+    {
         await LoadGroupData();
         await InvokeAsync(StateHasChanged);
     }

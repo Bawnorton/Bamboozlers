@@ -90,17 +90,12 @@
 
 @code {
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
-    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
     
     private string SelectedTab { get; set; } = "Incoming";
     
     private List<FriendRequest> IncomingFriendRequests { get; set; } = [];
     private List<FriendRequest> OutgoingFriendRequests { get; set; } = [];
-
-    public List<int?> WatchedIDs { get; } = [];
     
-    private User Self { get; set; } = default!;
-
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -120,7 +115,9 @@
         InteractionEvent.RequestDeclined,
         InteractionEvent.RequestRevoked,
         InteractionEvent.RequestSent,
-        InteractionEvent.RequestReceived
+        InteractionEvent.RequestReceived,
+        InteractionEvent.UserUpdated,
+        InteractionEvent.Block
     ];
 
     public async Task OnUpdate(InteractionEvent evt)
@@ -128,4 +125,5 @@
         await GetFriendsData();
         await InvokeAsync(StateHasChanged);
     }
+
 }

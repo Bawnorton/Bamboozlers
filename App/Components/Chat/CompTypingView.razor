@@ -37,8 +37,6 @@
     [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
     [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
     
-    private User? Self { get; set; }
-    
     private Timer _typingTimer = new()
     {
         AutoReset = true,
@@ -56,7 +54,7 @@
     
     protected override async Task OnInitializedAsync()
     {
-        Self = (await AuthService.GetUser())!;
+        await base.OnInitializedAsync();
         
         _typingTimer.Elapsed += async (_, _) =>
         {
@@ -76,11 +74,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await base.OnAfterRenderAsync(firstRender);
         if (!firstRender) return;
 
         AddPacketSubscriber.Invoke(this);
         AddKeySubscriber.Invoke(this);
-        await base.OnAfterRenderAsync(firstRender);
     }
 
     public async Task OnPacket(IPacket packet)

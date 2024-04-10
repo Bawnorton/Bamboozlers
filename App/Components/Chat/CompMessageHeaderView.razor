@@ -1,10 +1,9 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Components.Utility
 
-
 <Div Class="message-header">
     <Div Class="message-info">
-        <Image Source="@Message.Sender!.GetAvatar()" Class="message-avatar" alt=""/>
+        <Image Source="@Message.Sender?.GetAvatar()" Class="message-avatar" alt=""/>
         <CompInteractUsername User="@Message.Sender" MaxWidth="@MaxWidth"/>
         <Div Class="message-timestamp">
             @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
@@ -13,7 +12,7 @@
 </Div>
 
 @code {
-
+    
     [Parameter] public Message Message { get; set; } = default!;
     
     [Parameter] public string? MaxWidth { get; set; }

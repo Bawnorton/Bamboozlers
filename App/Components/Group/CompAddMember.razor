@@ -19,7 +19,7 @@
               Size="ModalSize.Large">
     <ModalHeader>
         <ModalTitle>
-            <Div Class="clipping-text" Style="width: 400px">
+            <Div Class="clipping-text" Style="max-width: 400px">
                 Invite Friends to @(Chat is null ? "Group" : Chat.GetGroupName())
             </Div>
         </ModalTitle>
@@ -74,8 +74,6 @@
     
     private GroupChat? Chat { get; set; }
     
-    private User? Self { get; set; }
-
     private List<User> FriendList { get; set; } = [];
     private List<User> InvitedAlready { get; set; } = [];
     private List<User> InGroupAlready { get; set; } = [];
@@ -85,6 +83,7 @@
         await base.OnInitializedAsync();
         WatchedIDs = [ChatID];
         UserGroupService.AddSubscriber(this);
+        UserInteractionService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
         await LoadGroupData();
     }
@@ -123,6 +122,7 @@
         GroupEvent.ReceivedInviteDeclined,
         GroupEvent.RemoveMember,
         GroupEvent.SelfLeftGroup,
+        GroupEvent.SelfLeftGroup,
         GroupEvent.OtherLeftGroup,
         GroupEvent.PermissionsLost
     ];
@@ -143,17 +143,20 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    public List<InteractionEvent> WatchedInteractionEvents { get; } = 
-    [
+    public List<InteractionEvent> WatchedInteractionEvents { get; } = new()
+    {
         InteractionEvent.RequestAccepted,
-        InteractionEvent.Unfriend
-    ];
-    
+        InteractionEvent.Unfriend,
+        InteractionEvent.Block,
+        InteractionEvent.UserUpdated
+    };
+
     public async Task OnUpdate(InteractionEvent evt)
     {
         await LoadGroupData();
         await InvokeAsync(StateHasChanged);
     }
+
 }
 
 

@@ -2,6 +2,7 @@
 
 @implements IAsyncKeySubscriber
 @implements IAsyncPacketSubscriber
+@implements IInteractionSubscriber
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
@@ -11,11 +12,13 @@
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging
 @using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 @using Microsoft.IdentityModel.Tokens
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IJSRuntime JsRuntime
+@inject IUserInteractionService UserInteractionService
 
 @if (Loaded)
 {
@@ -127,7 +130,6 @@
     [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
 
     private bool Loaded { get; set; }
-    private User? Self { get; set; }
 
     private List<MessageAttachment>? MessageAttachments { get; set; }
 
@@ -154,8 +156,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Self = await AuthService.GetUser();
-
+        await base.OnInitializedAsync();
+        
         if (Message.Sender == null)
         {
             await using var db = await Db.CreateDbContextAsync();
@@ -171,6 +173,7 @@
         
         AddKeySubscriber(this);
         AddPacketSubscriber(this);
+        UserInteractionService.AddSubscriber(this);
 
         Loaded = true;
     }
@@ -229,17 +232,40 @@
             case MessageEditedS2CPacket editPacket when editPacket.MessageId == Message.ID:
             {
                 await using var db = await Db.CreateDbContextAsync();
-                Message = (await db.Messages.FindAsync(Message.ID))!;
+                Message = await db.Messages
+                    .Include(m => m.Attachments)
+                    .Include(m => m.Sender)
+                    .FirstAsync(m => m.ID == Message.ID);
                 await InvokeAsync(StateHasChanged);
                 break;
             }
             case MessagePinStatusS2CPacket pinPacket when pinPacket.MessageId == Message.ID:
             {
                 await using var db = await Db.CreateDbContextAsync();
-                Message = (await db.Messages.FindAsync(Message.ID))!;
+                Message = await db.Messages
+                    .Include(m => m.Attachments)
+                    .Include(m => m.Sender)
+                    .FirstAsync(m => m.ID == Message.ID);
                 await InvokeAsync(StateHasChanged);
                 break;
             }
+        }
+    }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; } =
+    [
+        InteractionEvent.UserUpdated
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
+    { 
+        if (evt == InteractionEvent.UserUpdated)
+        {
+            await using var db = await Db.CreateDbContextAsync();
+            var sender = await db.Users.FindAsync(Message.SenderID) ?? User.Deleted;
+
+            Message.Sender = sender;
+            await InvokeAsync(StateHasChanged);
         }
     }
 

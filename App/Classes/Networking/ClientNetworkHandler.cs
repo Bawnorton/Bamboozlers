@@ -1,7 +1,7 @@
-using Bamboozlers.Classes.Networking.Packets.Clientbound;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.User;
 
 namespace Bamboozlers.Classes.Networking;
 
@@ -20,5 +20,6 @@ public class ClientNetworkHandler : AbstractNetworkHandler
         PacketRegistry.RegisterPacket(MessagePinStatusS2CPacket.Type);
         PacketRegistry.RegisterPacket(InteractionSyncS2CPacket.Type);
         PacketRegistry.RegisterPacket(GroupInteractionSyncS2CPacket.Type);
+        PacketRegistry.RegisterPacket(UserDataSyncS2CPacket.Type);
     }
 }

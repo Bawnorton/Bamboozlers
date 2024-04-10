@@ -3,6 +3,7 @@
 @implements IAsyncPacketSubscriber
 @implements IAsyncKeySubscriber
 @implements IGroupSubscriber
+@implements IInteractionSubscriber
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Microsoft.IdentityModel.Tokens
@@ -126,7 +127,7 @@
                 {
                     <Div ElementId="header-text" Style="display: flex; flex-direction: row; align-items: center">
                         <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
-                        <Div Class="clipping-text" Style="width: 300px;">
+                        <Div Class="clipping-text" Style="max-width: 300px;">
                             @ChatName
                         </Div>
                     </Div>
@@ -308,7 +309,6 @@ else
 
     public List<int?> WatchedIDs { get; private set; } = [];
 
-    private User? Self { get; set; }
     private bool IsMod { get; set; }
 
     private List<MessageEntry> Messages { get; set; } = [];
@@ -325,10 +325,12 @@ else
     
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+        
         InitialLoad = true;
         
         UserGroupService.AddSubscriber(this);
-        Self = (await AuthService.GetUser())!;
+        UserInteractionService.AddSubscriber(this);
         
         AddPacketSubscriber.Invoke(this);
         AddKeySubscriber.Invoke(this);
@@ -359,7 +361,7 @@ else
         
         await GetChatData();
         IsMod = IsModerator();
-        CanSeeTyping = Chat is GroupChat || OtherUser is not null && await IsFriendsWith(OtherUser);
+        CanSeeTyping = Chat is GroupChat || (OtherUser != null && OtherUser.Id != User.Deleted.Id && await IsFriendsWith(OtherUser) && await NotBlockedOrBlocking(OtherUser.Id));
         
         await InitMessages();
 
@@ -433,6 +435,15 @@ else
 
         return await UserInteractionService.FindFriendship(user.Id) is not null;
     }
+    
+    private async Task<bool> NotBlockedOrBlocking(int userId)
+    {
+        if (Self is null) return false;
+
+        var blocked = await UserInteractionService.FindIfBlockedBy(userId) is not null;
+        var blocking = await UserInteractionService.FindIfBlocked(userId) is not null;
+        return !blocked && !blocking;
+    }
 
     private async Task GetChatData()
     {
@@ -502,11 +513,14 @@ else
             MessageId = message.ID
         };
 
+        await RemoveClientMessage(message.ID);
         await SendToServer.InvokeAsync(messageDeleted);
     }
 
     private async Task RemoveClientMessage(int messageId)
     {
+        if (!MessageIdToIndex.ContainsKey(messageId)) return;
+        
         var target = Messages[MessageIdToIndex[messageId]];
         if (target.Previous != null)
         {
@@ -904,13 +918,6 @@ else
         CanSeeTyping = true;
         return true;
     }
-    
-    public override async Task OnUpdate(UserRecord? data)
-    {
-        Self = (await AuthService.GetUser())!;
-        await base.OnUpdate(data);
-        await InvokeAsync(StateHasChanged);
-    }
 
     public List<GroupEvent> WatchedGroupEvents { get; } =
     [
@@ -926,6 +933,24 @@ else
     {
         await GetChatData();
         IsMod = IsModerator();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; } =
+    [
+        InteractionEvent.UserUpdated
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
+    {
+        await GetChatData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public override async Task OnUpdate(UserRecord? data)
+    {
+        await base.OnUpdate(data);
+        await GetChatData();
         await InvokeAsync(StateHasChanged);
     }
 

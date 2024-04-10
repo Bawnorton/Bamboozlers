@@ -61,7 +61,6 @@
 @code {
     [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
-    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
@@ -72,22 +71,21 @@
 
     public string SearchQuery { get; set; } = "";
 
-    private User Self { get; set; } = default!;
     private List<User> Ignore { get; set;} = [];
-
+    
     protected override async Task OnInitializedAsync()
     {
-        Self = (await AuthService.GetUser())!;
+        await base.OnInitializedAsync();
         UserInteractionService.AddSubscriber(this);
         await GetInteractionData();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await base.OnAfterRenderAsync(firstRender);
         if (!firstRender) return;
         
         AddKeySubscriber(this);
-        await base.OnAfterRenderAsync(firstRender);
     }
 
     private async Task PerformSearch()
@@ -124,7 +122,8 @@
     [
         InteractionEvent.General,
         InteractionEvent.RequestSent,
-        InteractionEvent.RequestAccepted
+        InteractionEvent.RequestAccepted,
+        InteractionEvent.UserUpdated
     ];
 
     public async Task OnUpdate(InteractionEvent evt)
@@ -133,7 +132,7 @@
         await PerformSearch();
         await InvokeAsync(StateHasChanged);
     }
-
+    
     public async Task OnKeyPressed(KeyEventArgs keyEventArgs)
     {
         if (keyEventArgs.Key == "Enter")

@@ -1,3 +1,5 @@
+@inherits UserViewComponentBase
+
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Networking.Packets
@@ -7,7 +9,6 @@
 @using Bamboozlers.Components.Group
 @using Bamboozlers.Components.Interaction
 
-@inherits UserViewComponentBase
 @implements IInteractionSubscriber
 @implements IGroupSubscriber
 
@@ -103,9 +104,7 @@
 
     private string HeaderLabel { get; set; } = "";
     private string SelectedTab { get; set; } = "All";
-
-    private User? Self { get; set; } = default!;
-
+    
     private List<User> Friends { get; set; } = [];
     private List<User> Blocked { get; set; } = [];
     private List<User> BlockedBy { get; set; } = [];
@@ -123,7 +122,6 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        Self = await AuthService.GetUser();
         if (Self == null)
         {
             AuthService.Invalidate();
@@ -180,7 +178,8 @@
         InteractionEvent.RequestDeclined,
         InteractionEvent.RequestRevoked,
         InteractionEvent.RequestReceived,
-        InteractionEvent.Unfriend
+        InteractionEvent.Unfriend,
+        InteractionEvent.UserUpdated
     ];
     
     public async Task OnUpdate(InteractionEvent evt)

@@ -162,7 +162,7 @@ public class UserService(IAuthService authService,
         var iResult = await userManager.DeleteAsync(user);
         if (iResult.Succeeded) 
             gc.ForEach(_gc =>
-                userGroupService.FindSuccessorOwner(_gc.ID)
+                UserGroupService.FindSuccessorOwner(_gc.ID)
             );
         
         return iResult;
@@ -175,8 +175,7 @@ public class UserService(IAuthService authService,
 
     public virtual async Task RebuildAndNotify(bool invalidate = false)
     {
-        if (invalidate)
-            Invalidate();
+        if (invalidate) Invalidate();
         UserRecord = await BuildUserDataAsync();
         ((IPublisher<IUserSubscriber>) this).NotifyAll();
     }

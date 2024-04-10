@@ -158,7 +158,6 @@
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
     [CascadingParameter] public Unregister<Type[]> UnregisterPacketSubscribers { get; set; }
 
-    private User? Self { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
     private List<GroupChat> GroupChats { get; set; } = [];
     private View CurrentView { get; set; } = View.Home;
@@ -169,6 +168,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+        
         UserService.AddSubscriber(this);
         UserGroupService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
@@ -351,7 +352,8 @@
         InteractionEvent.Block,
         InteractionEvent.Unblock,
         InteractionEvent.Unfriend,
-        InteractionEvent.RequestAccepted
+        InteractionEvent.RequestAccepted,
+        InteractionEvent.UserUpdated
     ];
 
     public List<GroupEvent> WatchedGroupEvents { get; set; } =
@@ -389,6 +391,10 @@
     {
         await GetUserData();
         GetDmData();
+        if (evt == InteractionEvent.UserUpdated)
+        {
+            GetGroupData();
+        }
         await GetFriendData();
         await InvokeAsync(StateHasChanged);
     }

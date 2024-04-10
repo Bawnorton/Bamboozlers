@@ -5,7 +5,7 @@
 
 <Container style="position: relative; display: inline-block; width: max-content; height: max-content;">
     <Row>
-        <Label Width="@Width.Px(DisplayPx)" Height="@Height.Px(DisplayPx)" Class="overlay-wrapper" for="input-file">
+        <Label Width="@Width.Px(DisplayPx)" Height="@Height.Px(DisplayPx)" Class="overlay-wrapper" for="avatar-input-file">
             <Image ElementId="avatar-display"
                    Class="border-mask overlay-base fit"
                    Source="@(GetDisplayString())"/>
@@ -13,7 +13,7 @@
                    Class="border-mask overlay fit"
                    Source="images/edit_overlay.png"/>
         </Label>
-        <InputFile id="input-file" OnChange="@OnFileUpload" hidden/>
+        <InputFile id="avatar-input-file" OnChange="@OnFileUpload" hidden/>
         <Div Style="position: absolute; bottom: 0; left: 80%">
             @if (Avatar is not null)
             {
@@ -83,7 +83,7 @@
         {
             try
             {
-                await upload.OpenReadStream().CopyToAsync(stream);
+                await upload.OpenReadStream(1024 * 1024 * 20).CopyToAsync(stream);
                 success = stream.TryGetBuffer(out bytes);
             }
             catch (Exception)
@@ -92,7 +92,7 @@
                     Color.Danger,
                     true,
                     "Error occured while uploading image.",
-                    "Unknown error occurred. Please try again."
+                    "Image was too large (>20MB). Please try again with a smaller image."
                 );
             }
         }
