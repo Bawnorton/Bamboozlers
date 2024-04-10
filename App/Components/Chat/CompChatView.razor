@@ -361,7 +361,7 @@ else
         
         await GetChatData();
         IsMod = IsModerator();
-        CanSeeTyping = Chat is GroupChat || OtherUser is not null && await IsFriendsWith(OtherUser);
+        CanSeeTyping = Chat is GroupChat || (OtherUser != null && OtherUser.Id != User.Deleted.Id && await IsFriendsWith(OtherUser));
         
         await InitMessages();
 

@@ -35,12 +35,15 @@ public partial class CompSettings : SettingsComponentBase
 
     public async Task<bool> OnDataChange(UserDataRecord userDataRecord)
     {
+        var userData = await UserService.GetUserDataAsync();
+        var username = userData.UserName!;
         var sync = await DataChangeInternal(userDataRecord);
         if (sync)
         {
             var syncUserData = new UserDataSyncC2SPacket
             {
-                UserId = (await UserService.GetUserDataAsync()).Id!.Value
+                UserId = userData.Id!.Value,
+                Username = username
             };
             await SendToServer.InvokeAsync(syncUserData);
         }

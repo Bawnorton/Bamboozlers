@@ -23,8 +23,13 @@ public class KeyPressService : IKeyPressService
     {
         if (!_listening)
         {
-            await _jsRuntime.InvokeVoidAsync("keypress.startListening", _dotNetObjectReference);
-            _listening = true;
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("keypress.startListening", _dotNetObjectReference);
+                _listening = true;
+            } catch(TaskCanceledException) {
+                // Ignore
+            }
         }
     }
 
@@ -32,8 +37,13 @@ public class KeyPressService : IKeyPressService
     {
         if (_listening)
         {
-            await _jsRuntime.InvokeVoidAsync("keypress.stopListening", _dotNetObjectReference);
-            _listening = false;
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("keypress.stopListening", _dotNetObjectReference);
+                _listening = false;
+            } catch(TaskCanceledException) {
+                // Ignore
+            }
         }
     }
 

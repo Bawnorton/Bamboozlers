@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Bamboozlers.Classes.Networking.Packets;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction;
@@ -28,7 +29,7 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
     {
         await ServerNetworkHandler.Instance.Handle(packetJson, async packet =>
         {
-            Console.WriteLine($"Recieved packet from client: {packet.PacketType().GetId()}");
+            Console.WriteLine($"Server - Recieved packet from client {Context.User?.Identity?.Name}: {packetJson.Replace("\n", "")}");
             switch (packet)
             {
                 case JoinChatC2SPacket joinChat:
@@ -128,6 +129,21 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     await using var db = await DbContextFactory.CreateDbContextAsync();
                     var userId = userDataSync.UserId;
                     
+                    var user = db.Users
+                        .AsQueryable()
+                        .ToList()
+                        .Find(u => u.Id == userId);
+                    if (user == null)
+                    {
+                        Console.WriteLine($"User {userId} ({userDataSync.Username}) not found in database");
+                        return;
+                    }
+
+                    if (user.UserName != userDataSync.Username)
+                    {
+                        Context.Abort();
+                    }
+                    
                     var friends = db.FriendShips
                         .AsQueryable()
                         .ToList()
@@ -178,6 +194,7 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     {
                         await SendToUser(id, response);
                     }
+                    Context.Abort();
                     break;
                 }
             }
@@ -186,15 +203,15 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
     
     private async Task SendToChat(int chatId, IPacket packet)
     {
-        Console.WriteLine($"Sending packet to chat {chatId}: {packet.PacketType().GetId()}");
+        Console.WriteLine($"Server - Sending packet to chat {chatId}: {packet.Serialize().Replace("\n", "")}");
         await Clients.Group(chatId.ToString()).SendAsync("RecievePacketOnClient", packet.Serialize());
     }
     
     private async Task SendToUser(int userId, IPacket packet)
     {
+        Console.WriteLine($"Server - Sending packet to user {userId}: {packet.Serialize().Replace("\n", "")}");
         foreach (var connectionId in Connections.GetConnections(userId))
         {
-            Console.WriteLine($"Sending packet to user {userId} on connection {connectionId}: {packet.PacketType().GetId()}");
             await Clients.Client(connectionId).SendAsync("RecievePacketOnClient", packet.Serialize());
         }
     }
