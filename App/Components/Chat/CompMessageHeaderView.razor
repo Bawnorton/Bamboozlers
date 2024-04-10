@@ -4,10 +4,7 @@
 
 <Div Class="message-header">
     <Div Class="message-info">
-        @if (Message.Sender is not null)
-        {
-            <Image Source="@Message.Sender.GetAvatar()" Class="message-avatar" alt=""/>
-        }
+        <Image Source="@Message.Sender!.GetAvatar()" Class="message-avatar" alt=""/>
         <CompInteractUsername User="@Message.Sender"/>
         <Div Class="message-timestamp">
             @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
@@ -18,5 +15,5 @@
 @code {
 
     [Parameter] public Message Message { get; set; } = default!;
-
+    
 }

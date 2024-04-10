@@ -22,11 +22,21 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        //default behavior is cascade however all relationships except for a few need to be set to no action
-        foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
-            relationship.DeleteBehavior = DeleteBehavior.NoAction;
+        /*
+         * Following tables require DeleteBehavior.NoAction:
+         * Friendship
+         * Block
+         * GroupInvite
+         * FriendRequest
+         *
+         * As these tables include references to two User instances, EF can't figure it out on its own.
+         * These data points need to be manually deleted when a User is deleted.
+         */
+        foreach (var fk in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+        {
+            fk.DeleteBehavior = DeleteBehavior.NoAction;
+        }
         
-        //specify chat relations since there EF can't infer them from the model because of diff types of users
         modelBuilder.Entity<GroupChat>()
             .HasMany(e => e.Moderators)
             .WithMany(e => e.ModeratedChats)
@@ -63,12 +73,20 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         modelBuilder.Entity<GroupChat>()
             .HasOne(h => h.Owner)
             .WithMany(w => w.OwnedChats)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull);
         
         modelBuilder.Entity<Message>()
-            .HasMany(m => m.Attachments);
+            .HasMany(m => m.Attachments)
+            .WithOne()
+            .HasForeignKey(a => a.ID)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        //chat messages need to be deleted if chat is deleted
+        modelBuilder.Entity<Message>()
+            .HasOne<User>(m => m.Sender)
+            .WithMany()
+            .HasForeignKey(m => m.SenderID)
+            .OnDelete(DeleteBehavior.SetNull);
+        
         modelBuilder.Entity<Chat>()
             .HasMany(h => h.Messages)
             .WithOne(w => w.Chat)

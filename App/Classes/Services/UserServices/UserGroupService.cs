@@ -50,14 +50,14 @@ public class UserGroupService(
         
         return (self, group);
     }
-
-    private async Task FindSuccessorOwner(int? chatId)
+    
+    public async Task FindSuccessorOwner(int? chatId)
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
         var group = await dbContext.GroupChats.FirstOrDefaultAsync(g => g.ID == chatId);
         if (group is null) return;
-
+        
         var modList = dbContext.ChatModerators.Where(cm => cm.GroupChatId == chatId)
             .Select(cm => cm.UserId)
             .ToList();
@@ -485,6 +485,7 @@ public interface IUserGroupService : IAsyncPublisher<IGroupSubscriber>
 {
     Task<IdentityResult> CreateGroup(byte[]? avatar = null, string? name = null, List<User>? sendInvites = null);
     Task<IdentityResult> DeleteGroup(int? chatId, bool overridePerms = false);
+    Task FindSuccessorOwner(int? chatId);
     Task<IdentityResult> UpdateGroupAvatar(int? chatId, byte[]? avatar);
     Task<IdentityResult> UpdateGroupName(int? chatId, string? name);
     Task<GroupInvite?> FindIncomingGroupInvite(int? chatId, int? senderId);

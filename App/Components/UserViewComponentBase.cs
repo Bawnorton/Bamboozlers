@@ -26,7 +26,7 @@ public class UserViewComponentBase : ComponentBase, IUserSubscriber
             await InvokeAsync(StateHasChanged);
         }
     }
-    
+
     public virtual async Task OnUpdate(UserRecord? data)
     {
         UserData = data ?? UserData;

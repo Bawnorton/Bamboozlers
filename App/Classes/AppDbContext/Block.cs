@@ -12,7 +12,6 @@ public class Block
         this.BlockedID = BlockedID;
         this.BlockerID = BlockerID;
     }
-
     public int BlockerID { get; set; }
     public User Blocker { get; set; } = default!;
     public int BlockedID { get; set; }
