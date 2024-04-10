@@ -540,7 +540,7 @@ namespace Bamboozlers.Migrations
                     b.HasOne("Bamboozlers.Classes.AppDbContext.GroupChat", "Group")
                         .WithMany()
                         .HasForeignKey("GroupID")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Recipient")
