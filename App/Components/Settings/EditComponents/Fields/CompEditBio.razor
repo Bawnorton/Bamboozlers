@@ -32,7 +32,7 @@
                            placeholder="Please enter new description."/>
             <Label for="bio-field"
                    class="form-label"
-                   style="font-size: min(1vw, 12pt)">
+                   style="font-size: min(70%, 12pt)">
                 New Description (@($"{Model!.Bio.Length}/{MaxLength}"))
             </Label>
             <ValidationMessage For="() => Model!.Bio" class="text-danger"/>

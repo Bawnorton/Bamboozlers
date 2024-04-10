@@ -3,43 +3,51 @@
 @{
     ViewPanelContent =
         @<Container Width="Width.Is75">
-            <p>
-                We store data you provided to us as part of creating and updating your account as well as data that was generated as part of this process.
-                You can download this data at any time.
-            </p>
-            <Container Width="Width.Is75"
-                       TextAlignment="TextAlignment.Center">
-                @* ReSharper disable Html.PathError *@
-                <Form action="Account/DownloadPersonalData"
-                      method="post">
-                    <AntiforgeryToken/>
-                    <!--suppress HtmlWrongAttributeValue -->
-                    @* ReSharper disable Html.AttributeValueNotResolved *@
-                    <Button Color="Color.Light"
-                            Type="ButtonType.Submit">
-                        <Icon Name="IconName.InfoCircle"/>
-                        Download personal data
-                    </Button>
-                </Form>
-            </Container>
+            <Row Class="centre-content">
+                <Column>
+                    <p>
+                        We store data you provided to us as part of creating and updating your account as well as data that was generated as part of this process.
+                        You can download this data at any time.
+                    </p>
+                    <Container Width="Width.Is75"
+                               TextAlignment="TextAlignment.Center">
+                        @* ReSharper disable Html.PathError *@
+                        <Form action="Account/DownloadPersonalData"
+                              method="post">
+                            <AntiforgeryToken/>
+                            <!--suppress HtmlWrongAttributeValue -->
+                            @* ReSharper disable Html.AttributeValueNotResolved *@
+                            <Button Color="Color.Light"
+                                    Type="ButtonType.Submit">
+                                <Icon Name="IconName.InfoCircle"/>
+                                Download personal data
+                            </Button>
+                        </Form>
+                    </Container>
+                </Column>
+            </Row>
             <br/>
-            <p>
-                You can delete your account and its associated data from our application permanently at any time.
-            </p>
-            <Container Width="Width.Is25">
-                <Row>
-                    <Column>
-                        <!--suppress HtmlWrongAttributeValue -->
-                        <Button id="toggle-edit"
-                                Color="Color.Danger"
-                                Type="ButtonType.Button"
-                                Clicked="Toggle">
-                            <Icon Name="IconName.Delete"/>
-                            Delete Account
-                        </Button>
-                    </Column>                    
-                </Row>
-            </Container>
+            <Row Class="centre-content">
+                <Column>
+                    <p>
+                        You can delete your account and its associated data from our application, permanently, at any time.
+                    </p>
+                    <Container Width="Width.Is25">
+                        <Row>
+                            <Column>
+                                <!--suppress HtmlWrongAttributeValue -->
+                                <Button id="toggle-edit"
+                                        Color="Color.Danger"
+                                        Type="ButtonType.Button"
+                                        Clicked="Toggle">
+                                    <Icon Name="IconName.Delete"/>
+                                    Delete Account
+                                </Button>
+                            </Column>
+                        </Row>
+                    </Container>
+                </Column>
+            </Row>
         </Container>;
 
     EditPanelContent =
@@ -67,28 +75,32 @@
                         </Div>
                     </Container>
                     <Container Width="Width.Is50">
-                        <p>
-                            Are you sure you want to delete your account? This action is permanent and cannot be reversed!
-                            If you wish to use this application again, you will have to create a new account.
-                        </p>
-                        <Row>
+                        <Row Class="centre-content">
                             <Column>
-                                <Button id="cancel-button"
-                                        Width="Width.Is100"
-                                        Color="Color.Light"
-                                        Clicked="Toggle">
-                                    Cancel
-                                </Button>
-                            </Column>
-                            <Column>
-                                <!--suppress HtmlWrongAttributeValue -->
-                                <Button id="submit-button"
-                                        Width="Width.Is100"
-                                        Color="Color.Danger"
-                                        Type="ButtonType.Submit">
-                                    <Icon Name="IconName.Delete"/>
-                                    Delete my Account
-                                </Button>
+                                <p>
+                                    Are you sure you want to delete your account? This action is permanent and cannot be reversed!
+                                    If you wish to use this application again, you will have to create a new account.
+                                </p>
+                                <Row>
+                                    <Column>
+                                        <Button id="cancel-button"
+                                                Width="Width.Is100"
+                                                Color="Color.Light"
+                                                Clicked="Toggle">
+                                            Cancel
+                                        </Button>
+                                    </Column>
+                                    <Column>
+                                        <!--suppress HtmlWrongAttributeValue -->
+                                        <Button id="submit-button"
+                                                Width="Width.Is100"
+                                                Color="Color.Danger"
+                                                Type="ButtonType.Submit">
+                                            <Icon Name="IconName.Delete"/>
+                                            Delete my Account
+                                        </Button>
+                                    </Column>
+                                </Row>
                             </Column>
                         </Row>
                     </Container>

@@ -1,25 +1,29 @@
 @using Bamboozlers.Components.Utility
 
-<CompActionButton ButtonId="cancel-button" 
-                  ActionCallback="Toggle" 
-                  ColumnSize="@ColumnSize1" 
-                  ButtonWidth="@ButtonWidth" 
-                  Color="@CancelColor"
-                  IconName="IconName.Ban"
-                  ButtonCaption="@CancelButtonCaption"/>
-<CompActionButton ButtonId="submit-button" 
-                  ButtonType="ButtonType.Submit" 
-                  ColumnSize="@ColumnSize2"
-                  Color="@ConfirmColor"
-                  IconName="IconName.Check"
-                  ButtonCaption="@ConfirmButtonCaption"/>
+<Container>
+    <Row Class="centre-content">
+        <CompActionButton ButtonId="cancel-button" 
+                          ActionCallback="Toggle" 
+                          ColumnSize="@ColumnSize1" 
+                          ButtonWidth="@ButtonWidth" 
+                          Color="@CancelColor"
+                          IconName="IconName.Ban"
+                          ButtonCaption="@CancelButtonCaption"/>
+        <CompActionButton ButtonId="submit-button" 
+                          ButtonType="ButtonType.Submit" 
+                          ColumnSize="@ColumnSize2"
+                          Color="@ConfirmColor"
+                          IconName="IconName.Check"
+                          ButtonCaption="@ConfirmButtonCaption"/>
+    </Row>
+</Container>
 
 @code {
     [Parameter] public EventCallback Toggle { get; set; }
     [Parameter] public Color ConfirmColor { get; set; } = Color.Success;
     [Parameter] public Color CancelColor { get; set; } = Color.Danger;
-    [Parameter] public IFluentColumn ColumnSize1 { get; set; } = ColumnSize.Is2;
-    [Parameter] public IFluentColumn ColumnSize2 { get; set; } = ColumnSize.Is3;
+    [Parameter] public IFluentColumn ColumnSize1 { get; set; } = ColumnSize.IsAuto;
+    [Parameter] public IFluentColumn ColumnSize2 { get; set; } = ColumnSize.IsAuto;
     [Parameter] public IFluentSizing ButtonWidth { get; set; } = Width.Auto;
     [Parameter] public string? ConfirmButtonCaption { get; set; } = "Confirm";
     [Parameter] public string? CancelButtonCaption { get; set; } = "Cancel";
