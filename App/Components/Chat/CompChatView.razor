@@ -914,12 +914,15 @@ else
     public List<GroupEvent> WatchedGroupEvents { get; } =
     [
         GroupEvent.GroupDisplayChange,
-        GroupEvent.RemoveMember
+        GroupEvent.RemoveMember,
+        GroupEvent.OtherLeftGroup,
+        GroupEvent.ReceivedInviteAccepted
     ];
 
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetChatData();
+        await InvokeAsync(StateHasChanged);
     }
 
     private class MessageEntry

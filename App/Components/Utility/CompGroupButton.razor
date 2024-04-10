@@ -104,7 +104,8 @@
         var interactionSync = new GroupInteractionSyncC2SPacket
         {
             Event = eventKind,
-            GroupId = GroupID!.Value
+            GroupId = GroupID!.Value,
+            SpecificUserId = UserId ?? -1
         };
         await SendToServer.InvokeAsync(interactionSync);
     }

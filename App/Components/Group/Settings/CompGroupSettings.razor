@@ -240,7 +240,7 @@
         var groupInteractionSync = new GroupInteractionSyncC2SPacket
         {
             Event = GroupEvent.GroupDisplayChange,
-            GroupId = ChatID!.Value,
+            GroupId = ChatID!.Value
         };
         await SendToServer.InvokeAsync(groupInteractionSync);
 
@@ -399,7 +399,7 @@
         {
             Event = eventKind,
             GroupId = ChatID!.Value,
-            SpecificUserId = userId
+            SpecificUserId = userId ?? -1
         };
         await SendToServer.InvokeAsync(groupInteractionSync);
     }

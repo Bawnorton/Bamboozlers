@@ -16,10 +16,10 @@ public enum GroupEvent
     RevokedPermissions,
     RemoveMember,
     GroupDisplayChange,
-    OtherLeftGroup
+    OtherLeftGroup,
+    ReceivedInviteRevoked
     
     /* TODO: Implement methods in UserGroupService upon receiving network packet for this?
-    ReceivedInviteRevoked
     SentInviteAccepted
     SentInviteDeclined
     SelfPermissionsRevoked
