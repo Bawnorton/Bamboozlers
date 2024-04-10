@@ -4,7 +4,10 @@
 @using Microsoft.IdentityModel.Tokens
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
 @using Bamboozlers.Classes.Services.UserServices
+@using Bamboozlers.Classes.Utility.Observer
 
 <ModalContent Size="ModalSize.Large" Height="Height.Is75" Centered>
     <ModalHeader>
@@ -76,6 +79,7 @@
     
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
     
     public AlertArguments AlertArguments { get; set; } = new();
     public byte[]? Avatar { get; set; }
@@ -128,12 +132,21 @@
         }
 
         await ClosePopupCallback.InvokeAsync();
-        var group = (await 
-            AuthService.GetUser(query => query.Include(u => u.OwnedChats)))!
-                .OwnedChats
-                    .LastOrDefault();
-        if (group is null)
-            return;
+        var group = (await AuthService.GetUser(query => query
+                .Include(u => u.OwnedChats)))!
+            .OwnedChats
+            .LastOrDefault();
+        if (group is null) return;
+
+        foreach (var sync in toInvite.Select(user => new GroupInteractionSyncC2SPacket
+                 {
+                     Event = GroupEvent.SentInvite,
+                     GroupId = -1,
+                     SpecificUserId = user.Id
+                 }))
+        {
+            await SendToServer.InvokeAsync(sync);
+        }
         
         await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Group, group.ID));
     }

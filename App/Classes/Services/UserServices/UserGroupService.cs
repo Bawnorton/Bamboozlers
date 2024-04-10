@@ -115,7 +115,7 @@ public class UserGroupService(
             }
         }
 
-        await NotifySubscribersOf(-1, GroupEvent.CreateGroup);
+        await NotifySubscribersOf(GroupEvent.CreateGroup, -1);
         return IdentityResult.Success;
     }
     
@@ -141,7 +141,7 @@ public class UserGroupService(
         dbContext.Remove(grp);
         await dbContext.SaveChangesAsync();
 
-        await NotifySubscribersOf(-1, GroupEvent.DeleteGroup);
+        await NotifySubscribersOf(GroupEvent.DeleteGroup, -1);
         return IdentityResult.Success;
     }
     
@@ -166,7 +166,7 @@ public class UserGroupService(
         group.Avatar = avatar;
         await dbContext.SaveChangesAsync();
         
-        await NotifySubscribersOf(group.ID, GroupEvent.GroupDisplayChange);
+        await NotifySubscribersOf(GroupEvent.GroupDisplayChange, group.ID);
         return IdentityResult.Success;
     }
     
@@ -190,7 +190,7 @@ public class UserGroupService(
         group.Name = name.IsNullOrEmpty() ? null : name;
         await dbContext.SaveChangesAsync();
         
-        await NotifySubscribersOf(group.ID, GroupEvent.GroupDisplayChange);
+        await NotifySubscribersOf(GroupEvent.GroupDisplayChange, group.ID);
 
         return IdentityResult.Success;
     }
@@ -239,7 +239,7 @@ public class UserGroupService(
         dbContext.ChatUsers.Add(new ChatUser(self.Id, (int)chatId!));
         await dbContext.SaveChangesAsync();
         
-        await NotifySubscribersOf(-1, GroupEvent.ReceivedInviteAccepted);
+        await NotifySubscribersOf(GroupEvent.ReceivedInviteAccepted, -1);
     }
 
     public async Task DeclineGroupInvite(int? chatId, int? senderId)
@@ -253,7 +253,7 @@ public class UserGroupService(
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         dbContext.GroupInvites.Remove(invite);
         await dbContext.SaveChangesAsync();
-        await NotifySubscribersOf(-1, GroupEvent.ReceivedInviteDeclined);
+        await NotifySubscribersOf(GroupEvent.ReceivedInviteDeclined, -1);
     }
 
     public async Task RemoveGroupMember(int? chatId, int? memberId)
@@ -282,7 +282,7 @@ public class UserGroupService(
         
         await dbContext.SaveChangesAsync();
 
-        await NotifySubscribersOf(group.ID, GroupEvent.RemoveMember);
+        await NotifySubscribersOf(GroupEvent.RemoveMember, group.ID);
     }
 
     public async Task AssignPermissions(int? chatId, int? modId)
@@ -300,7 +300,7 @@ public class UserGroupService(
         dbContext.ChatModerators.Add(new ChatModerator((int) modId!, (int) chatId!));
         await dbContext.SaveChangesAsync();
         
-        await NotifySubscribersOf(group.ID, GroupEvent.GrantedPermissions);
+        await NotifySubscribersOf(GroupEvent.GrantedPermissions, group.ID);
     }
 
     public async Task RevokePermissions(int? chatId, int? modId)
@@ -328,7 +328,7 @@ public class UserGroupService(
         }
         await dbContext.SaveChangesAsync();
 
-        await NotifySubscribersOf(group.ID, GroupEvent.RevokedPermissions);
+        await NotifySubscribersOf(GroupEvent.RevokedPermissions, group.ID);
     }
 
     public async Task SendGroupInvite(int? chatId, int? recipientId)
@@ -351,7 +351,7 @@ public class UserGroupService(
             invite = new GroupInvite(self.Id, other.Id, group.ID);
             dbContext.GroupInvites.Add(invite);
             await dbContext.SaveChangesAsync();
-            await NotifySubscribersOf(-1, GroupEvent.SentInvite);
+            await NotifySubscribersOf(GroupEvent.SentInvite, -1);
         }
     }
 
@@ -370,7 +370,7 @@ public class UserGroupService(
         {
             dbContext.Remove(invite);
             await dbContext.SaveChangesAsync();
-            await NotifySubscribersOf(-1,GroupEvent.SentInviteRevoked);
+            await NotifySubscribersOf(GroupEvent.SentInviteRevoked, -1);
         }
     }
 
@@ -400,7 +400,7 @@ public class UserGroupService(
             await FindSuccessorOwner(chatId);
         }
         
-        await NotifySubscribersOf(-1, GroupEvent.SelfLeftGroup);
+        await NotifySubscribersOf(GroupEvent.SelfLeftGroup, -1);
     }
 
     public async Task<List<GroupChat>> GetAllModeratedGroups()
@@ -457,14 +457,19 @@ public class UserGroupService(
         return true;
     }
 
-    public async Task NotifySubscribersOf(int groupId, GroupEvent evt, int? specificUserId = null)
+    public async Task NotifySubscribersOf(GroupEvent evt, int groupId, int specificUserId = -1)
     {
-        var subscribersToGroup = groupId == -1 ? Subscribers : Subscribers.Where(s => s.WatchedIDs.Contains(groupId)).ToList();
+        var subscribersToGroup = groupId switch
+        {
+            -1 => Subscribers,
+            _ => specificUserId != -1 ? Subscribers : Subscribers.Where(s => s.WatchedIDs.Contains(groupId)).ToList()
+        };
+        
         if (evt is GroupEvent.General)
         {
             foreach (var sub in subscribersToGroup)
             {
-                await sub.OnUpdate(GroupEvent.General);
+                await sub.OnUpdate(GroupEvent.General, groupId, specificUserId);
             }
         }
         else
@@ -472,7 +477,7 @@ public class UserGroupService(
             subscribersToGroup = subscribersToGroup.Where(s => s.WatchedGroupEvents.Contains(evt) || s.WatchedGroupEvents.Contains(GroupEvent.General)).ToList();
             foreach (var sub in subscribersToGroup)
             {
-                await sub.OnUpdate(evt);
+                await sub.OnUpdate(evt, groupId, specificUserId);
             }
         }
     }
@@ -506,5 +511,5 @@ public interface IUserGroupService : IAsyncPublisher<IGroupSubscriber>
     Task<List<GroupChat>> GetAllModeratedGroups();
     Task<List<GroupInvite>> GetAllIncomingInvites();
     Task<List<GroupInvite>> GetAllOutgoingInvites();
-    Task NotifySubscribersOf(int groupId, GroupEvent evt, int? specificUserId = null);
+    Task NotifySubscribersOf(GroupEvent evt, int groupId, int specificUserId = -1);
 }
