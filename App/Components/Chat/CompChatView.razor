@@ -69,8 +69,9 @@
     }
     
     function scrollToBottom() {
-        const messageContainer = document.getElementById('message-container');
-        messageContainer.scrollTop = messageContainer.scrollHeight;
+        waitForElm('#message-container').then(messageContainer => {
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        });
     }
     
     function scrollToElement(elementId) {
@@ -296,10 +297,11 @@ else
     [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
 
     [Parameter] public EventCallback GoToHome { get; set; }
+    [Parameter] public int PassedChatID { get; set; } = -1;
 
-    public int ChatID { get; set; } = -1;
     private int PrevChatID { get; set; } = -1;
     
+    private int ChatID { get; set; }
     private Chat? Chat { get; set; }
     private string ChatName { get; set; }
     private bool ChatLoaded { get; set; }
@@ -334,10 +336,13 @@ else
         
         AddPacketSubscriber.Invoke(this);
         AddKeySubscriber.Invoke(this);
+
+        await RefreshState(PassedChatID);
     }
     
-    private async Task RefreshState()
+    private async Task RefreshState(int chatId)
     {
+        ChatID = chatId == -1 ? PassedChatID : chatId;
         WatchedIDs = [ChatID];
      
         MessageInput = "";
@@ -371,14 +376,13 @@ else
         {
             case DidJoinChatS2CPacket joinChat:
                 PrevChatID = ChatID;
-                ChatID = joinChat.ChatId;
-                Console.WriteLine($"Joined chat {ChatID}, previous chat {PrevChatID}");
-                if (ChatID != PrevChatID)
+                Console.WriteLine($"Joined chat {joinChat.ChatId}, previous chat {PrevChatID}");
+                if (joinChat.ChatId != PrevChatID)
                 {
-                    await RefreshState();
+                    await RefreshState(joinChat.ChatId);
                 }
                 break;
-            case DidLeaveChatS2CPacket leaveChat:
+            case DidLeaveChatS2CPacket:
                 // probably useful for something
                 break;
             case MessageSentS2CPacket messageSent:

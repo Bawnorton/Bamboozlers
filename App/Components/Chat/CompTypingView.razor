@@ -43,7 +43,7 @@
     {
         AutoReset = true,
         Enabled = true,
-        Interval = 7500
+        Interval = 5000
     };
     private long? _lastTypingTime;
     private Dictionary<int, string> _typingUsers = [];
@@ -89,7 +89,14 @@
         {
             case TypingStateS2CPacket typingState:
             {
-                if (typingState.UserId == Self!.Id) return;
+                if (typingState.UserId == Self!.Id)
+                {
+                    if (!typingState.Typing)
+                    {
+                        _lastTypingTime = null;
+                    }
+                    return;
+                }
                 
                 var typing = typingState.Typing;
                 await using var db = await Db.CreateDbContextAsync();

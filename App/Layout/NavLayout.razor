@@ -144,7 +144,7 @@
         }
         else
         {
-            <CompChatView GoToHome="MoveToHome"/>
+            <CompChatView PassedChatID="@CurrentChatId" GoToHome="MoveToHome"/>
         }
     </Layout>
 }
@@ -256,17 +256,32 @@
             }
         }
     }
+    
+    private async Task JoinChat()
+    {
+        var joinChat = new JoinChatC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = CurrentChatId
+        };
+        await SendToServer.InvokeAsync(joinChat);
+    }
+    
+    private async Task LeaveChat()
+    {
+        var leaveChat = new LeaveChatC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = CurrentChatId
+        };
+        await SendToServer.InvokeAsync(leaveChat);
+    }
 
     public async Task OpenDm(int chatId = -1, int? otherId = null, bool reload = false)
     {
         if (CurrentChatId != -1)
         {
-            var leaveChat = new LeaveChatC2SPacket
-            {
-                SenderId = Self!.Id,
-                ChatId = CurrentChatId
-            };
-            await SendToServer.InvokeAsync(leaveChat);
+            await LeaveChat();
         }
 
         if (reload)
@@ -300,25 +315,15 @@
         CurrentChatId = chatId;
 
         await InvokeAsync(StateHasChanged);
-
-        var joinChat = new JoinChatC2SPacket
-        {
-            SenderId = Self!.Id,
-            ChatId = chatId
-        };
-        await SendToServer.InvokeAsync(joinChat);
+        
+        await JoinChat();
     }
 
     public async Task OpenGroup(int chatId, bool reload = false)
     {
         if (CurrentChatId != -1)
         {
-            var leaveChat = new LeaveChatC2SPacket
-            {
-                SenderId = Self!.Id,
-                ChatId = CurrentChatId
-            };
-            await SendToServer.InvokeAsync(leaveChat);
+            await LeaveChat();
         }
 
         if (reload)
@@ -331,13 +336,8 @@
         CurrentChatId = chatId;
 
         await InvokeAsync(StateHasChanged);
-
-        var joinChat = new JoinChatC2SPacket
-        {
-            SenderId = Self!.Id,
-            ChatId = chatId
-        };
-        await SendToServer.InvokeAsync(joinChat);
+        
+        await JoinChat();
     }
 
     public List<int?> WatchedIDs { get; private set; } = [];

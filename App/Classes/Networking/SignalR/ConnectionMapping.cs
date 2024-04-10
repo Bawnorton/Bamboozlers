@@ -59,10 +59,12 @@ public class ConnectionMapping<T> where T : notnull
         {
             var key = _connections.FirstOrDefault(x => x.Value.Contains(contextConnectionId)).Key;
             if (key == null) return;
+            if (!_connections.TryGetValue(key, out var connections)) return;
             
-            lock (_connections[key])
+            lock (connections)
             {
-                _connections.Remove(key);
+                connections.Remove(contextConnectionId);
+                if (connections.Count == 0) _connections.Remove(key);
             }
         }
     }
