@@ -9,6 +9,7 @@ public enum InteractionEvent
     RequestSent,
     RequestRevoked,
     RequestPending,
+    RequestReceived,
     Unfriend,
     Block,
     Unblock

@@ -1,0 +1,162 @@
+@inherits UserViewComponentBase
+
+@implements IAsyncDisposable 
+@implements IAsyncSimplePublisher<IAsyncPacketSubscriber>
+
+@using Microsoft.AspNetCore.SignalR.Client
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.SignalR
+@using Bamboozlers.Classes.Networking
+@using Bamboozlers.Classes.Utility.Observer
+@using Microsoft.AspNetCore.Http.Connections
+@using System.Text.Json
+@using System.Net
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction
+@using Bamboozlers.Classes.Services.UserServices
+@using Microsoft.AspNetCore.Http.Connections.Client
+
+@inject NavigationManager NavigationManager
+
+<CascadingValue Value="_addPacketSubscriber">
+    <CascadingValue Value="_removePacketSubscribers">
+        <CascadingValue Value="_sendToServer">
+            @ChildContent
+        </CascadingValue>
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    
+    [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
+    [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
+
+    private EventCallback<IPacket> _sendToServer;
+    private Register<IAsyncPacketSubscriber> _addPacketSubscriber = default!;
+    private Unregister<Type[]> _removePacketSubscribers = default!;
+
+    public List<IAsyncPacketSubscriber> Subscribers { get; } = [];
+
+    private string _hubUrl;
+    private HubConnection? _hubConnection;
+
+    protected override void OnInitialized()
+    {
+        _sendToServer = EventCallback.Factory.Create<IPacket>(this, SendPacketToServer);
+        _addPacketSubscriber = AddSubscriber;
+        _removePacketSubscribers = RemoveSubscribers;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await Connect();
+    }
+    
+    private async Task Connect()
+    {
+        var baseUrl = NavigationManager.BaseUri;
+        _hubUrl = baseUrl.TrimEnd('/') + BamboozlersHub.HubUrl;
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(_hubUrl, ConfigureHttpConnection)
+            .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)])
+            .Build();
+
+        _hubConnection.On("RecievePacketOnClient", async (string packetJson) =>
+        {
+            await ClientNetworkHandler.Instance.Handle(packetJson, async packet =>
+            {
+                await OnPacketRecieved(packet);
+            });
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    private async void ConfigureHttpConnection(HttpConnectionOptions options)
+    {
+        options.HttpMessageHandlerFactory = innerHandler => new IncludeRequestCredentialsMessageHandler { InnerHandler = innerHandler };
+        options.Cookies.Add(await AuthService.GetCookie());
+    }
+
+    public bool AddSubscriber(IAsyncPacketSubscriber subscriber)
+    {
+        if (Subscribers.Contains(subscriber)) return false;
+        Subscribers.Add(subscriber);
+        return true;
+    }
+
+    private int RemoveSubscribers(Type[] types)
+    {
+        var runningCount = 0;
+        foreach (var type in types)
+        {
+            if (type.IsAssignableFrom(typeof(IAsyncPacketSubscriber)))
+            {
+                throw new ArgumentException($"Type {type.Name} is not of type {nameof(IAsyncPacketSubscriber)}");
+            }
+            runningCount += Subscribers.RemoveAll(subscriber => subscriber.GetType() == type);
+        }
+        return runningCount;
+    }
+    
+    private async Task TopLevelHandler(IPacket packet)
+    {
+        switch (packet)
+        {
+            case InteractionSyncS2CPacket interactionSync:
+                Console.WriteLine($"Syncing Interaction Event: {interactionSync.Event}");
+                await UserInteractionService.NotifySubscribersOf(interactionSync.Event);
+                break;
+            case GroupInteractionSyncS2CPacket groupInteractionSync:
+                Console.WriteLine($"Syncing Group Event: {groupInteractionSync.Event}");
+                await UserGroupService.NotifySubscribersOf(groupInteractionSync.Event, groupInteractionSync.GroupId, groupInteractionSync.SpecificUserId);
+                break;
+        }
+    }
+    
+    private async Task OnPacketRecieved(IPacket packet)
+    {
+        Console.WriteLine($"Recieved packet from server: {packet.PacketType().GetId()}");
+        await TopLevelHandler(packet);
+        foreach (var subscriber in Subscribers)
+        {
+            await subscriber.OnPacket(packet);
+        }
+    }
+
+    private async Task SendPacketToServer(IPacket packet)
+    {
+        if (_hubConnection is null) throw new InvalidOperationException("Hub connection is not initialized");
+        if (_hubConnection.State != HubConnectionState.Connected)
+        {
+            Console.WriteLine("Hub disconnected, cannot send packet");
+            return;
+        }
+        Console.WriteLine($"Sending packet to server: {packet.PacketType().GetId()}");
+        try
+        {
+            await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());
+        } catch (Exception e)
+        {
+            Console.WriteLine($"Failed to send packet to server: {e.Message}");
+        }
+    }
+    
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_hubConnection is null) return;
+
+        await _hubConnection.StopAsync();
+        await _hubConnection.DisposeAsync();
+
+        _hubConnection = null;
+
+        GC.SuppressFinalize(this);
+    }
+
+}

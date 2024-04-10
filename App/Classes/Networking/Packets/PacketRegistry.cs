@@ -14,12 +14,19 @@ public class PacketRegistry
 
     public PacketType GetPacketType(string id)
     {
+        CheckPacketId(id);
         return _packets[id].PacketType;
     }
 
     public Type GetActualType(string id)
     {
+        CheckPacketId(id);
         return _packets[id].ActualType;
+    }
+    
+    private void CheckPacketId(string id)
+    {
+        if (!_packets.ContainsKey(id)) Console.Error.WriteLine($"!!! Packet id {id} not registered !!!");
     }
 
     private record PacketInfo(PacketType PacketType, Type ActualType);

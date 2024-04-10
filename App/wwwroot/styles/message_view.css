@@ -1,5 +1,6 @@
 :root {
     --hover-background-colour: hsl(217, 16%, 20%);
+    --highlight-background-colour: hsl(219, 24%, 26%);
 }
 
 .message-input {
@@ -26,6 +27,7 @@
     border-radius: 50%;
     margin-right: 10px;
     margin-bottom: 3px;
+    object-fit: cover;
 }
 
 .message-info {
@@ -59,8 +61,17 @@
     position: relative;
 }
 
-.message-content:hover {
+.message {
+    padding: 2px 5px;
+    border-radius: 5px;
+}
+
+.message:hover {
     background-color: var(--hover-background-colour);
+}
+
+.highlight {
+    background-color: var(--highlight-background-colour);
 }
 
 .message-actions {
@@ -74,40 +85,60 @@
     z-index: 1;
 }
 
-.message-content:hover .message-actions {
+.message:hover .message-actions {
     background-color: #585858;
 }
 
-.message-content:hover .message-actions button {
+.message:hover .message-actions button {
     visibility: visible;
 }
 
 .message-actions button {
     padding: 2px 15px;
     visibility: hidden;
+    position: relative;
 }
 
 .message-actions button:hover {
     background-color: #727272;
 }
 
-.message-header:hover {
-    background-color: var(--hover-background-colour);
+.button-tooltip:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    background-color: #313131;
+    color: #b3b3b3;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    z-index: 10;
 }
 
-.message-header:hover + .message-content {
-    background-color: var(--hover-background-colour);
+.button-tooltip:focus {
+    outline: 0;
 }
 
-.message-header:hover + .message-content .message-actions {
-    background-color: #585858;
+.tooltip-left:hover::after {
+    top: 50%;
+    left: -70px;
+    transform: translateY(-50%);
 }
 
-.message-header:hover + .message-content .message-actions button {
-    visibility: visible;
+.tooltip-right:hover::after {
+    top: 50%;
+    right: -70px;
+    transform: translateY(-50%);
 }
 
-/* equivalent to .message-content:hover -previous- .message-header */
-.message-header:has(+ .message-content:hover) {
-    background-color: var(--hover-background-colour);
+.tooltip-down:hover::after {
+    bottom: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.tooltip-up:hover::after {
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
 }

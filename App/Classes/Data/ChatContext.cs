@@ -3,9 +3,11 @@ using Bamboozlers.Classes.Func;
 
 namespace Bamboozlers.Classes.Data;
 
-public record ChatContextData(
-    bool IsShiftHelf,
+public record ChatContext(
     bool IsMod,
+    AsyncConsumer<Message> SetReplying,
     AsyncConsumer<Message> OnDelete,
-    AsyncBiConsumer<Message, string> OnEdit,
+    AsyncConsumer<Message> OnEditStart,
+    AsyncConsumer<string?> SetLastEdit,
+    AsyncConsumer<bool> OnEditEnd,
     AsyncConsumer<Message> OnPin);

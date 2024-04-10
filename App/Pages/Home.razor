@@ -4,14 +4,18 @@
 
 @inherits LayoutComponentBase
 
-@using Microsoft.AspNetCore.Authorization
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Components.MainVisual
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Components.Hubs
+@using Bamboozlers.Components.Interaction
 @using Bamboozlers.Components.Settings
 @using Bamboozlers.Components.Group.Settings
-@using Bamboozlers.Components.Interaction
 @using Bamboozlers.Components.Group
+@using Bamboozlers.Components.MainVisual
+@using Microsoft.AspNetCore.Authorization
+@using Bamboozlers.Components.Chat
+@using Bamboozlers.Account.Shared
 
 @attribute [Authorize]
 
@@ -20,45 +24,70 @@
 <ErrorBoundary>
     <ChildContent>
         <AuthorizeView>
+            <!-- IMPORTANT: This allows child components to create Popups! 
+                 Declare a [CascadingParameter] of type EventCallback<PopupCallbackArgs> in a component to use this!
+                 
+                 Allows for dynamic creation of popups without using Blazorise ModalProvider/Service, which isn't
+                 very cooperative!
+            -->
             <CascadingValue Value="OpenAlertPopup">
                 <CascadingValue Value="OpenNewPopup">
                     <CascadingValue Value="OpenKnownPopup">
                         <CascadingValue Value="DismissPopup">
                             <CascadingValue Value="OpenChatCallback">
-                                <NavLayout @ref="_navLayout"/>
-                                <Modal @ref="ModalRef" Closed="@(() => CurrentPopup = null)">
-                                    @CurrentPopup
-                                </Modal>
-                                <Modal @ref="AlertModalRef" Closed="@(() => AlertPopup = null)">
-                                    @AlertPopup
-                                </Modal>
+                                <KeyPressHub>
+                                    <NetworkHub>
+                                        <NavLayout @ref="_navLayout"/>
+                                        <Modal @ref="ModalRef" Closed="@(() => CurrentPopup = null)">
+                                            @CurrentPopup
+                                        </Modal>
+                                        <Modal @ref="AlertModalRef" Closed="@(() => AlertPopup = null)">
+                                            @AlertPopup
+                                        </Modal>
+                                    </NetworkHub>
+                                </KeyPressHub>
                             </CascadingValue>
                         </CascadingValue>
                     </CascadingValue>
                 </CascadingValue>
             </CascadingValue>
+            <script>
+                function waitForElm(selector) {
+                    return new Promise(resolve => {
+                        if (document.querySelector(selector)) {
+                            return resolve(document.querySelector(selector));
+                        }
+                
+                        const observer = new MutationObserver(_ => {
+                            if (document.querySelector(selector)) {
+                                observer.disconnect();
+                                resolve(document.querySelector(selector));
+                            }
+                        });
+                
+                        observer.observe(document.body, {
+                            childList: true,
+                            subtree: true
+                        });
+                    });
+                }
+            </script>
         </AuthorizeView>
     </ChildContent>
     <ErrorContent Context="exception">
-        <Layout>
-            <LayoutHeader Padding="Padding.Is3"
-                          TextSize="TextSize.Heading1"
-                          TextColor="TextColor.Danger"
-                          Background="Background.Dark">
-                Bamboozlers
-            </LayoutHeader>
-            <LayoutContent Padding="Padding.Is3"
-                           Background="Background.Primary"
-                           TextColor="TextColor.White">
-                <Div Class="h-100 d-flex justify-content-center align-items-center">
-                    <Div Class="rounded-3 border-3 border-warning text-warning p-5 fa-2x"
-                         Background="Background.Dark">
-                        <p>Oops! Something went wrong.</p>
-                        <p>@exception.Message</p>
+        <CompAccountContainer>
+            <Layout Style="height: auto">
+                <LayoutContent Margin="Margin.Is3">
+                    <Div Class="d-flex justify-content-center align-items-center">
+                        <Div Class="rounded-3 border-3 border-warning text-warning p-5 fa-2x"
+                             Background="Background.Dark">
+                            <p>Oops! Something went wrong.</p>
+                            <p>Reload the page or try again later.</p>
+                        </Div>
                     </Div>
-                </Div>
-            </LayoutContent>
-        </Layout>
+                </LayoutContent>
+            </Layout>
+        </CompAccountContainer>
     </ErrorContent>
 </ErrorBoundary>
 
@@ -69,13 +98,12 @@
     private EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     private EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
     private EventCallback DismissPopup { get; set; }
-
     private EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
 
     protected override void OnInitialized()
     {
         OpenKnownPopup = EventCallback.Factory.Create<KnownPopupArgs>(this,
-            async args => await CreateKnownPopup(args.Type, args.FocusUser, args.ChatId)
+            async args => await CreateKnownPopup(args.Type, args.FocusUser, args.ChatId, args.OnClose)
         );
 
         OpenAlertPopup = EventCallback.Factory.Create<AlertPopupArgs>(this,
@@ -98,6 +126,8 @@
                 case ChatType.Group:
                     await _navLayout!.OpenGroup(args.Id, true);
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         });
     }
@@ -108,7 +138,7 @@
     private Modal AlertModalRef { get; set; } = default!;
     private RenderFragment? AlertPopup { get; set; }
 
-    private async Task CreateKnownPopup(PopupType type, User? focusUser = null, int? chatId = null)
+    private async Task CreateKnownPopup(PopupType type, User? focusUser = null, int? chatId = null, AsyncConsumer<object?>? onClose = null)
     {
         CurrentPopup = type switch
         {
@@ -128,7 +158,8 @@
                                           <CompCreateGroup/>
                                       </text>,
             PopupType.FriendList => @<text>
-                                         <ModalContent Centered>
+                                         <ModalContent Centered
+                                                       Size="ModalSize.Large">
                                              <Container Margin="Margin.Is2">
                                                  <CompFriendList IsPopup="@true"/>
                                              </Container>
@@ -137,6 +168,9 @@
             PopupType.FindFriends => @<text>
                                           <CompAddFriend/>
                                       </text>,
+            PopupType.Pins => @<text>
+                                   <CompPinsView ChatID="@chatId" FocusUser="@UserRecord.From(focusUser!)" OnMessageJump="@(async message => { await onClose?.Invoke(message)!; await ClosePopup(); })"/>
+                               </text>,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, $"Cannot create popup of type {type}")
         };
         await ModalRef.Show();
@@ -190,7 +224,7 @@
                       </text>;
         await AlertModalRef.Show();
     }
-
+    
     private async Task ClosePopup()
     {
         if (AlertPopup is not null)

@@ -121,6 +121,7 @@ public class InteractionTests : InteractionTestBase
         var component = Ctx.RenderComponent<CompAddFriend>(parameters =>
         {
             parameters.Add(p => p.OpenKnownPopup, fauxOpenPopup);
+            parameters.Add(p => p.AddKeySubscriber, _ => true);
         });
         
         var container = component.Find(".scrollbar-container");

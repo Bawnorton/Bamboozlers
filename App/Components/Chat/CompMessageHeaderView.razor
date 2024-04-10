@@ -1,26 +1,20 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Components.Utility
 
-@if (PreviousMessage == null || PreviousMessage.SenderID != Message.SenderID)
-{
-    <Div Class="message-header" Style="@(PreviousMessage == null ? "" : "margin-top: 15px;")">
-        <Div Class="message-info">
-            @if (Message.Sender is not null)
-            {
-                <Image Source="@Message.Sender.GetAvatar()" Class="message-avatar" alt=""/>
-            }
-            <CompInteractUsername User="@Message.Sender"/>
-            <Div Class="message-timestamp">
-                @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
-            </Div>
+
+<Div Class="message-header">
+    <Div Class="message-info">
+        <Image Source="@Message.Sender!.GetAvatar()" Class="message-avatar" alt=""/>
+        <CompInteractUsername User="@Message.Sender" MaxWidth="@MaxWidth"/>
+        <Div Class="message-timestamp">
+            @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
         </Div>
     </Div>
-}
+</Div>
 
 @code {
 
     [Parameter] public Message Message { get; set; } = default!;
-
-    [Parameter] public Message? PreviousMessage { get; set; }
-
+    
+    [Parameter] public string? MaxWidth { get; set; }
 }

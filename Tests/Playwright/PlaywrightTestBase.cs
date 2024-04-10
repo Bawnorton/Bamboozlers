@@ -116,7 +116,7 @@ public class PlaywrightTestBase : IClassFixture<CustomWebApplicationFactory>
             .ClickAsync();
         var dmEntries = page
             .Locator("#dms_dropdown")
-            .Locator(".b-bar-item");
+            .Locator(".dm-entry");
 
         if (dmEntries.CountAsync().Result == 0)
         {
@@ -144,6 +144,8 @@ public class PlaywrightTestBase : IClassFixture<CustomWebApplicationFactory>
             Users = [owner, other],
             Messages = []
         };
+        var friendship = new Friendship(owner.Id, other.Id);
+        context.FriendShips.Add(friendship);
         owner.Chats ??= [];
         other.Chats ??= [];
         owner.Chats.Add(dm);

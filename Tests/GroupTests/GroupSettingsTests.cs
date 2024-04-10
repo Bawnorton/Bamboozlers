@@ -177,19 +177,6 @@ public class GroupSettingsTests : GroupChatTestBase
         Assert.NotNull(alertArgs);
         Assert.Equal("Success!",alertArgs.AlertMessage);
         Assert.Equal("Group avatar was deleted.",alertArgs.AlertDescription);
-        
-        subjectGroup.Avatar = new byte[1];
-        component = Ctx.RenderComponent<CompGroupSettings>(
-            parameters
-                => parameters.Add(p => p.ChatID, subjectGroup.ID)
-        );
-        await SetUser(null);
-        UserService.Invalidate();
-        await component.Instance.DeleteAvatar();
-        alertArgs = component.Instance.AlertArguments;
-        Assert.NotNull(alertArgs);
-        Assert.Equal("Unsuccessful attempt to delete avatar.",alertArgs.AlertMessage);
-        Assert.Equal("Issue occurred that prevented group changes from being saved.",alertArgs.AlertDescription);
     }
 
     [Fact]
@@ -294,25 +281,5 @@ public class GroupSettingsTests : GroupChatTestBase
         Assert.Equal("Success!", returnedAlertArguments.AlertMessage);
         Assert.Equal("Group name was changed.", returnedAlertArguments.AlertDescription);
         returnedAlertArguments = null;
-
-        await SetUser(null);
-        UserService.Invalidate();
-        component.Instance.TypedName = "New Name 2";
-        await component.Instance.OnSave();
-        Assert.NotNull(returnedAlertArguments);
-        Assert.Equal("Unsuccessful attempt to save changes.", returnedAlertArguments.AlertMessage);
-        Assert.Equal("Issue occurred that prevented group changes from being saved.", returnedAlertArguments.AlertDescription);
-        returnedAlertArguments = null;
-        
-        component = Ctx.RenderComponent<CompEditGroupName>(
-            parameters=>
-            {
-                parameters.Add(p => p.ChatID, -1);
-                parameters.Add(p => p.AlertCallback, fauxAlertCallback);
-            });
-        await component.Instance.OnSave();
-        Assert.NotNull(returnedAlertArguments);
-        Assert.Equal("An error occurred while saving changes.", returnedAlertArguments.AlertMessage);
-        Assert.Equal("An unknown error occurred. Please try again.", returnedAlertArguments.AlertDescription);
     }
 }

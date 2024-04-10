@@ -9,6 +9,7 @@ using Blazorise.Modules;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tests.Provider;
@@ -23,10 +24,11 @@ public class UserSettingsTests : AuthenticatedBlazoriseTestBase
         MockDatabaseProvider = new MockDatabaseProvider(Ctx);
         MockAuthenticationProvider = new MockAuthenticationProvider(Ctx);
         MockUserManager = new MockUserManager(Ctx, MockDatabaseProvider);
-
+        var mockHttpContextAccessor = new Mock<HttpContextAccessor>();
+        
         // Set-up true Auth and User Services
-        AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(),MockDatabaseProvider.GetDbContextFactory());
-        UserService = new UserService(AuthService, new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper());
+        AuthService = new AuthService(MockAuthenticationProvider.GetAuthStateProvider(), mockHttpContextAccessor.Object, MockDatabaseProvider.GetDbContextFactory());
+        UserService = new UserService(AuthService, new MockServiceProviderWrapper(Ctx, MockUserManager).GetServiceProviderWrapper(), MockDatabaseProvider.GetDbContextFactory(), UserGroupService);
 
         Ctx.Services.AddSingleton<IUserService>(UserService);
         Ctx.Services.AddSingleton<IAuthService>(AuthService);

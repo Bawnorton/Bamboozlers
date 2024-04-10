@@ -1,0 +1,70 @@
+@inherits FileHolder
+
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons;
+
+@inject IJSRuntime JsRuntime
+
+<script>
+    function saveAsFile(filename, fileBase64) {
+        const linkSource = `data:application/octet-stream;base64,${fileBase64}`;
+        const downloadLink = document.createElement("a");
+        const fileName = filename;
+        downloadLink.href = linkSource;
+        downloadLink.download = fileName;
+        downloadLink.click();
+    }
+</script>
+<style>
+    .download-button {
+        position: absolute; 
+        top: 10px; 
+        right: 10px;
+        visibility: hidden;
+    }
+    
+    .attachment-container:hover .download-button {
+        visibility: visible;
+    }
+</style>
+<Div Class="attachment-container" Style="margin: 10px; position: relative;">
+    <Button Color="Color.Primary" Class="download-button button-tooltip tooltip-left" data-tooltip="Download" Clicked="@(async () => await DownloadFile())">
+        <Icon Class="@Icons.Download" TextColor="TextColor.White"></Icon>
+    </Button>
+    @if (IsImage)
+    {
+        <Image src="@($"data:image/{ImageType!.ToString()!.ToLower()};base64,{Convert.ToBase64String(FileData)}")" Style="@($"max-width: {MaxWidth}; max-height: {MaxHeight}; object-fit: contain; cursor: pointer")"/>
+    }
+    else
+    {
+        <Div Style="display: flex; flex-direction: row; align-items: center; padding: 5px 20px; border-radius: 5px; min-width: 400px" Background="Background.Secondary">
+            <Div Style="font-size: 36px; ">
+                <Icon Class="@Icons.File" TextColor="TextColor.White"></Icon>
+            </Div>
+            <Div Style="margin-left: 10px; display: flex; flex-direction: column">
+                <Div Style="font-size: 16px;">@FileName</Div>
+                <Div Style="font-size: 12px;">@FileSize</Div>
+            </Div>
+        </Div>
+    }
+</Div>
+
+@code {
+    
+    [Parameter] public string? MaxWidth { get; set; }
+    
+    [Parameter] public string? MaxHeight { get; set; }
+
+    protected override Task OnParametersSetAsync()
+    {
+        MaxHeight ??= "600px";
+        MaxWidth ??= "600px";
+        
+        return base.OnParametersSetAsync();
+    }
+
+    private async Task DownloadFile()
+    {
+        await JsRuntime.InvokeVoidAsync("saveAsFile", FileName, Convert.ToBase64String(FileData));
+    }
+
+}

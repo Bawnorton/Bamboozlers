@@ -6,8 +6,10 @@ public enum GroupEvent
     CreateGroup,
     DeleteGroup,
     SentInvite,
+    ReceivedInvite,
     ReceivedInviteAccepted,
     ReceivedInviteDeclined,
+    ReceivedInviteRevoked,
     SentInviteRevoked,
     SentInvitePending,
     SelfLeftGroup,
@@ -15,12 +17,11 @@ public enum GroupEvent
     RevokedPermissions,
     RemoveMember,
     GroupDisplayChange,
+    OtherLeftGroup
     
     /* TODO: Implement methods in UserGroupService upon receiving network packet for this?
-    ReceivedInviteRevoked
     SentInviteAccepted
     SentInviteDeclined
-    OtherLeftGroup
     SelfPermissionsRevoked
     SelfPermissionsGranted 
     */
@@ -34,5 +35,5 @@ public interface IGroupSubscriber : IAsyncSubscriber
     /// <summary>
     /// Asynchronously performs a given (implemented) action when called by the publisher this subscriber corresponds to.
     /// </summary>
-    Task OnUpdate(GroupEvent evt, int? specifiedGroup = null);
+    Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null);
 }

@@ -1,14 +1,22 @@
+using System.Diagnostics.CodeAnalysis;
 using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Bamboozlers.Classes.Services.UserServices;
 
-public class UserService(IAuthService authService, ServiceProviderWrapper serviceProvider) : IUserService
+public class UserService(IAuthService authService, 
+    ServiceProviderWrapper serviceProvider, 
+    IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory,
+    IUserGroupService userGroupService) : IUserService
 {
     private IAuthService AuthService { get; } = authService;
     private ServiceProviderWrapper ServiceProvider { get; } = serviceProvider;
+    private IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; } = dbContextFactory;
+
+    private IUserGroupService UserGroupService { get; } = userGroupService;
 
     /* User (Data) Retrieval */
     private UserRecord? UserRecord { get; set; }
@@ -120,6 +128,7 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
         return iResult;
     }
 
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public virtual async Task<IdentityResult> DeleteAccountAsync(string password)
     {
         using var scope = ServiceProvider.CreateScope();
@@ -132,8 +141,30 @@ public class UserService(IAuthService authService, ServiceProviderWrapper servic
         var res = await userManager.CheckPasswordAsync(user, password);
         if (!res) return IdentityResult.Failed([new IdentityError { Description = "Password was incorrect." }]);
 
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+    
+        var gi = dbContext.GroupInvites.Where(i => i.SenderID == user.Id || i.RecipientID == user.Id).ToList();
+        var fr = dbContext.FriendRequests.Where(fr => fr.SenderID == user.Id || fr.ReceiverID == user.Id).ToList();
+        var b = dbContext.BlockList.Where(b => b.BlockerID == user.Id || b.BlockedID == user.Id).ToList();
+        var f = dbContext.FriendShips.Where(f => f.User1ID == user.Id || f.User2ID == user.Id).ToList();
+        var cu = dbContext.ChatUsers.Where(cu => cu.UserId == user.Id).ToList();
+        var cm = dbContext.ChatModerators.Where(cm => cm.UserId == user.Id).ToList();
+        var gc = dbContext.GroupChats.Where(gc => gc.OwnerID == user.Id).ToList();
+        
+        dbContext.GroupInvites.RemoveRange(gi);
+        dbContext.FriendRequests.RemoveRange(fr);
+        dbContext.BlockList.RemoveRange(b);
+        dbContext.FriendShips.RemoveRange(f);
+        dbContext.ChatUsers.RemoveRange(cu);
+        dbContext.ChatModerators.RemoveRange(cm);
+        await dbContext.SaveChangesAsync();
+        
         var iResult = await userManager.DeleteAsync(user);
-
+        if (iResult.Succeeded) 
+            gc.ForEach(_gc =>
+                userGroupService.FindSuccessorOwner(_gc.ID)
+            );
+        
         return iResult;
     }
 

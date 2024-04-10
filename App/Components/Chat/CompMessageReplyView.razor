@@ -1,0 +1,85 @@
+@implements IAsyncPacketSubscriber
+
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Clientbound
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Components.Utility
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
+
+@inject IDbContextFactory<AppDbContext> Db
+
+
+@if (ReplyMessage != null)
+{
+    <style>
+        .reply-message {
+            cursor: pointer;
+            min-height: 24px;
+            max-height: 24px;
+            overflow-x: hidden;
+        }
+    
+        .reply-message:hover {
+            color: #dfdfdf;
+        }
+    </style>
+    <Div style="display: flex; flex-direction: row; align-items: center; column-gap: 0.2em" Class="text-muted">
+        <Icon Class="@Icons.Reply" Style="margin-right: 0.3em"/>
+        <CompInteractUsername User="ReplyMessage.Sender"/>
+        <Div class="reply-message" onclick="@($"scrollToMessage({MessageId}, true)")">
+            @Text
+        </Div>
+    </Div>
+}
+
+@code {
+    
+    [Parameter] public int MessageId { get; set; }
+    
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
+
+    private Message? ReplyMessage { get; set; }
+    
+    private string Text => string.IsNullOrWhiteSpace(ReplyMessage?.Content) ? ReplyMessage?.Attachments?.Count > 0 ? "<attachment>" : "Empty message" : ReplyMessage.Content;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var db = await Db.CreateDbContextAsync();
+        ReplyMessage = await db.Messages
+            .Include(m => m.Sender)
+            .Include(m => m.Attachments)
+            .FirstOrDefaultAsync(m => m.ID == MessageId);
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return Task.CompletedTask;
+
+        AddPacketSubscriber.Invoke(this);
+        return Task.CompletedTask;
+    }
+
+    public async Task OnPacket(IPacket packet)
+    {
+        switch (packet)
+        {
+            case MessageEditedS2CPacket messageEdited:
+            {
+                if (messageEdited.MessageId == MessageId)
+                {
+                    await using var db = await Db.CreateDbContextAsync();
+                    ReplyMessage = await db.Messages
+                        .Include(m => m.Sender)
+                        .Include(m => m.Attachments)
+                        .FirstOrDefaultAsync(m => m.ID == MessageId);
+                    await InvokeAsync(StateHasChanged);
+                }
+
+                break;
+            }
+        }
+    }
+}

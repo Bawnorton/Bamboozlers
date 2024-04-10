@@ -1,13 +1,18 @@
 @inherits UserViewComponentBase
+
 @implements IInteractionSubscriber
+@implements IAsyncKeySubscriber
 
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Services
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.Utility
 @using Blazorise.Extensions
+
+@inject IJSRuntime JsRuntime
 
 <ModalContent Centered Size="ModalSize.Large">
     <ModalHeader>
@@ -23,6 +28,7 @@
                           ElementId="search-bar"
                           MaskType="MaskType.RegEx"
                           EditMask="^(?:_?[a-zA-Z0-9]+)*_?$"
+                          Autofocus="true"
                           Placeholder="Find users by their username or display name"/>
                 <Div style="display: inline-flex">
                     <CompActionButton ButtonId="search-button"
@@ -58,6 +64,7 @@
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
+    [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
 
     private List<FriendRequest> IncomingRequests { get; set;} = [];
     private List<FriendRequest> OutgoingRequests { get; set;} = [];
@@ -74,7 +81,15 @@
         UserInteractionService.AddSubscriber(this);
         await GetInteractionData();
     }
-    
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        
+        AddKeySubscriber(this);
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
     private async Task PerformSearch()
     {
         if (SearchQuery.Length == 0)
@@ -118,6 +133,21 @@
         await PerformSearch();
         await InvokeAsync(StateHasChanged);
     }
+
+    public async Task OnKeyPressed(KeyEventArgs keyEventArgs)
+    {
+        if (keyEventArgs.Key == "Enter")
+        {
+            await PerformSearch();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public Task OnKeyReleased(KeyEventArgs keyEventArgs)
+    {
+        return Task.CompletedTask;
+    }
+
 }
 
 

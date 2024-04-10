@@ -1,74 +1,156 @@
 @inherits UserViewComponentBase;
 
+@implements IAsyncKeySubscriber
+@implements IAsyncPacketSubscriber
+
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
+@using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
-@using Bamboozlers.Classes
-@using Bamboozlers.Components.Utility
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.Utility.Observer
+@using Microsoft.IdentityModel.Tokens
 
 @inject IDbContextFactory<AppDbContext> Db
+@inject IJSRuntime JsRuntime
 
 @if (Loaded)
 {
-    <Div ElementId="@("message_" + Message.ID)">
-        @if (MessageState != MessageState.SameUser)
+    <style>
+        .edit-link {
+            color: #366cec;
+            cursor: pointer;
+        }
+    </style>
+    <Div ElementId="@("message_" + Message.ID)" Class=@MessageClass>
+        @if (Message.ReplyToID != null)
         {
-            <Div Class="message-header" Style="@(MessageState == MessageState.First ? "" : "margin-top: 15px;")">
-                <Div Class="message-info">
-                    @if (Message.Sender is not null)
-                    {
-                        <Image Source="@Message.Sender.GetAvatar()" Class="message-avatar" alt=""/>
-                    }
-                    <CompInteractUsername User="@Message.Sender"/>
-                    <Div Class="message-timestamp">
-                        @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
-                    </Div>
-                </Div>
-            </Div>
+            <CompMessageReplyView MessageId="@((int)Message.ReplyToID!)"/>
+        }
+        @if (Message.SenderID != PreviousMessage?.SenderID)
+        {
+            <CompMessageHeaderView Message="Message"/>
         }
         <Div Class="message-content">
-            <Div Style="@(!EchoRecieved ? "color: #A0A3A7" : "")">
-                <CompMessageContentView Content=@Message.Content/>
+            <Div Style="display: flex; flex-direction: column; gap: 10px">
+                @if (Editing)
+                {
+                    <Div Width="Width.Is100">
+                        <Div Display="Display.Flex" Overflow="Overflow.Hidden" Background="Background.Secondary" Style="border-radius: 5px" class="p-2 m-1">
+                            <textarea id="message-edit" class="message-input" @bind="MessageEditInput" @bind:event="oninput">
+                            </textarea>
+                        </Div>
+                        <Div Style="font-size: 14px; color: #acacac">
+                            Enter: <a class="edit-link" @onclick="async () => await OnEditEnd(MessageEditInput)">Save</a> | Escape: <a class="edit-link" @onclick="async () => await OnEditEnd(null)">Cancel</a>
+                        </Div>
+                    </Div>
+                }
+                else
+                {
+                    @if (!string.IsNullOrWhiteSpace(Message.Content))
+                    {
+                        <Div Style="@(!EchoReceived ? "color: #A0A3A7" : "")">
+                            <CompMessageContentView Content=@Message.Content EditDate="@Message.EditedAt"/>
+                        </Div>
+                    }
+                }
+                @if (!MessageAttachments.IsNullOrEmpty())
+                {
+                    @foreach (var attachment in MessageAttachments!)
+                    {
+                        <CompMessageAttachmentView FileName="@attachment.FileName" FileData=@attachment.Data/>
+                    }
+                }
             </Div>
             <Div Class="message-actions">
-                @switch (ShowEdit)
+                @switch (ShowReply)
                 {
                     case true:
-                        <Button onclick="alert('Not Implemented')">
-                            <Icon Class="fa-pencil-alt"></Icon>
-                        </Button>
-                        break;
-                    case false:
-                        <Button onclick="alert('Not Implemented')">
+                        <Button Clicked="async () => await ChatContext.SetReplying(Message)" class=@TooltipClassDir data-tooltip="Reply">
                             <Icon Name="Icons.Reply"></Icon>
                         </Button>
                         break;
+                    case false:
+                        <Button Clicked="@(async () => await OnEditStart())" class=@TooltipClassDir data-tooltip="Edit">
+                            <Icon Class="fa-pencil-alt"></Icon>
+                        </Button>
+                        break;
                 }
-                <Button onclick="alert('Not Implemented')">
+                @if (ShowDelete)
+                {
+                    <Button Clicked="@(async () => await ChatContext.OnDelete(Message))" class=@TooltipClassDir data-tooltip="Delete">
+                        <Icon Name="Icons.Trash"></Icon>
+                    </Button>
+                }
+                <Button Clicked="async () => await ChatContext.OnPin(Message)" class=@TooltipClassDir data-tooltip=@(Message.IsPinned ? "Unpin" : "Pin")>
                     <Icon Name="Icons.MapPin"></Icon>
-                </Button>
-                <Button onclick="alert('Not Implemented')">
-                    <Icon Name="Icons.Trash"></Icon>
                 </Button>
             </Div>
         </Div>
     </Div>
+    <!--suppress JSUnresolvedReference -->
+    <script>        
+        function startEdit() {
+            waitForElm("#message-edit").then(textarea => {
+                textarea.addEventListener('input', () => resizeTextarea('message-edit'));
+                textarea.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                });
+                resizeTextarea('message-edit');
+                textarea.focus();
+            });
+        }
+        
+        function ensureInView() {
+            waitForElm(`#message-edit`).then(elm => {
+                elm.scrollIntoView({behavior: "smooth", block: "center", inline: "nearest"});
+            });
+        }
+    </script>
 }
 
 @code {
     [Parameter] public Message Message { get; set; } = default!;
-    [Parameter] public MessageState MessageState { get; set; }
+    [Parameter] public Message? PreviousMessage { get; set; }
+    [Parameter] public bool EchoReceived { get; set; }
+    [Parameter] public bool Editing { get; set; }
 
-    [Parameter] public bool EchoRecieved { get; set; }
-
-    [CascadingParameter] private bool IsShiftHeld { get; set; }
+    [CascadingParameter] private ChatContext ChatContext { get; set; } = default!;
+    [CascadingParameter] private EventCallback<IPacket> SendToServer { get; set; }
+    [CascadingParameter] private Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
 
     private bool Loaded { get; set; }
-
     private User? Self { get; set; }
 
-    private bool IsSelfMessage => Message.Sender!.Id == Self!.Id;
+    private List<MessageAttachment>? MessageAttachments { get; set; }
 
-    private bool ShowEdit => IsSelfMessage && IsShiftHeld;
+    private string? _messageEditInput;
+
+    private string? MessageEditInput
+    {
+        get => _messageEditInput;
+        set
+        {
+            _messageEditInput = value;
+            InvokeAsync(() => ChatContext.SetLastEdit.Invoke(value));
+        }
+    }
+
+    private bool IsShiftHeld { get; set; }
+
+    private bool IsSelfMessage => Message.Sender is not null && Message.Sender.Id == Self!.Id;
+    private bool ShowReply => IsShiftHeld || !IsSelfMessage;
+    private bool ShowDelete => IsShiftHeld && (IsSelfMessage || ChatContext.IsMod);
+
+    private string TooltipClassDir => "button-tooltip " + (PreviousMessage == null ? "tooltip-down" : "tooltip-up");
+    private string MessageClass => "message " + (Message.SenderID != PreviousMessage?.SenderID ? "mt-2" : "");
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,10 +160,87 @@
         {
             await using var db = await Db.CreateDbContextAsync();
             var sender = await db.Users.FindAsync(Message.SenderID);
-            Message.Sender = sender ?? throw new NullReferenceException("Sender not found"); // TOOD: Replace with "Deleted User" entry
+            Message.Sender = sender;
+
+            if (Message.Sender is null)
+            {
+                Message.Sender = User.Deleted;
+                Message.SenderID = -1;
+            }
         }
+        
+        AddKeySubscriber(this);
+        AddPacketSubscriber(this);
 
         Loaded = true;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Editing && MessageEditInput == null)
+        {
+            MessageEditInput = Message.Content;
+            await JsRuntime.InvokeVoidAsync("resizeTextarea", "message-edit");
+        }
+
+        MessageAttachments = Message.Attachments;
+    }
+
+    private async Task OnEditStart()
+    {
+        await ChatContext.OnEditStart(Message);
+        await JsRuntime.InvokeVoidAsync("startEdit");
+        await JsRuntime.InvokeVoidAsync("ensureInView", Message.ID);
+    }
+
+    private async Task OnEditEnd(string? newContent)
+    {
+        if (newContent == null || string.Equals(newContent, Message.Content))
+        {
+            await ChatContext.OnEditEnd(true);
+            return;
+        }
+
+        await ChatContext.OnEditEnd(false);
+    }
+
+    public async Task OnKeyPressed(KeyEventArgs keyEventArgs)
+    {
+        if (keyEventArgs.ShiftKey && !IsShiftHeld)
+        {
+            IsShiftHeld = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async Task OnKeyReleased(KeyEventArgs keyEventArgs)
+    {
+        if (!keyEventArgs.ShiftKey && IsShiftHeld)
+        {
+            IsShiftHeld = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async Task OnPacket(IPacket packet)
+    {
+        switch (packet)
+        {
+            case MessageEditedS2CPacket editPacket when editPacket.MessageId == Message.ID:
+            {
+                await using var db = await Db.CreateDbContextAsync();
+                Message = (await db.Messages.FindAsync(Message.ID))!;
+                await InvokeAsync(StateHasChanged);
+                break;
+            }
+            case MessagePinStatusS2CPacket pinPacket when pinPacket.MessageId == Message.ID:
+            {
+                await using var db = await Db.CreateDbContextAsync();
+                Message = (await db.Messages.FindAsync(Message.ID))!;
+                await InvokeAsync(StateHasChanged);
+                break;
+            }
+        }
     }
 
 }

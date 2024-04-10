@@ -13,9 +13,9 @@ public class User : IdentityUser<int>
     public ICollection<Chat> Chats { get; set; } = default!;
     public ICollection<GroupChat> ModeratedChats { get; set; } = default!;
     public ICollection<GroupChat> OwnedChats { get; set; } = default!;
-
     public ICollection<ChatUser> UserChats { get; set; } = default!;
-    
+    public ICollection<ChatModerator> UserModeratedChats { get; set; } = default!;
+
     public string GetName()
     {
         return DisplayName.IsNullOrEmpty() ? UserName! : DisplayName!;
@@ -28,6 +28,15 @@ public class User : IdentityUser<int>
 
     public string GetDefaultAvatar()
     {
-        return $"images/default_profiles/profile_{Id % 7}.png";
+        return Id == -1 
+            ? "images/default_profiles/profile_deleted.png" 
+            : $"images/default_profiles/profile_{Id % 7}.png";
     }
+    
+    public static readonly User Deleted = new()
+    {
+        Avatar = null,
+        UserName = "Deleted User",
+        Id = -1
+    };
 }

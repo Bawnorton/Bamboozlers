@@ -1,4 +1,7 @@
 using Bamboozlers.Classes.Networking.Packets.Clientbound;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
 
 namespace Bamboozlers.Classes.Networking;
 
@@ -8,8 +11,14 @@ public class ClientNetworkHandler : AbstractNetworkHandler
 
     private ClientNetworkHandler()
     {
-        PacketRegistry.RegisterPacket(ReadDatabaseS2CPacket.Type);
+        PacketRegistry.RegisterPacket(DidJoinChatS2CPacket.Type);
+        PacketRegistry.RegisterPacket(DidLeaveChatS2CPacket.Type);
+        PacketRegistry.RegisterPacket(TypingStateS2CPacket.Type);
+        PacketRegistry.RegisterPacket(MessageSentS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageEditedS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageDeletedS2CPacket.Type);
+        PacketRegistry.RegisterPacket(MessagePinStatusS2CPacket.Type);
+        PacketRegistry.RegisterPacket(InteractionSyncS2CPacket.Type);
+        PacketRegistry.RegisterPacket(GroupInteractionSyncS2CPacket.Type);
     }
 }

@@ -5,152 +5,159 @@
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
 
-@using Bamboozlers.Classes.AppDbContext
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
 @using Bamboozlers.Classes.Services.UserServices
-@using Bamboozlers.Components.Chat
+@using Bamboozlers.Classes.Utility.Observer
+@using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Components.MainVisual
-@using Bamboozlers.Components.Utility
-@using Blazorise.Extensions
-
+@using Bamboozlers.Components.Chat
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IUserGroupService UserGroupService;
 @inject IUserInteractionService UserInteractionService;
 @inject ILogger<NavLayout> Logger
 
-<Layout Sider>
-    <LayoutSider>
-        <LayoutSiderContent>
-            <Div Background="Background.Secondary"
-                 Padding="Padding.Is3"
-                 TextSize="TextSize.Heading5">
-                <Image Class="_32x32 fit" Source="favicon.png" alt=""/>
-                <Text>Bamboozlers</Text>
-            </Div>
-            <Bar Mode="BarMode.VerticalInline"
-                 CollapseMode="BarCollapseMode.Hide"
-                 ThemeContrast="ThemeContrast.Dark"
-                 Class="scrollbar-container">
-                <BarMenu>
-                    <BarItem>
-                        <BarLink ElementId="home" @onclick="() => {CurrentView = View.Home; CurrentChatId = -1; }">
-                            <BarIcon Class="fa-home"></BarIcon>
-                            Home
-                        </BarLink>
-                    </BarItem>
-                    <Divider Margin="Margin.Is0"/>
-                    <BarItem>
-                        <BarDropdown>
-                            <BarDropdownToggle>
-                                <BarIcon IconName="Icons.User"></BarIcon>
-                                Direct Messages
-                            </BarDropdownToggle>
-                            <BarDropdownMenu ElementId="dms_dropdown">
-                                <BarLink ElementId="create_dm" @onclick="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.FriendList)))">
-                                    <BarIcon IconName="Icons.Envelope"></BarIcon>
-                                    Open Direct Message
-                                </BarLink>
-                                <Divider Margin="Margin.Is0"/>
-                                @if (DmChats.Count > 0)
-                                {
-                                    foreach (var chat in DmChats)
-                                    {
-                                        <BarItem>
-                                            <BarLink ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
-                                                <Image Source="@chat.User.GetAvatar()" Class="message-avatar" alt=""/>
-                                                @chat.User.GetName()
-                                            </BarLink>
-                                        </BarItem>
-                                    }
-                                }
-                                else
-                                {
-                                    <BarItem>
-                                        <BarLabel>
-                                            <i>No direct messages</i>
-                                        </BarLabel>
-                                    </BarItem>
-                                }
-                            </BarDropdownMenu>
-                        </BarDropdown>
-                    </BarItem>
-                    <Divider Margin="Margin.Is0"/>
-                    <BarItem>
-                        <BarDropdown>
-                            <BarDropdownToggle>
-                                <BarIcon IconName="Icons.Users"></BarIcon>
-                                Group Chats
-                            </BarDropdownToggle>
-                            <BarDropdownMenu ElementId="groups_dropdown">
-                                <BarItem>
-                                    <BarLink ElementId="create_group" @onclick="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.CreateGroup)))">
-                                        <BarIcon IconName="Icons.UserPlus"></BarIcon>
-                                        Create Group Chat
+@if (Loaded)
+{
+    <Layout Sider>
+        <LayoutSider>
+            <LayoutSiderContent>
+                <Div Background="Background.Secondary"
+                     Padding="Padding.Is3"
+                     TextSize="TextSize.Heading5">
+                    <Image Class="_32x32 fit" Source="favicon.png" alt=""/>
+                    <Text>Bamboozlers</Text>
+                </Div>
+                <Bar Mode="BarMode.VerticalInline"
+                     CollapseMode="BarCollapseMode.Hide"
+                     ThemeContrast="ThemeContrast.Dark"
+                     Class="scrollbar-container">
+                    <BarMenu>
+                        <BarItem>
+                            <BarLink ElementId="home" @onclick="MoveToHome">
+                                <BarIcon Class="fa-home"></BarIcon>
+                                Home
+                            </BarLink>
+                        </BarItem>
+                        <Divider Margin="Margin.Is0"/>
+                        <BarItem>
+                            <BarDropdown>
+                                <BarDropdownToggle>
+                                    <BarIcon IconName="Icons.User"></BarIcon>
+                                    Direct Messages
+                                </BarDropdownToggle>
+                                <BarDropdownMenu ElementId="dms_dropdown">
+                                    <BarLink ElementId="create_dm" @onclick="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.FriendList)))">
+                                        <BarIcon IconName="Icons.Envelope"></BarIcon>
+                                        Open Direct Message
                                     </BarLink>
-                                </BarItem>
-                                <Divider Margin="Margin.Is0"/>
-                                @if (GroupChats.Count > 0)
-                                {
-                                    foreach (var chat in GroupChats)
+                                    <Divider Margin="Margin.Is0"/>
+                                    @if (DmChats.Count > 0)
+                                    {
+                                        foreach (var chat in DmChats)
+                                        {
+                                            <BarItem>
+                                                <BarLink Style="display: flex; flex-direction: row; align-items: center" Class="dm-entry" ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
+                                                    <Image Source="@chat.User.GetAvatar()" Class="message-avatar" alt=""/>
+                                                    <Div Class="clipping-text">
+                                                        @chat.User.GetName()
+                                                    </Div>
+                                                </BarLink>
+                                            </BarItem>
+                                        }
+                                    }
+                                    else
                                     {
                                         <BarItem>
-                                            <BarLink ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
-                                                <Image Source="@chat.GetGroupAvatar()" Class="message-avatar" alt=""/>
-                                                @chat.GetGroupName()
-                                            </BarLink>
+                                            <BarLabel>
+                                                <i>No direct messages</i>
+                                            </BarLabel>
                                         </BarItem>
                                     }
-                                }
-                                else
-                                {
+                                </BarDropdownMenu>
+                            </BarDropdown>
+                        </BarItem>
+                        <Divider Margin="Margin.Is0"/>
+                        <BarItem>
+                            <BarDropdown>
+                                <BarDropdownToggle>
+                                    <BarIcon IconName="Icons.Users"></BarIcon>
+                                    Group Chats
+                                </BarDropdownToggle>
+                                <BarDropdownMenu ElementId="groups_dropdown">
                                     <BarItem>
-                                        <BarLabel>
-                                            <i>No group chats</i>
-                                        </BarLabel>
+                                        <BarLink ElementId="create_group" @onclick="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.CreateGroup)))">
+                                            <BarIcon IconName="Icons.UserPlus"></BarIcon>
+                                            Create Group Chat
+                                        </BarLink>
                                     </BarItem>
-                                }
-                            </BarDropdownMenu>
-                        </BarDropdown>
-                    </BarItem>
-                </BarMenu>
-            </Bar>
-            <Div Padding="Padding.Is3"
-                 TextSize="TextSize.Heading5"
-                 Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
-                 id="profile-button"
-                 @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Settings))">
-                <Text>
-                    @(Self is null ? UserRecord.Default.UserName : Self.GetName())
-                </Text>
-                @if (Self?.Avatar is not null)
-                {
-                    <Image Source="@Self.GetAvatar()" Class="message-avatar" alt=""/>
-                }
-                else
-                {
-                    <Icon Name="Icons.User" IconSize="IconSize.Large"></Icon>
-                }
-            </Div>
-        </LayoutSiderContent>
-    </LayoutSider>
-        @if(CurrentView == View.Home)
+                                    <Divider Margin="Margin.Is0"/>
+                                    @if (GroupChats.Count > 0)
+                                    {
+                                        foreach (var chat in GroupChats)
+                                        {
+                                            <BarItem>
+                                                <BarLink Style="display: flex; flex-direction: row; align-items: center" ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
+                                                    <Image Source="@chat.GetGroupAvatar()" Class="message-avatar" alt=""/>
+                                                    <Div Class="clipping-text">
+                                                        @chat.GetGroupName()
+                                                    </Div>
+                                                </BarLink>
+                                            </BarItem>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <BarItem>
+                                            <BarLabel>
+                                                <i>No group chats</i>
+                                            </BarLabel>
+                                        </BarItem>
+                                    }
+                                </BarDropdownMenu>
+                            </BarDropdown>
+                        </BarItem>
+                    </BarMenu>
+                </Bar>
+                <Div Padding="Padding.Is3"
+                     TextSize="TextSize.Heading5"
+                     Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
+                     id="profile-button"
+                     @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Settings))">
+                    <Div Class="clipping-text" Style="max-width: 150px">
+                        @(Self is null ? UserRecord.Default.UserName : Self.GetName())
+                    </Div>
+                    @if (Self?.Avatar is not null)
+                    {
+                        <Image Source="@Self.GetAvatar()" Class="message-avatar" alt=""/>
+                    }
+                    else
+                    {
+                        <Icon Name="Icons.User" IconSize="IconSize.Large"></Icon>
+                    }
+                </Div>
+            </LayoutSiderContent>
+        </LayoutSider>
+        @if (CurrentView == View.Home)
         {
             <CompMainView/>
         }
         else
         {
-            <CompChatView ChatID="CurrentChatId"/>
+            <CompChatView ChatID="@CurrentChatId" GoToHome="MoveToHome" @key="CurrentChatId"/>
         }
-</Layout>
+    </Layout>
+}
 
 @code {
-    [Inject] protected new IUserService UserService { get; set; } = default!;
-    
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
-    
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
+    [CascadingParameter] public Unregister<Type[]> UnregisterPacketSubscribers { get; set; }
+
     private User? Self { get; set; }
     private List<DmChat> DmChats { get; set; } = [];
     private List<GroupChat> GroupChats { get; set; } = [];
@@ -158,17 +165,22 @@
     private int CurrentChatId { get; set; } = -1;
     private int FriendCount { get; set; } = 0;
 
+    private bool Loaded { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         UserService.AddSubscriber(this);
         UserGroupService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
         await Refresh();
+
+        Loaded = true;
     }
 
     public async Task Refresh()
     {
         await GetDataAsync();
+        MoveToHome();
     }
 
     private async Task GetDataAsync()
@@ -195,34 +207,45 @@
     public void GetGroupData()
     {
         if (Self?.Chats is null) throw new InvalidOperationException("User and/or chats were not found.");
-        
+
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
-        WatchedIDs = GroupChats.Select(s => (int?) s.ID).ToList();
+        WatchedIDs = GroupChats.Select(s => (int?)s.ID).ToList();
 
         if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
-        
-        CurrentChatId = -1;
-        CurrentView = View.Home;
+
+        MoveToHome();
     }
 
     public void GetDmData()
     {
-        if (Self is null)
-            throw new InvalidOperationException("User and/or chats were not found.");
-        
-        DmChats = Self.Chats.Except(Self.Chats.OfType<GroupChat>())
-            .Select(chat => new DmChat(
-                chat.ID, 
-                chat.Users.First(u => u.Id != Self.Id), 
-                chat.Users.First(u => u.Id != Self.Id).Avatar)
-            ).ToList();
-        
-        if (CurrentView != View.Dm || DmChats.FirstOrDefault(c => c.User.Id == CurrentChatId) is not null) return;
-        
-        CurrentChatId = -1;
-        CurrentView = View.Home;
+        if (Self is null) throw new InvalidOperationException("User and/or chats were not found.");
+
+        DmChats.Clear();
+        var dms = Self.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
+        foreach (var dm in dms)
+        {
+            var otherUser = dm.Users.FirstOrDefault(u => u.Id != Self.Id) ?? User.Deleted;
+            DmChats.Add(new DmChat(dm.ID, otherUser, otherUser.Avatar));
+        }
+
+        if (CurrentView != View.Dm || DmChats.FirstOrDefault(dm => dm.ID == CurrentChatId) is not null) return;
+
+        MoveToHome();
     }
-    
+
+    private void MoveToHome()
+    {
+        CurrentView = View.Home;
+        CurrentChatId = -1;
+
+        UnregisterPacketSubscribers.Invoke([
+            typeof(CompChatView),
+            typeof(CompMessageReplyView),
+            typeof(CompTypingView),
+            typeof(CompPinsView)
+        ]);
+    }
+
     public async Task GetFriendData()
     {
         if (Self is null)
@@ -239,39 +262,63 @@
             }
         }
     }
-    
+
+    private async Task JoinChat()
+    {
+        var joinChat = new JoinChatC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = CurrentChatId
+        };
+        await SendToServer.InvokeAsync(joinChat);
+    }
+
+    private async Task LeaveChat()
+    {
+        var leaveChat = new LeaveChatC2SPacket
+        {
+            SenderId = Self!.Id,
+            ChatId = CurrentChatId
+        };
+        await SendToServer.InvokeAsync(leaveChat);
+    }
+
     public async Task OpenDm(int chatId = -1, int? otherId = null, bool reload = false)
     {
         if (reload)
         {
             await GetUserData();
-            GetDmData();   
+            GetDmData();
         }
 
         if (chatId == -1)
         {
-            if (otherId is not null)
+            if (otherId is null) return;
+            
+            var dm = await UserInteractionService.FindDm(otherId);
+            if (dm is null)
             {
-                var dm = await UserInteractionService.FindDm(otherId);
-                if (dm is null)
-                {
-                    dm = await UserInteractionService.CreateDm(otherId);
-                    if (dm is null)
-                        return;
-                }
-                chatId = dm.ID;
-                await GetUserData();
-                GetDmData();
+                dm = await UserInteractionService.CreateDm(otherId);
+                if (dm is null) return;
             }
-            else
-            {
-                return;
-            }
+
+            chatId = dm.ID;
+            await GetUserData();
+            GetDmData();
         }
+        if (chatId == CurrentChatId) return;
         
-        CurrentView = View.Dm; 
-        CurrentChatId = chatId; 
+        if (CurrentChatId != -1)
+        {
+            await LeaveChat();
+        }
+
+        CurrentView = View.Dm;
+        CurrentChatId = chatId;
+
         await InvokeAsync(StateHasChanged);
+
+        await JoinChat();
     }
 
     public async Task OpenGroup(int chatId, bool reload = false)
@@ -281,14 +328,21 @@
             await GetUserData();
             GetGroupData();
         }
+        if (chatId == CurrentChatId) return;
+        
+        if (CurrentChatId != -1)
+        {
+            await LeaveChat();
+        }
 
-        if (GroupChats.FirstOrDefault(g => g.ID == chatId) is null) return;
+        CurrentView = View.Group;
+        CurrentChatId = chatId;
 
-        CurrentView = View.Group; 
-        CurrentChatId = chatId; 
         await InvokeAsync(StateHasChanged);
+
+        await JoinChat();
     }
-    
+
     public List<int?> WatchedIDs { get; private set; } = [];
 
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
@@ -300,22 +354,36 @@
         InteractionEvent.RequestAccepted
     ];
 
-    public List<GroupEvent> WatchedGroupEvents { get; set; } = 
+    public List<GroupEvent> WatchedGroupEvents { get; set; } =
     [
         GroupEvent.CreateGroup,
         GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.RemoveMember,
         GroupEvent.SelfLeftGroup,
+        GroupEvent.OtherLeftGroup,
         GroupEvent.GroupDisplayChange,
         GroupEvent.DeleteGroup
     ];
 
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetUserData();
         GetGroupData();
+        if (CurrentView == View.Group && CurrentChatId == specifiedGroup)
+        {
+            if (evt is GroupEvent.DeleteGroup or GroupEvent.SelfLeftGroup) // I left or group was deleted
+            {
+                MoveToHome();
+            }
+            else if (Self!.Id == specifiedUser && evt is GroupEvent.RemoveMember) // I was kicked
+            {
+                MoveToHome();
+            }
+        }
+
         await InvokeAsync(StateHasChanged);
     }
-    
+
     public async Task OnUpdate(InteractionEvent evt)
     {
         await GetUserData();
@@ -323,7 +391,7 @@
         await GetFriendData();
         await InvokeAsync(StateHasChanged);
     }
-    
+
     public override async Task OnUpdate(UserRecord? data)
     {
         await GetDataAsync();

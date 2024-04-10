@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Claims;
 using System.Security.Principal;
 using Bamboozlers.Classes.AppDbContext;
@@ -10,17 +11,22 @@ namespace Bamboozlers.Classes.Services.UserServices;
 public class AuthService : IAuthService
 {
     public AuthService(AuthenticationStateProvider authenticationStateProvider,
+        IHttpContextAccessor httpContextAccessor,
         IDbContextFactory<AppDbContext.AppDbContext> dbContextFactory)
     {
         AuthenticationStateProvider = authenticationStateProvider;
+        HttpContextAccessor = httpContextAccessor;
         DbContextFactory = dbContextFactory;
         AuthenticationStateProvider.AuthenticationStateChanged += _ => Invalidate();
     }
 
     public AuthenticationStateProvider AuthenticationStateProvider { get; }
     public IDbContextFactory<AppDbContext.AppDbContext> DbContextFactory { get; }
+    public IHttpContextAccessor HttpContextAccessor { get; }
     private ClaimsPrincipal? UserClaims { get; set; }
     private IIdentity? Identity { get; set; }
+    
+    private Cookie? Cookie { get; set; }
 
     public virtual async Task<User?> GetUser(Unary<IQueryable<User>>? inclusionCallback = null)
     {
@@ -51,6 +57,23 @@ public class AuthService : IAuthService
     {
         UserClaims ??= (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
         return UserClaims;
+    }
+    
+    public virtual Task<Cookie> GetCookie()
+    {
+        if (Cookie is not null) return Task.FromResult(Cookie);
+
+        var httpContext = HttpContextAccessor.HttpContext;
+        if (httpContext is null) throw new Exception("HttpContext is null");
+
+        var cookieString = httpContext.Request.Cookies[".AspNetCore.Identity.Application"];
+        if (cookieString is null) throw new Exception("Cookie is null");
+        
+        Cookie = new Cookie(".AspNetCore.Identity.Application", cookieString)
+        {
+            Domain = httpContext.Request.Host.Host
+        };
+        return Task.FromResult(Cookie);
     }
 
     public void Invalidate()
@@ -98,6 +121,11 @@ public interface IAuthService
     /// </returns>
     Task<ClaimsPrincipal> GetClaims();
 
+    /// <returns>
+    ///     The authentication cookie of the current user.
+    /// </returns>
+    Task<Cookie> GetCookie();
+    
     /// <summary>
     ///     Invalidates the currently cached User Claims, Identity and the Record used for displaying attributes
     /// </summary>

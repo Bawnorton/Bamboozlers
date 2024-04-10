@@ -1,0 +1,27 @@
+@using Bamboozlers.Classes.AppDbContext
+
+<Div ElementId="system_message" Class="message mt-2">
+    <Div Class="message-header">
+        <Div Class="message-info">
+            <Image Source="favicon.png" Class="message-avatar" alt=""/>
+            <Div style="font-weight: bold">System</Div>
+            <Div Class="message-timestamp">
+                @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
+            </Div>
+        </Div>
+    </Div>
+    <Div Class="message-content">
+        <Div Style="display: flex; flex-direction: column; gap: 10px">
+            @if (!string.IsNullOrWhiteSpace(Message.Content))
+            {
+                <Div Style="color: #ff4444;">
+                    <CompMessageContentView Content=@Message.Content/>
+                </Div>
+            }
+        </Div>
+    </Div>
+</Div>
+
+@code {
+    [Parameter] public Message Message { get; set; } = default!;
+}

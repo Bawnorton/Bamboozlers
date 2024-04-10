@@ -43,8 +43,6 @@ public partial class CompSettings : SettingsComponentBase
             case UserDataType.Email:
                 result = await ChangeEmail(userDataRecord.Email);
                 break;
-            case UserDataType.Visual:
-            case null:
             default:
                 var iResult = await UserService.UpdateUserAsync(userDataRecord);
 

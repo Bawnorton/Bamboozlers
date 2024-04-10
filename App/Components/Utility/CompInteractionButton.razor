@@ -1,6 +1,10 @@
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.Services.UserServices
 @using Blazorise.Utilities
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
 
 <CompActionButton ButtonId="@ButtonId"
                   Color="@Color"
@@ -18,6 +22,8 @@
     [Parameter] public string? ButtonId { get; set; }
     [Parameter] public bool FullText { get; set; }
 
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
+
     public EventCallback InteractionCallback { get; set; } = EventCallback.Empty;
     public IconName IconName { get; set; }
     public string? ButtonCaption { get; set; } = "";
@@ -34,39 +40,29 @@
                 Color = Color.Danger;
                 IconName = IconName.Shield;
                 ButtonCaption = "Unblock User";
-                InteractionCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserInteractionService.UnblockUser(UserId));
+                InteractionCallback = eventCallbackFactory.Create(this, UnblockUser);
                 break;
             case InteractionEvent.RequestRevoked:
                 Color = Color.Danger;
                 IconName = IconName.Ban;
                 ButtonCaption = "Revoke Friend Request";
-                InteractionCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserInteractionService.RevokeFriendRequest(UserId));
+                InteractionCallback = eventCallbackFactory.Create(this, RevokeFriendRequest);
                 break;
             case InteractionEvent.RequestDeclined:
                 Color = Color.Danger;
                 IconName = IconName.Ban;
                 ButtonCaption = FullText ? "Decline Friend Request" : "";
-                InteractionCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserInteractionService.DeclineFriendRequest(UserId));
+                InteractionCallback = eventCallbackFactory.Create(this, DeclineFriendRequest);
                 break;
             case InteractionEvent.RequestAccepted:
                 IconName = IconName.Check;
                 ButtonCaption = FullText ? "Accept Friend Request" : "";
-                InteractionCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserInteractionService.AcceptFriendRequest(UserId));
+                InteractionCallback = eventCallbackFactory.Create(this, AcceptFriendRequest);
                 break;
             case InteractionEvent.RequestSent:
                 IconName = IconName.UserPlus;
                 ButtonCaption = "Send Friend Request";
-                InteractionCallback = eventCallbackFactory.Create(
-                    this,
-                    async () => await UserInteractionService.SendFriendRequest(UserId));
+                InteractionCallback = eventCallbackFactory.Create(this, SendFriendRequest);
                 break;
             case InteractionEvent.RequestPending:
                 IconName = IconName.Send;
@@ -75,5 +71,28 @@
                 Color = Color.Light;
                 break;
         }
+    }
+
+    private async Task SendFriendRequest() => await SyncedInteraction(InteractionEvent.RequestSent, UserInteractionService.SendFriendRequest);
+
+    private async Task AcceptFriendRequest() => await SyncedInteraction(InteractionEvent.RequestAccepted, UserInteractionService.AcceptFriendRequest);
+
+    private async Task DeclineFriendRequest() => await SyncedInteraction(InteractionEvent.RequestDeclined, UserInteractionService.DeclineFriendRequest);
+
+    private async Task RevokeFriendRequest() => await SyncedInteraction(InteractionEvent.RequestRevoked, UserInteractionService.RevokeFriendRequest);
+
+    private async Task UnblockUser() => await SyncedInteraction(InteractionEvent.Unblock, UserInteractionService.UnblockUser);
+
+    private async Task SyncedInteraction(InteractionEvent eventKind, AsyncConsumer<int?> action)
+    {
+        await action.Invoke(UserId);
+        if (UserId == null) return;
+        
+        var interactionSync = new InteractionSyncC2SPacket
+        {
+            Event = eventKind,
+            ReceiverId = UserId!.Value
+        };
+        await SendToServer.InvokeAsync(interactionSync);
     }
 }

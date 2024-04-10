@@ -31,6 +31,8 @@ else
     [Parameter] public ButtonType ButtonType { get; set; } = ButtonType.Button;
 
     [Parameter] public IconName? IconName { get; set; }
+    
+    [Parameter] public string? FaIconName { get; set; }
 
     [Parameter] public bool Disabled { get; set; }
 
@@ -42,10 +44,18 @@ else
                           Width="@ButtonWidth"
                           Type="@ButtonType"
                           Clicked="ExecuteCallback"
-                          Disabled="Disabled"
-                          TextSize="TextSize.Small">
-                     <Icon Name="@IconName"/>
-                     @ButtonCaption
+                          Disabled="Disabled">
+                     @if (IconName == null)
+                     {
+                         <Icon Class="@FaIconName" />
+                     }
+                     else
+                     {
+                         <Icon Name="@IconName" />
+                     }
+                     <Div style="margin-left: 5px" Float="Float.End">
+                         @ButtonCaption
+                     </Div>
                  </Button>;
     }
 

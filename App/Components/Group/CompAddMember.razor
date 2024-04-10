@@ -14,9 +14,14 @@
 
 @inject IDbContextFactory<AppDbContext> Db
 
-<ModalContent Centered>
+<ModalContent Centered
+              Size="ModalSize.Large">
     <ModalHeader>
-        <ModalTitle>Invite Friends to @(Chat is null ? "Group" : Chat.GetGroupName())</ModalTitle>
+        <ModalTitle>
+            <Div Class="clipping-text" Style="width: 400px">
+                Invite Friends to @(Chat is null ? "Group" : Chat.GetGroupName())
+            </Div>
+        </ModalTitle>
     </ModalHeader>
     <ModalBody>
         <Div Style="width: 90%; margin: 10px;">
@@ -104,11 +109,13 @@
     [
         GroupEvent.SentInvite,
         GroupEvent.SentInviteRevoked,
+        GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.ReceivedInviteDeclined,
         GroupEvent.RemoveMember,
         GroupEvent.SelfLeftGroup
     ];
     
-    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null)
+    public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await LoadGroupData();
         await InvokeAsync(StateHasChanged);

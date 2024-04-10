@@ -7,6 +7,10 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Components.Utility
 
 @inject IUserInteractionService UserInteractionService
@@ -58,6 +62,12 @@
         margin-left: 5px; 
         margin-right: 5px;
    }
+   
+    .clipping-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 </style>
 
 <ModalContent Centered>
@@ -75,23 +85,26 @@
                         <div class="clip-to-bottom">
                             @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
                             {
-                                <h4 id="display-name">@(FocusUser.DisplayName)</h4>
-                                <p id="username">@FocusUser.UserName</p>
+                                <h4 id="display-name" class="clipping-text" style="width: 300px">@(FocusUser.DisplayName)</h4>
+                                <p id="username" class="clipping-text" style="width: 300px">@FocusUser.UserName</p>
                             }
                             else
                             {
-                                <h4 id="username">@FocusUser.UserName</h4>
+                                <h4 id="username" class="clipping-text" style="width: 300px">@FocusUser.UserName</h4>
                             }
                         </div>
                     </div>
                 </div>
                 <div class="opt-bar right">
-                    <div id="action-options-div" class="item right">
-                        @ActionOptions
-                    </div>
-                    <div id="action-button-div" class="item right">
-                        @ActionButton
-                    </div>
+                    @if (!FocusUser.IsDeleted)
+                    {
+                        <div id="action-options-div" class="item right">
+                            @ActionOptions
+                        </div>
+                        <div id="action-button-div" class="item right">
+                            @ActionButton
+                        </div>
+                    }
                 </div>
             </div>
             @if (!IsBlockedBy && !IsBlocked)
@@ -118,6 +131,8 @@
     [CascadingParameter] public EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
     [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
     
+    [CascadingParameter] private EventCallback<IPacket> SendToServer { get; set; }
+
     [Parameter] public UserRecord FocusUser { get; set; } = UserRecord.Default;
     private RenderFragment? ActionButton { get; set; }
     private RenderFragment? ActionOptions { get; set; }
@@ -142,7 +157,7 @@
         ActionButton = null;
         ActionOptions = null;
         StatusBadge = null;
-
+        
         UserData ??= await UserService.GetUserDataAsync();
 
         IsSelf = FocusUser.Id == UserData.Id;
@@ -151,7 +166,7 @@
         IsBlockedBy = await UserInteractionService.FindIfBlockedBy(FocusUser.Id) is not null;
         HasIncomingRequest = await UserInteractionService.FindIncomingRequest(FocusUser.Id) is not null;
         HasOutgoingRequest = await UserInteractionService.FindOutgoingRequest(FocusUser.Id) is not null;
-
+        
         if (IsSelf)
         {
             ActionButton = GetActionButton(
@@ -180,14 +195,15 @@
                     this,
                     async () =>
                     {
-                        if (FocusUser.Id is null) 
+                        if (FocusUser.Id is null)
                             return;
-                        await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, (int) FocusUser.Id));
+                        await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, (int)FocusUser.Id));
                     }),
                 "Send Message",
-                IconName.Mail
+                faIconName: Icons.CommentDots,
+                buttonColor: Color.Success
             );
-        } 
+        }
         else if (!IsBlockedBy && !IsBlocked)
         {
             if (HasIncomingRequest)
@@ -195,7 +211,7 @@
                 ActionButton = GetActionButton(
                     EventCallback.Factory.Create(
                         this,
-                        async () => await UserInteractionService.AcceptFriendRequest(FocusUser.Id)
+                        async () => await SyncedInteraction(InteractionEvent.RequestAccepted, UserInteractionService.AcceptFriendRequest)
                     ),
                     "Accept Friend Request",
                     IconName.UserCheck
@@ -207,16 +223,24 @@
                     EventCallback.Empty,
                     "Pending",
                     IconName.Send,
-                    Color.Light,
-                    true
+                    buttonColor: Color.Light,
+                    disabled: true
                 );
+            }
+            else if (FocusUser.IsDeleted)
+            {
+                StatusBadge = @<Badge ElementId="profile-badge"
+                                      Color="Color.Danger">
+                                  <Icon Name="Icons.UserSlash"/>
+                                  DELETED
+                              </Badge>;
             }
             else
             {
                 ActionButton = GetActionButton(
                     EventCallback.Factory.Create(
                         this,
-                        async () => await UserInteractionService.SendFriendRequest(FocusUser.Id)
+                        async () => await SyncedInteraction(InteractionEvent.RequestSent, UserInteractionService.SendFriendRequest)
                     ),
                     "Send Friend Request",
                     IconName.UserPlus
@@ -235,11 +259,11 @@
         var moddedChats = await UserGroupService.GetAllModeratedGroups();
 
         ActionOptions = GetProfileActions(moddedChats);
-        
+
         await InvokeAsync(StateHasChanged);
     }
 
-    private RenderFragment GetActionButton(EventCallback callback, string buttonCaption, IconName iconName, Color? buttonColor = null, bool disabled = false)
+    private RenderFragment GetActionButton(EventCallback callback, string buttonCaption, IconName? iconName = default, string? faIconName = default, Color? buttonColor = null, bool disabled = false)
     {
         return @<CompActionButton
                     ActionCallback="callback"
@@ -248,6 +272,7 @@
                     Color="@(buttonColor ?? Color.Success)"
                     ColumnWrapped="@false"
                     IconName="iconName"
+                    FaIconName="@faIconName"
                     Disabled="disabled"/>;
     }
 
@@ -269,14 +294,14 @@
                             @if (HasIncomingRequest && !IsBlocked)
                             {
                                 <Button ElementId="decline-request-option" Class="dropdown-option" TextColor="TextColor.Danger"
-                                        Clicked="@(async () => await UserInteractionService.DeclineFriendRequest(FocusUser.Id))">
+                                        Clicked="@DeclineRequest">
                                     Decline Friend Request
                                 </Button>
                             }
                             @if (HasOutgoingRequest)
                             {
                                 <Button ElementId="revoke-request-option" Class="dropdown-option" TextColor="TextColor.Danger"
-                                        Clicked="@(async () => await UserInteractionService.RevokeFriendRequest(FocusUser.Id))">
+                                        Clicked="@RevokeRequest">
                                     Revoke Friend Request
                                 </Button>
                             }
@@ -296,15 +321,16 @@
                                             {
                                                 <Button ElementId="@($"{chat.GetGroupName()}-invite-option")"
                                                         Class="dropdown-option"
-                                                        Clicked="@(async () =>  await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.InviteGroupMembers, null, chat.ID)))">
+                                                        Clicked="@(async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.InviteGroupMembers, null, chat.ID)))">
                                                     Invite to @chat.GetGroupName()
                                                 </Button>
                                             }
                                         </Div>
                                     </Div>
                                 }
-                                <Button ElementId="unfriend-option" 
-                                        Class="dropdown-option" 
+
+                                <Button ElementId="unfriend-option"
+                                        Class="dropdown-option"
                                         TextColor="TextColor.Danger"
                                         Clicked="@(async () => await OpenUnfriendConfirmation(FocusUser.Id))">
                                     Remove friend
@@ -312,8 +338,8 @@
                             }
                             @if (!IsBlocked)
                             {
-                                <Button ElementId="block-option" 
-                                        Class="dropdown-option" 
+                                <Button ElementId="block-option"
+                                        Class="dropdown-option"
                                         TextColor="TextColor.Danger"
                                         Clicked="@(async () => await OpenBlockConfirmation(FocusUser.Id))">
                                     Block user
@@ -331,6 +357,17 @@
                 </text>;
     }
     
+    private async Task SyncedInteraction(InteractionEvent eventKind, AsyncConsumer<int?> action)
+    {
+        await action(FocusUser.Id);
+        var interactionSync = new InteractionSyncC2SPacket
+        {
+            Event = eventKind,
+            ReceiverId = FocusUser.Id!.Value
+        };
+        await SendToServer.InvokeAsync(interactionSync);
+    }
+
     private async Task OpenUnfriendConfirmation(int? otherId)
     {
         await OpenAlertPopup.InvokeAsync(
@@ -339,11 +376,11 @@
                      This user will be removed as your friend! You will have to send a new friend request to re-add them.
                      You will not be able to direct message them while they are not your friend!
                  </text>,
-                EventCallback.Factory.Create(this, () => UserInteractionService.RemoveFriend(otherId))
+                EventCallback.Factory.Create(this, async () => await SyncedInteraction(InteractionEvent.Unfriend, UserInteractionService.RemoveFriend))
             )
         );
     }
-    
+
     private async Task OpenBlockConfirmation(int? otherId)
     {
         await OpenAlertPopup.InvokeAsync(
@@ -352,18 +389,29 @@
                      This user will not be able to send or receive messages from you! If they are your friend, they will
                      be removed as your friend!
                  </text>,
-                EventCallback.Factory.Create(this, () => UserInteractionService.BlockUser(otherId))
+                EventCallback.Factory.Create(this, async () => await SyncedInteraction(InteractionEvent.Block, UserInteractionService.BlockUser))
             )
         );
+    }
+    
+    private async Task DeclineRequest()
+    {
+        await SyncedInteraction(InteractionEvent.RequestDeclined, UserInteractionService.DeclineFriendRequest);
+    }
+    
+    private async Task RevokeRequest()
+    {
+        await SyncedInteraction(InteractionEvent.RequestRevoked, UserInteractionService.RevokeFriendRequest);
     }
 
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
     [
         InteractionEvent.General
     ];
-    
+
     public async Task OnUpdate(InteractionEvent evt)
     {
         await UpdateContext();
     }
+
 }
