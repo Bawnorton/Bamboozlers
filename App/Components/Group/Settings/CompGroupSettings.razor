@@ -2,6 +2,7 @@
 
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
+@implements IDisposable
 
 @using Bamboozlers.Classes.AppDbContext
 @using Microsoft.IdentityModel.Tokens
@@ -460,15 +461,17 @@
 
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
-        Console.WriteLine($"specified: {specifiedGroup} current: {ChatID}");
         if (Self is null) return;
         
         var selfCheck = specifiedUser == Self.Id;
         if (evt is GroupEvent.DeleteGroup
             || (selfCheck && evt is GroupEvent.SelfLeftGroup or GroupEvent.PermissionsLost or GroupEvent.RemoveMember))
         {
-            await DismissPopup.InvokeAsync();
-            return;
+            if (specifiedGroup == ChatID)
+            {
+                await DismissPopup.InvokeAsync();
+                return;
+            }
         }
 
         await LoadGroupData();
@@ -485,4 +488,11 @@
         await LoadGroupData();
         await InvokeAsync(StateHasChanged);
     }
+    
+    public void Dispose()
+    {
+        UserGroupService.RemoveSubscriber(this);
+        UserInteractionService.RemoveSubscriber(this);
+    }
 }
+

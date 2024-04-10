@@ -4,6 +4,7 @@
 @implements IAsyncKeySubscriber
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
+@implements IDisposable
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Microsoft.IdentityModel.Tokens
@@ -282,15 +283,15 @@ else
 
 @* ReSharper disable always InconsistentNaming *@
 @code {
-    [Inject] IUserGroupService UserGroupService { get; set; }
-    [Inject] IUserInteractionService UserInteractionService { get; set; }
+    [Inject] IUserGroupService UserGroupService { get; set; } = default!;
+    [Inject] IUserInteractionService UserInteractionService { get; set; } = default!;
     
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
     
-    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
-    [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
+    [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
 
     [Parameter] public EventCallback GoToHome { get; set; }
     [Parameter] public int ChatID { get; set; } = -1;
@@ -972,5 +973,11 @@ else
         DeletedRecipient,
         RecipientIsStranger,
         SenderIsBlocked
+    }
+
+    public void Dispose()
+    {
+        UserGroupService.RemoveSubscriber(this);
+        UserInteractionService.RemoveSubscriber(this);
     }
 }

@@ -2,6 +2,7 @@
 
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
+@implements IDisposable
 
 @using Bamboozlers.Classes.AppDbContext
 @using AngleSharp.Diffing.Extensions
@@ -157,6 +158,11 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    public void Dispose()
+    {
+        UserGroupService.RemoveSubscriber(this);
+        UserInteractionService.RemoveSubscriber(this);
+    }
 }
 
 
