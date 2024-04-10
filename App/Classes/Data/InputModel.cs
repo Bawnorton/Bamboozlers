@@ -20,6 +20,7 @@ public sealed class UsernameInputModel : InputModel
     [Required]
     [ValidUsername(ErrorMessage =
         "Username is invalid. It can only contain letters, numbers, and underscores. There can only be 1 underscore in a row.")]
+    [StringLength(20, ErrorMessage = "Username must be less than or equal to 20 characters in length.")]
     [Display(Name = "Username")]
     public string Username { get; set; } = "";
 
@@ -52,6 +53,7 @@ public sealed class PasswordInputModel : InputModel
 public sealed class DisplayNameInputModel : InputModel
 {
     [DataType(DataType.Text)]
+    [StringLength(20, ErrorMessage = "Display Name must be less than or equal to  20 characters in length.")]
     [Display(Name = "Display Name")]
     public string DisplayName { get; set; } = "";
 }

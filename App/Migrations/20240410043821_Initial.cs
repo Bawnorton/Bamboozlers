@@ -324,7 +324,8 @@ namespace Bamboozlers.Migrations
                         name: "FK_GroupInvites_Chats_GroupID",
                         column: x => x.GroupID,
                         principalTable: "Chats",
-                        principalColumn: "ID");
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(

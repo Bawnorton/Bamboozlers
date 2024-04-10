@@ -277,6 +277,9 @@ public class UserGroupService(
             dbContext.ChatUsers.Remove(chatUser);
         if (chatMod is not null)
             dbContext.ChatModerators.Remove(chatMod);
+        foreach (var inv in dbContext.GroupInvites.Where(i => i.GroupID == chatId && i.SenderID == memberId).ToList())
+            dbContext.GroupInvites.Remove(inv);
+        
         await dbContext.SaveChangesAsync();
 
         await NotifySubscribersOf(GroupEvent.RemoveMember, group.ID);
@@ -388,6 +391,8 @@ public class UserGroupService(
             dbContext.ChatUsers.Remove(chatUser);
         if (chatMod is not null)
             dbContext.ChatModerators.Remove(chatMod);
+        foreach (var inv in dbContext.GroupInvites.Where(i => i.GroupID == chatId && i.SenderID == self.Id).ToList())
+            dbContext.GroupInvites.Remove(inv);
         await dbContext.SaveChangesAsync();
         
         if (self.Id == group.OwnerID)

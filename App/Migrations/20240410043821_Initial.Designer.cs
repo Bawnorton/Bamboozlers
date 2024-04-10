@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bamboozlers.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240410003947_Initial")]
+    [Migration("20240410043821_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -543,7 +543,7 @@ namespace Bamboozlers.Migrations
                     b.HasOne("Bamboozlers.Classes.AppDbContext.GroupChat", "Group")
                         .WithMany()
                         .HasForeignKey("GroupID")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Bamboozlers.Classes.AppDbContext.User", "Recipient")

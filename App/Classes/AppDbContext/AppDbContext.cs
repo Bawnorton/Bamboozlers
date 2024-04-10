@@ -36,6 +36,12 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         {
             fk.DeleteBehavior = DeleteBehavior.NoAction;
         }
+
+        modelBuilder.Entity<GroupInvite>()
+            .HasOne(e => e.Group)
+            .WithMany()
+            .HasForeignKey(e => e.GroupID)
+            .OnDelete(DeleteBehavior.Cascade);
         
         modelBuilder.Entity<GroupChat>()
             .HasMany(e => e.Moderators)
