@@ -27,13 +27,18 @@
                 You can delete your account and its associated data from our application permanently at any time.
             </p>
             <Container Width="Width.Is25">
-                <Button id="toggle-edit"
-                        Width="Width.Is100"
-                        Color="Color.Danger"
-                        Clicked="Toggle">
-                    <Icon Name="IconName.Delete"/>
-                    Delete Account
-                </Button>
+                <Row>
+                    <Column>
+                        <!--suppress HtmlWrongAttributeValue -->
+                        <Button id="toggle-edit"
+                                Color="Color.Danger"
+                                Type="ButtonType.Button"
+                                Clicked="Toggle">
+                            <Icon Name="IconName.Delete"/>
+                            Delete Account
+                        </Button>
+                    </Column>                    
+                </Row>
             </Container>
         </Container>;
 
