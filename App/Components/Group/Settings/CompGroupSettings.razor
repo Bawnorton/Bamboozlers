@@ -1,6 +1,7 @@
 @inherits UserViewComponentBase
 
 @implements IGroupSubscriber
+@implements IDisposable
 
 @using Bamboozlers.Classes.AppDbContext
 @using Microsoft.IdentityModel.Tokens
@@ -239,10 +240,11 @@
 
     public async Task<bool> OnAvatarChange(byte[] newAvatar)
     {
-        if (Chat is null)
-            return false;
+        if (Chat is null) return false;
 
         var result = await UserGroupService.UpdateGroupAvatar(ChatID, newAvatar);
+        if (!result.Succeeded) return false;
+        
         var groupInteractionSync = new GroupInteractionSyncC2SPacket
         {
             Event = GroupEvent.GroupDisplayChange,
@@ -250,7 +252,7 @@
         };
         await SendToServer.InvokeAsync(groupInteractionSync);
 
-        return result.Succeeded;
+        return true;
     }
 
     private RenderFragment? GetUserFragment(User user)
@@ -375,7 +377,14 @@
     
     private async Task RevokePermissions(int? userId)
     {
-        await SyncedInteraction(GroupEvent.RevokedPermissions, UserGroupService.RevokePermissions, userId);
+        await SyncedInteraction(GroupEvent.RevokedPermissions, async (chatId, uId) =>
+        {
+            var invites = await UserGroupService.RevokePermissions(chatId, uId);
+            foreach (var id in invites.Select(i => i.RecipientID))
+            {
+                await SyncedInteraction(GroupEvent.ReceivedInviteRevoked, (_, _) => Task.CompletedTask, id);
+            }
+        }, userId);
     }
     
     private async Task AssignPermissions(int? userId)
@@ -385,17 +394,38 @@
     
     private async Task RemoveMember(int? userId)
     {
-        await SyncedInteraction(GroupEvent.RemoveMember, UserGroupService.RemoveGroupMember, userId);
+        await SyncedInteraction(GroupEvent.RemoveMember, async (chatId, uId) =>
+        {
+            var invites = await UserGroupService.RemoveGroupMember(chatId, uId);
+            foreach (var id in invites.Select(i => i.RecipientID))
+            {
+                await SyncedInteraction(GroupEvent.ReceivedInviteRevoked, (_, _) => Task.CompletedTask, id);
+            }
+        }, userId);
     }
 
     private async Task LeaveGroup()
     {
-        await SyncedInteraction(GroupEvent.SelfLeftGroup, async (chatId, _) => await UserGroupService.LeaveGroup(chatId));
+        await SyncedInteraction(GroupEvent.SelfLeftGroup, async (chatId, _) =>
+        {
+            var invites = await UserGroupService.LeaveGroup(chatId);
+            foreach (var id in invites.Select(i => i.RecipientID))
+            {
+                await SyncedInteraction(GroupEvent.ReceivedInviteRevoked, (_, _) => Task.CompletedTask, id);
+            }
+        });
     }
 
     private async Task DeleteGroup()
     {
-        await SyncedInteraction(GroupEvent.DeleteGroup, async (chatId, _) => await UserGroupService.DeleteGroup(chatId));
+        await SyncedInteraction(GroupEvent.DeleteGroup, async (chatId, _) =>
+        {
+            var (res, invites) = await UserGroupService.DeleteGroup(chatId);
+            foreach (var id in invites.Select(i => i.RecipientID))
+            {
+                await SyncedInteraction(GroupEvent.ReceivedInviteRevoked, (_, _) => Task.CompletedTask, id);
+            }
+        });
     }
 
     private async Task SyncedInteraction(GroupEvent eventKind, AsyncBiConsumer<int?, int?> action, int? userId = default)
@@ -416,16 +446,23 @@
         GroupEvent.RevokedPermissions,
         GroupEvent.GrantedPermissions,
         GroupEvent.GroupDisplayChange,
+        GroupEvent.ReceivedInviteAccepted,
         GroupEvent.SelfLeftGroup,
         GroupEvent.OtherLeftGroup,
-        GroupEvent.DeleteGroup
+        GroupEvent.DeleteGroup,
+        GroupEvent.PermissionsGained,
+        GroupEvent.PermissionsLost
     ];
 
     public List<int?> WatchedIDs { get; set; } = [];
 
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
-        if (evt is GroupEvent.SelfLeftGroup or GroupEvent.DeleteGroup)
+        if (Self is null) return;
+        
+        var selfCheck = specifiedUser == Self.Id;
+        if (evt is GroupEvent.DeleteGroup
+            || (selfCheck && evt is GroupEvent.SelfLeftGroup or GroupEvent.PermissionsLost or GroupEvent.RemoveMember))
         {
             await DismissPopup.InvokeAsync();
             return;
@@ -435,4 +472,8 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    public void Dispose()
+    {
+        UserGroupService.RemoveSubscriber(this);
+    }
 }

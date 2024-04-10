@@ -917,12 +917,15 @@ else
         GroupEvent.GroupDisplayChange,
         GroupEvent.RemoveMember,
         GroupEvent.OtherLeftGroup,
-        GroupEvent.ReceivedInviteAccepted
+        GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.PermissionsLost,
+        GroupEvent.PermissionsGained
     ];
 
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetChatData();
+        IsMod = IsModerator();
         await InvokeAsync(StateHasChanged);
     }
 

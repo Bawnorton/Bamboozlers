@@ -127,6 +127,12 @@
     {
         IncomingGroupInvites = await UserGroupService.GetAllIncomingInvites();
         OutgoingGroupInvites = await UserGroupService.GetAllOutgoingInvites();
+
+        var allInvites = new List<GroupInvite>();
+        allInvites.AddRange(IncomingGroupInvites);
+        allInvites.AddRange(OutgoingGroupInvites);
+
+        WatchedIDs = allInvites.Select(i => (int?) i.GroupID).ToList();
     }
 
     public List<GroupEvent> WatchedGroupEvents { get; set; } =
@@ -136,7 +142,11 @@
         GroupEvent.SentInviteRevoked,
         GroupEvent.ReceivedInviteAccepted,
         GroupEvent.ReceivedInviteDeclined,
-        GroupEvent.ReceivedInviteRevoked
+        GroupEvent.ReceivedInviteRevoked,
+        GroupEvent.GroupDisplayChange,
+        GroupEvent.RevokedPermissions,
+        GroupEvent.PermissionsLost,
+        GroupEvent.DeleteGroup
     ];
     
     public List<int?> WatchedIDs { get; set; } = [];

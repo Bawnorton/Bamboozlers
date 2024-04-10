@@ -107,6 +107,8 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                         GroupEvent.SelfLeftGroup => GroupEvent.OtherLeftGroup,
                         GroupEvent.SentInvite => GroupEvent.ReceivedInvite,
                         GroupEvent.SentInviteRevoked => GroupEvent.ReceivedInviteRevoked,
+                        GroupEvent.RevokedPermissions => GroupEvent.PermissionsLost,
+                        GroupEvent.GrantedPermissions => GroupEvent.PermissionsGained,
                         _ => groupInteractionSync.Event
                     };
                     var groupInteractionSyncResponse = new GroupInteractionSyncS2CPacket
@@ -116,6 +118,7 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                         GroupId = groupInteractionSync.GroupId
                     };
                     await SendToChat(groupInteractionSync.GroupId, groupInteractionSyncResponse);
+                    
                     if (groupInteractionSync.SpecificUserId != -1)
                     {
                         await SendToUser(groupInteractionSync.SpecificUserId, groupInteractionSyncResponse);

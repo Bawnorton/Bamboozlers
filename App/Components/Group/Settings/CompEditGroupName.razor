@@ -16,7 +16,7 @@
             <Container>
                 <Row Class="centre-content">
                     <Column ColumnSize="ColumnSize.Is6">
-                        <TextEdit Text="@ChatName"
+                        <TextEdit Text="@(Group is null ? "Group Chat" : Group.GetGroupName())"
                                   ElementId="chat-name"
                                   Placeholder="Chat Name"
                                   Disabled>
@@ -64,7 +64,6 @@
     private GroupChat? Group { get; set; }
 
     private string SelectedTab { get; set; } = "view";
-    private string ChatName { get; set; }  = "";
     public string TypedName { get; set; } = "";
 
     protected override async Task OnInitializedAsync()
@@ -84,8 +83,6 @@
             .FirstOrDefault(c => c.ID == ChatID);
         if (Group is null)
             return;
-        
-        ChatName = Group.GetGroupName();
     }
 
     public async Task OnSave()
@@ -113,13 +110,6 @@
         }
 
         var result = await UserGroupService.UpdateGroupName(ChatID, TypedName);
-        var sync = new GroupInteractionSyncC2SPacket
-        {
-            Event = GroupEvent.GroupDisplayChange,
-            GroupId = Group.ID
-        };
-        await SendToServer.InvokeAsync(sync);
-        
         if (!result.Succeeded)
         {
             await AlertCallback.InvokeAsync(new AlertArguments(
@@ -130,6 +120,14 @@
             ));
             return;
         }
+        
+        var sync = new GroupInteractionSyncC2SPacket
+        {
+            Event = GroupEvent.GroupDisplayChange,
+            GroupId = Group.ID
+        };
+        await SendToServer.InvokeAsync(sync);
+        
         await AlertCallback.InvokeAsync(new AlertArguments(
             Color.Success,
             true,
