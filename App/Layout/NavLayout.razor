@@ -218,12 +218,12 @@
         if (Self is null)
             throw new InvalidOperationException("User and/or chats were not found.");
 
-        DmChats = Self.Chats.Except(Self.Chats.OfType<GroupChat>())
-            .Select(chat => new DmChat(
-                chat.ID,
-                chat.Users.First(u => u.Id != Self.Id),
-                chat.Users.First(u => u.Id != Self.Id).Avatar)
-            ).ToList();
+        var dms = Self.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
+        foreach (var dm in dms)
+        {
+            var otherUser = dm.Users.FirstOrDefault(u => u.Id != Self.Id) ?? User.Deleted;
+            DmChats.Add(new DmChat(dm.ID, otherUser, otherUser.Avatar));
+        }
     }
 
     private void MoveToHome()
