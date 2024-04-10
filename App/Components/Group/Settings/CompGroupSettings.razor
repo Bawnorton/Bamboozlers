@@ -1,7 +1,6 @@
 @inherits UserViewComponentBase
 
 @implements IGroupSubscriber
-@implements IDisposable
 
 @using Bamboozlers.Classes.AppDbContext
 @using Microsoft.IdentityModel.Tokens
@@ -92,6 +91,7 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        WatchedIDs = [ChatID];
         UserGroupService.AddSubscriber(this);
         await LoadGroupData();
     }
@@ -458,6 +458,7 @@
 
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
+        Console.WriteLine($"specified: {specifiedGroup} current: {ChatID}");
         if (Self is null) return;
         
         var selfCheck = specifiedUser == Self.Id;
@@ -470,10 +471,5 @@
 
         await LoadGroupData();
         await InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        UserGroupService.RemoveSubscriber(this);
     }
 }

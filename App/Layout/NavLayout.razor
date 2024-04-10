@@ -369,6 +369,7 @@
     {
         await GetUserData();
         GetGroupData();
+
         if (CurrentView == View.Group && CurrentChatId == specifiedGroup)
         {
             if (evt is GroupEvent.DeleteGroup or GroupEvent.SelfLeftGroup) // I left or group was deleted

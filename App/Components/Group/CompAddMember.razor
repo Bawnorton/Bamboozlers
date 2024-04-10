@@ -2,7 +2,6 @@
 
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
-@implements IDisposable
 
 @using Bamboozlers.Classes.AppDbContext
 @using AngleSharp.Diffing.Extensions
@@ -84,8 +83,10 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        WatchedIDs = [ChatID];
         UserGroupService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
+        await LoadGroupData();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -137,6 +138,7 @@
             await DismissPopup.InvokeAsync();
             return;
         }
+        
         await LoadGroupData();
         await InvokeAsync(StateHasChanged);
     }
@@ -151,12 +153,6 @@
     {
         await LoadGroupData();
         await InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        UserGroupService.RemoveSubscriber(this);
-        UserInteractionService.RemoveSubscriber(this);
     }
 }
 
