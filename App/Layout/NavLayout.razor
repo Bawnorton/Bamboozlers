@@ -144,7 +144,7 @@
         }
         else
         {
-            <CompChatView PassedChatID="@CurrentChatId" GoToHome="MoveToHome"/>
+            <CompChatView ChatID="@CurrentChatId" GoToHome="MoveToHome" @key="CurrentChatId"/>
         }
     </Layout>
 }
@@ -209,14 +209,12 @@
 
         if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
 
-        CurrentChatId = -1;
-        CurrentView = View.Home;
+        MoveToHome();
     }
 
     public void GetDmData()
     {
-        if (Self is null)
-            throw new InvalidOperationException("User and/or chats were not found.");
+        if (Self is null) throw new InvalidOperationException("User and/or chats were not found.");
 
         DmChats.Clear();
         var dms = Self.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
@@ -225,6 +223,10 @@
             var otherUser = dm.Users.FirstOrDefault(u => u.Id != Self.Id) ?? User.Deleted;
             DmChats.Add(new DmChat(dm.ID, otherUser, otherUser.Avatar));
         }
+
+        if (CurrentView != View.Dm || DmChats.FirstOrDefault(dm => dm.ID == CurrentChatId) is not null) return;
+
+        MoveToHome();
     }
 
     private void MoveToHome()
@@ -256,7 +258,7 @@
             }
         }
     }
-    
+
     private async Task JoinChat()
     {
         var joinChat = new JoinChatC2SPacket
@@ -266,7 +268,7 @@
         };
         await SendToServer.InvokeAsync(joinChat);
     }
-    
+
     private async Task LeaveChat()
     {
         var leaveChat = new LeaveChatC2SPacket
@@ -279,11 +281,6 @@
 
     public async Task OpenDm(int chatId = -1, int? otherId = null, bool reload = false)
     {
-        if (CurrentChatId != -1)
-        {
-            await LeaveChat();
-        }
-
         if (reload)
         {
             await GetUserData();
@@ -292,51 +289,53 @@
 
         if (chatId == -1)
         {
-            if (otherId is not null)
+            if (otherId is null) return;
+            
+            var dm = await UserInteractionService.FindDm(otherId);
+            if (dm is null)
             {
-                var dm = await UserInteractionService.FindDm(otherId);
-                if (dm is null)
-                {
-                    dm = await UserInteractionService.CreateDm(otherId);
-                    if (dm is null) return;
-                }
+                dm = await UserInteractionService.CreateDm(otherId);
+                if (dm is null) return;
+            }
 
-                chatId = dm.ID;
-                await GetUserData();
-                GetDmData();
-            }
-            else
-            {
-                return;
-            }
+            chatId = dm.ID;
+            await GetUserData();
+            GetDmData();
+        }
+        if (chatId == CurrentChatId) return;
+        
+        if (CurrentChatId != -1)
+        {
+            await LeaveChat();
         }
 
         CurrentView = View.Dm;
         CurrentChatId = chatId;
 
         await InvokeAsync(StateHasChanged);
-        
+
         await JoinChat();
     }
 
     public async Task OpenGroup(int chatId, bool reload = false)
     {
-        if (CurrentChatId != -1)
-        {
-            await LeaveChat();
-        }
-
         if (reload)
         {
             await GetUserData();
             GetGroupData();
+        }
+        if (chatId == CurrentChatId) return;
+        
+        if (CurrentChatId != -1)
+        {
+            await LeaveChat();
         }
 
         CurrentView = View.Group;
         CurrentChatId = chatId;
 
         await InvokeAsync(StateHasChanged);
-        
+
         await JoinChat();
     }
 

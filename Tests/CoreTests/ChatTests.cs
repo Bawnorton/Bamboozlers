@@ -27,7 +27,7 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
         var chat = db.Chats.Include(chat => chat.Messages).First();
 
         var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
-            .Add(p => p.PassedChatID, chat.ID)
+            .Add(p => p.ChatID, chat.ID)
             .Add(p => p.AddPacketSubscriber, _ => true)
             .Add(p => p.AddKeySubscriber, _ => true));
         

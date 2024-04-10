@@ -167,7 +167,7 @@
                             {
                                 if (!message.SystemMessage)
                                 {
-                                    <CompMessageView @key="message.DbMessage"
+                                    <CompMessageView @key="message"
                                         Message="message.DbMessage"
                                         PreviousMessage="@message.Previous?.DbMessage"
                                         EchoReceived="@message.EchoReceived"
@@ -221,7 +221,10 @@
                         </textarea>
                     </Div>
                 </Div>
-                <CompTypingView ChatID="@ChatID"/>
+                @if (CanSeeTyping)
+                {
+                    <CompTypingView ChatID="@ChatID"/>
+                } 
             </Div>
         </LayoutFooter>
     </Layout>
@@ -297,11 +300,8 @@ else
     [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
 
     [Parameter] public EventCallback GoToHome { get; set; }
-    [Parameter] public int PassedChatID { get; set; } = -1;
-
-    private int PrevChatID { get; set; } = -1;
+    [Parameter] public int ChatID { get; set; } = -1;
     
-    private int ChatID { get; set; }
     private Chat? Chat { get; set; }
     private string ChatName { get; set; }
     private bool ChatLoaded { get; set; }
@@ -310,6 +310,7 @@ else
     ///     Null if the chat is a group chat
     /// </summary>
     private User? OtherUser { get; set; }
+    private bool CanSeeTyping { get; set; }
 
     public List<int?> WatchedIDs { get; private set; } = [];
 
@@ -332,17 +333,17 @@ else
     {
         UserGroupService.AddSubscriber(this);
         Self = (await AuthService.GetUser())!;
-        ChatLoaded = false;
         
         AddPacketSubscriber.Invoke(this);
         AddKeySubscriber.Invoke(this);
 
-        await RefreshState(PassedChatID);
+        await RefreshState();
     }
     
-    private async Task RefreshState(int chatId)
+    private async Task RefreshState()
     {
-        ChatID = chatId == -1 ? PassedChatID : chatId;
+        ChatLoaded = false;
+        
         WatchedIDs = [ChatID];
      
         MessageInput = "";
@@ -360,6 +361,7 @@ else
         
         await GetChatData();
         IsMod = IsModerator();
+        CanSeeTyping = Chat is GroupChat || OtherUser is not null && await IsFriendsWith(OtherUser);
         
         await InitMessages();
 
@@ -374,13 +376,8 @@ else
     {
         switch (packet)
         {
-            case DidJoinChatS2CPacket joinChat:
-                PrevChatID = ChatID;
-                Console.WriteLine($"Joined chat {joinChat.ChatId}, previous chat {PrevChatID}");
-                if (joinChat.ChatId != PrevChatID)
-                {
-                    await RefreshState(joinChat.ChatId);
-                }
+            case DidJoinChatS2CPacket:
+                await RefreshState();
                 break;
             case DidLeaveChatS2CPacket:
                 // probably useful for something
@@ -395,7 +392,10 @@ else
             case MessageEditedS2CPacket messageEdited:
             {
                 await using var db = await Db.CreateDbContextAsync();
-                var message = await db.Messages.Include(m => m.Sender).FirstAsync(m => m.ID == messageEdited.MessageId);
+                var message = await db.Messages
+                    .Include(m => m.Sender)
+                    .Include(m => m.Attachments)
+                    .FirstAsync(m => m.ID == messageEdited.MessageId);
                 Messages[MessageIdToIndex[messageEdited.MessageId]].DbMessage = message;
                 await InvokeAsync(StateHasChanged);
                 break;
@@ -403,9 +403,11 @@ else
             case MessagePinStatusS2CPacket pinStatus:
             {
                 await using var db = await Db.CreateDbContextAsync();
-                var message = await db.Messages.Include(m => m.Sender).FirstAsync(m => m.ID == pinStatus.MessageId);
+                var message = await db.Messages
+                    .Include(m => m.Sender)
+                    .Include(m => m.Attachments)
+                    .FirstAsync(m => m.ID == pinStatus.MessageId);
                 Messages[MessageIdToIndex[pinStatus.MessageId]].DbMessage = message;
-                await InvokeAsync(StateHasChanged);
                 break;
             }
         }
@@ -422,6 +424,13 @@ else
             .AsNoTracking()
             .First(f => f.ID == ChatID);
         return gc.OwnerID == Self!.Id || gc.Moderators.Any(m => m.Id == Self.Id);
+    }
+    
+    private async Task<bool> IsFriendsWith(User user)
+    {
+        if (Self is null) return false;
+
+        return await UserInteractionService.FindFriendship(user.Id) is not null;
     }
 
     private async Task GetChatData()
@@ -594,7 +603,7 @@ else
         message.PinnedAt = message.IsPinned ? null : DateTime.Now;
         db.Messages.Update(message);
         await db.SaveChangesAsync();
-
+        
         var pinStatus = new MessagePinStatusC2SPacket
         {
             SenderId = Self!.Id,
@@ -784,6 +793,7 @@ else
         };
         CreateMessageEntry(systemMessage, false, true);
         await InvokeAsync(StateHasChanged);
+        await JumpToMessage(systemMessage, false);
     }
 
     private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false, bool systemMessage = false)
@@ -890,6 +900,7 @@ else
             return false;
         }
         
+        CanSeeTyping = true;
         return true;
     }
     

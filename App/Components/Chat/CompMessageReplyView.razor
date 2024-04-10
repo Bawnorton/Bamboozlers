@@ -71,7 +71,10 @@
                 if (messageEdited.MessageId == MessageId)
                 {
                     await using var db = await Db.CreateDbContextAsync();
-                    ReplyMessage = await db.Messages.Include(m => m.Sender).FirstOrDefaultAsync(m => m.ID == MessageId);
+                    ReplyMessage = await db.Messages
+                        .Include(m => m.Sender)
+                        .Include(m => m.Attachments)
+                        .FirstOrDefaultAsync(m => m.ID == MessageId);
                     await InvokeAsync(StateHasChanged);
                 }
 

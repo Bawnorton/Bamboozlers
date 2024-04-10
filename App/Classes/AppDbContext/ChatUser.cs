@@ -9,6 +9,9 @@ namespace Bamboozlers.Classes.AppDbContext;
 
 public class ChatUser(int userId, int chatId)
 {
+    public ChatUser() : this(-1, -1)
+    {
+    }
     public User User { get; set; } = default!;
     public int UserId { get; set; } = userId;
     public Chat Chat { get; set; } = default!;

@@ -6,7 +6,6 @@ using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging;
 using Bamboozlers.Classes.Utility.Observer;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
