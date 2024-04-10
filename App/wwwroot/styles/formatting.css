@@ -34,15 +34,22 @@
 .user-container {
     display: flex;
     flex-direction: row;
+    flex-wrap: nowrap;
     font-size: 20px;
     background-color: #28292e;
     padding: 0.5em 0.5em 0.5em 0.7em;
     border-radius: 5px;
+    align-self: center;
 }
 
 .user-container .inner {
     display: flex;
     flex-direction: row;
+    align-items: center;
+}
+
+.user-container > * {
+    flex: 0 0 auto;
 }
 
 .user-container:hover {
@@ -51,9 +58,16 @@
 }
 
 .user-container .action-button {
-    margin-left: auto;
+    margin-left: -200px;
+    margin-right: 0;
 }
 
 .user-container:hover > .message-username:hover {
     text-decoration: none;
+}
+
+.clipping-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

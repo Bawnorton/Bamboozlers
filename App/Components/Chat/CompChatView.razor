@@ -5,29 +5,19 @@
 @implements IGroupSubscriber
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
-@using Bamboozlers.Classes.Services.UserServices
-@using Bamboozlers.Classes.Data
-@using Bamboozlers.Classes.Networking
-@using Bamboozlers.Classes.Networking.Packets
-@using Bamboozlers.Classes.Networking.Packets.Clientbound
-@using Bamboozlers.Classes.Networking.Packets.Serverbound
-@using Bamboozlers.Classes.Networking.SignalR
-@using Bamboozlers.Classes.Services
-@using Microsoft.AspNetCore.SignalR.Client
-@using Bamboozlers.Classes
-@using Blazorise.Extensions
-@using AngleSharp.Diffing.Extensions
 @using Microsoft.IdentityModel.Tokens
+@using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
-@using Bamboozlers.Components.Utility
-@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.Func
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging
-@using Bunit.Extensions
-@using System.Timers
-@using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat
+@using Bamboozlers.Classes.Services
+@using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Components.Utility
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject IJSRuntime JsRuntime
@@ -134,27 +124,29 @@
             <Div>
                 @if (Chat is GroupChat groupChat)
                 {
-                    <Div ElementId="header-text">
+                    <Div ElementId="header-text" Style="display: flex; flex-direction: row; align-items: center">
                         <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
-                        @ChatName
+                        <Div Class="clipping-text" Style="width: 300px;">
+                            @ChatName
+                        </Div>
                     </Div>
                 }
                 else if (Chat is not null && Chat is not GroupChat)
                 {
-                    <Div ElementId="header-text">
+                    <Div ElementId="header-text" Style="display: flex; flex-direction: row; align-items: center">
                         @if (OtherUser is not null)
                         {
                             <Image Source="@OtherUser.GetAvatar()" Class="message-avatar" alt=""/>
                         }
-                        <CompInteractUsername User=@OtherUser/>
+                        <CompInteractUsername User=@OtherUser MaxWidth="400px"/>
                     </Div>
                 }
             </Div>
-            <Div Style="position: relative">
-                <Icon ElementId="pin_button" Name="Icons.MapPin" Style="margin-right: 0.5em" Class="button-tooltip tooltip-left" data-tooltip="Pins" role="button" @onclick="() => OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Pins, Self, ChatID, async arg => await JumpToMessage((Message)arg!)))"/>
+            <Div Style="align-items: center; display: flex; flex-direction: row; gap: 1em; margin-right: 10px">
+                <Icon ElementId="pin_button" Name="Icons.MapPin" Style="position: relative; padding: 5px" Class="button-tooltip tooltip-down" data-tooltip="Pins" role="button" @onclick="() => OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Pins, Self, ChatID, async arg => await JumpToMessage((Message)arg!)))"/>
                 @if (Chat is GroupChat)
                 {
-                    <Icon ElementId="settingsbtn" Name="IconName.Settings" role="button" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.GroupChatSettings, ChatId: ChatID))"/>
+                    <Icon ElementId="settingsbtn" Name="IconName.Settings" Style="position: relative; padding: 5px" Class="button-tooltip tooltip-down" data-tooltip="Settings" role="button" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.GroupChatSettings, ChatId: ChatID))"/>
                 }
             </Div>
         </LayoutHeader>
@@ -217,7 +209,7 @@
                         <InputFile id="input-file" OnChange="@OnFileUpload" hidden multiple/>
                     </Div>
                     <Div Display="Display.Flex" Overflow="Overflow.Hidden" Width="Width.Is100">
-                        <textarea id="message-input" placeholder="@($"Message {ChatName}")" class="message-input p-3" style="padding-left: 0 !important;" @onkeyup="OnInput" @bind="MessageInput" @bind:event="oninput">
+                        <textarea id="message-input" placeholder="@($"Message {(ChatName.Length >= 50 ? ChatName[..47] + "..." : ChatName)}")" class="message-input p-3" style="padding-left: 0 !important;" @onkeyup="OnInput" @bind="MessageInput" @bind:event="oninput">
                         </textarea>
                     </Div>
                 </Div>
@@ -263,9 +255,9 @@
                         {
                             <BarItem>
                                 <BarLink Flex="Flex.JustifyContent.Between" class="align-items-center rounded" Display="Display.Flex">
-                                    <Div>
+                                    <Div Style="display: flex; flex-direction: row; align-items: center">
                                         <Image Source="@user.GetAvatar()" Class="message-avatar" alt=""/>
-                                        <CompInteractUsername User="@user"/>
+                                        <CompInteractUsername User="@user" MaxWidth="140px"/>
                                     </Div>
                                 </BarLink>
                             </BarItem>
@@ -305,6 +297,8 @@ else
     private Chat? Chat { get; set; }
     private string ChatName { get; set; }
     private bool ChatLoaded { get; set; }
+    
+    private bool InitialLoad { get; set; }
 
     /// <summary>
     ///     Null if the chat is a group chat
@@ -331,6 +325,8 @@ else
     
     protected override async Task OnInitializedAsync()
     {
+        InitialLoad = true;
+        
         UserGroupService.AddSubscriber(this);
         Self = (await AuthService.GetUser())!;
         
@@ -338,6 +334,8 @@ else
         AddKeySubscriber.Invoke(this);
 
         await RefreshState();
+        
+        InitialLoad = false;
     }
     
     private async Task RefreshState()
@@ -377,7 +375,10 @@ else
         switch (packet)
         {
             case DidJoinChatS2CPacket:
-                await RefreshState();
+                if (!InitialLoad)
+                {
+                    await RefreshState();
+                }
                 break;
             case DidLeaveChatS2CPacket:
                 // probably useful for something

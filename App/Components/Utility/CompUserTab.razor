@@ -1,21 +1,21 @@
 @using Bamboozlers.Classes.Data
 @using Bamboozlers.Classes.AppDbContext
 
-<Div id="@($"user-{User.UserName}")" class="user-container">
-    <Div style="flex-grow: 1;" class="inner" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User))">
+<Div id="@($"user-{User.UserName}")" Class="user-container">
+    <Div style="flex-grow: 1;" Class="inner" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User))">
         <Image id="avatar" Source="@(IsBlockedBy ? "images/default_profile.png" : User.GetAvatar())" Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
         @if (IsBlocked || IsBlockedBy || string.IsNullOrEmpty(User.DisplayName))
         {
-            <Div id="username" class="message-username">
+            <Div id="username" Class="message-username clipping-text" Style="width: 410px">
                 @User.UserName
             </Div>
         }
         else
         {
-            <Div id="display-name" class="message-username">
+            <Div id="display-name" Class="message-username clipping-text" Style="width: 200px">
                 @User.DisplayName
             </Div>
-            <Div id="username" style="margin-left: 0.5em">
+            <Div id="username" Class="clipping-text" style="margin-left: 0.5em; width: 200px">
                 (@User.UserName)
             </Div>
         }

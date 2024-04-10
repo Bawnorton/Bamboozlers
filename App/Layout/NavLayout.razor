@@ -61,9 +61,11 @@
                                         foreach (var chat in DmChats)
                                         {
                                             <BarItem>
-                                                <BarLink Class="dm-entry" ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
+                                                <BarLink Style="display: flex; flex-direction: row; align-items: center" Class="dm-entry" ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
                                                     <Image Source="@chat.User.GetAvatar()" Class="message-avatar" alt=""/>
-                                                    @chat.User.GetName()
+                                                    <Div Class="clipping-text">
+                                                        @chat.User.GetName()
+                                                    </Div>
                                                 </BarLink>
                                             </BarItem>
                                         }
@@ -99,9 +101,11 @@
                                         foreach (var chat in GroupChats)
                                         {
                                             <BarItem>
-                                                <BarLink ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
+                                                <BarLink Style="display: flex; flex-direction: row; align-items: center" ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
                                                     <Image Source="@chat.GetGroupAvatar()" Class="message-avatar" alt=""/>
-                                                    @chat.GetGroupName()
+                                                    <Div Class="clipping-text">
+                                                        @chat.GetGroupName()
+                                                    </Div>
                                                 </BarLink>
                                             </BarItem>
                                         }
@@ -124,9 +128,9 @@
                      Class="sidebar-footer align-items-center d-inline-flex justify-content-between w-100"
                      id="profile-button"
                      @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.Settings))">
-                    <Text>
+                    <Div Class="clipping-text" Style="max-width: 150px">
                         @(Self is null ? UserRecord.Default.UserName : Self.GetName())
-                    </Text>
+                    </Div>
                     @if (Self?.Avatar is not null)
                     {
                         <Image Source="@Self.GetAvatar()" Class="message-avatar" alt=""/>

@@ -6,7 +6,7 @@
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 
 <Div Style="margin-top: 5px; margin-bottom: 5px; position: relative;" class="message">
-    <CompMessageHeaderView Message="Message"/>
+    <CompMessageHeaderView Message="Message" MaxWidth="250px"/>
     <Div Class="message-content">
         <Div Style="display: flex; flex-direction: column; gap: 10px">
             @if (!string.IsNullOrWhiteSpace(Message.Content))

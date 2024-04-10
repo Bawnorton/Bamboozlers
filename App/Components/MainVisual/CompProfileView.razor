@@ -62,6 +62,12 @@
         margin-left: 5px; 
         margin-right: 5px;
    }
+   
+    .clipping-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 </style>
 
 <ModalContent Centered>
@@ -79,23 +85,26 @@
                         <div class="clip-to-bottom">
                             @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
                             {
-                                <h4 id="display-name">@(FocusUser.DisplayName)</h4>
-                                <p id="username">@FocusUser.UserName</p>
+                                <h4 id="display-name" class="clipping-text" style="width: 300px">@(FocusUser.DisplayName)</h4>
+                                <p id="username" class="clipping-text" style="width: 300px">@FocusUser.UserName</p>
                             }
                             else
                             {
-                                <h4 id="username">@FocusUser.UserName</h4>
+                                <h4 id="username" class="clipping-text" style="width: 300px">@FocusUser.UserName</h4>
                             }
                         </div>
                     </div>
                 </div>
                 <div class="opt-bar right">
-                    <div id="action-options-div" class="item right">
-                        @ActionOptions
-                    </div>
-                    <div id="action-button-div" class="item right">
-                        @ActionButton
-                    </div>
+                    @if (!FocusUser.IsDeleted)
+                    {
+                        <div id="action-options-div" class="item right">
+                            @ActionOptions
+                        </div>
+                        <div id="action-button-div" class="item right">
+                            @ActionButton
+                        </div>
+                    }
                 </div>
             </div>
             @if (!IsBlockedBy && !IsBlocked)
@@ -148,9 +157,6 @@
         ActionButton = null;
         ActionOptions = null;
         StatusBadge = null;
-
-        if (FocusUser.Id == -1)
-            return;
         
         UserData ??= await UserService.GetUserDataAsync();
 
@@ -220,6 +226,14 @@
                     buttonColor: Color.Light,
                     disabled: true
                 );
+            }
+            else if (FocusUser.IsDeleted)
+            {
+                StatusBadge = @<Badge ElementId="profile-badge"
+                                      Color="Color.Danger">
+                                  <Icon Name="Icons.UserSlash"/>
+                                  DELETED
+                              </Badge>;
             }
             else
             {

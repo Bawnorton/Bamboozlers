@@ -3,6 +3,8 @@
 
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking.Packets
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Components.Utility
@@ -54,6 +56,8 @@
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
     [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
 
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
+    
     [Parameter] public EventCallback<AlertArguments> AlertCallback { get; set; }
     [Parameter] public int ChatID { get; set; }
 
@@ -76,8 +80,8 @@
         WatchedIDs = [ChatID];
         UserGroupService.AddSubscriber(this);
         Group = dbContext.GroupChats.AsNoTracking()
-                    .Include(gc => gc.Owner)
-                        .FirstOrDefault(c => c.ID == ChatID);
+            .Include(gc => gc.Owner)
+            .FirstOrDefault(c => c.ID == ChatID);
         if (Group is null)
             return;
         
@@ -109,6 +113,13 @@
         }
 
         var result = await UserGroupService.UpdateGroupName(ChatID, TypedName);
+        var sync = new GroupInteractionSyncC2SPacket
+        {
+            Event = GroupEvent.GroupDisplayChange,
+            GroupId = Group.ID
+        };
+        await SendToServer.InvokeAsync(sync);
+        
         if (!result.Succeeded)
         {
             await AlertCallback.InvokeAsync(new AlertArguments(
@@ -136,5 +147,6 @@
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetGroupData();
+        await InvokeAsync(StateHasChanged);
     }
 }

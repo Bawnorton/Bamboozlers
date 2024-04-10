@@ -19,7 +19,9 @@
                       TextSize="TextSize.Heading5"
                       TextColor="TextColor.Primary"
                       Background="Background.Dark">
-            <Text ElementId="header-text">@HeaderLabel</Text>
+            <Div ElementId="header-text" Class="clipping-text" Style="max-width: 600px">
+                @HeaderLabel
+            </Div>
         </LayoutHeader>
         <LayoutContent Padding="Padding.Is1"
                        TextColor="TextColor.Primary">

@@ -17,7 +17,14 @@
 
 <ModalContent Centered Size="ModalSize.Large">
     <ModalHeader>
-        <ModalTitle>@(Chat is null ? "Group" : Chat.GetGroupName()) Settings</ModalTitle>
+        <ModalTitle>
+            <Div Style="display: flex; flex-direction: row; align-items: center; gap: 0.25em">
+                <Div Class="clipping-text" Style="max-width: 400px">
+                    @(Chat is null ? "Group" : Chat.GetGroupName())
+                </Div>
+                Settings
+            </Div>
+        </ModalTitle>
     </ModalHeader>
     <ModalBody>
         <Alert ElementId="settings-alert" Color="@AlertArguments.AlertColor" Visible="@AlertArguments.AlertVisible">
@@ -133,7 +140,6 @@
                            {
                                <div id="@($"{Chat.Name}_memberDisplay")">
                                    @GetUserFragment(owner)
-                                   <Divider/>
                                </div>
                            }
                            @foreach (var user in Chat.Moderators)
@@ -256,12 +262,12 @@
         var isMod = Chat.Moderators.Contains(user);
         
         return @<div id="@($"{user.UserName}_section")">
-                   <div style="display: inline-block">
+                   <div style="display: flex; flex-direction: row; align-items: center">
                        <Image ElementId="@($"{user.UserName}_avatar")"
                               Class="_32x32 message-avatar"
                               Source="@user.GetAvatar()"
                               alt=""/>
-                       <CompInteractUsername User="@user"/>
+                       <CompInteractUsername User="@user" MaxWidth="300px"/>
                        @if (isOwner)
                        {
                            <Badge ElementId="@($"{user.UserName}_badge")"

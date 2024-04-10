@@ -11,7 +11,7 @@ namespace Bamboozlers.Classes.Data;
 
 public record UserRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes)
 {
-    public static UserRecord Default { get; } = new UserRecord(0, "N/A", "N/A", "N/A", "N/A", null);
+    public static UserRecord Default { get; } = new(0, "N/A", "N/A", "N/A", "N/A", null);
     public string Avatar => GetDisplayableAvatar(AvatarBytes);
 
     /// <summary>
@@ -26,10 +26,10 @@ public record UserRecord(int? Id, string? UserName, string? Email, string? Displ
     
     public string GetDefaultAvatar()
     {
-        return Id == -1 
-            ? "images/default_profiles/profile_deleted.png" 
-            : $"images/default_profiles/profile_{Id % 7}.png";
+        return IsDeleted ? "images/default_profiles/profile_deleted.png" : $"images/default_profiles/profile_{Id % 7}.png";
     }
+    
+    public bool IsDeleted => Id == -1;
 
     public static UserRecord From(User user)
     {

@@ -17,7 +17,11 @@
 <ModalContent Centered
               Size="ModalSize.Large">
     <ModalHeader>
-        <ModalTitle>Invite Friends to @(Chat is null ? "Group" : Chat.GetGroupName())</ModalTitle>
+        <ModalTitle>
+            <Div Class="clipping-text" Style="width: 400px">
+                Invite Friends to @(Chat is null ? "Group" : Chat.GetGroupName())
+            </Div>
+        </ModalTitle>
     </ModalHeader>
     <ModalBody>
         <Div Style="width: 90%; margin: 10px;">
