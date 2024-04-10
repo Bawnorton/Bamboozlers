@@ -3,6 +3,7 @@
 @implements IAsyncPacketSubscriber
 @implements IAsyncKeySubscriber
 @implements IGroupSubscriber
+@implements IInteractionSubscriber
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Microsoft.IdentityModel.Tokens
@@ -308,7 +309,6 @@ else
 
     public List<int?> WatchedIDs { get; private set; } = [];
 
-    private User? Self { get; set; }
     private bool IsMod { get; set; }
 
     private List<MessageEntry> Messages { get; set; } = [];
@@ -325,10 +325,12 @@ else
     
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+        
         InitialLoad = true;
         
         UserGroupService.AddSubscriber(this);
-        Self = (await AuthService.GetUser())!;
+        UserInteractionService.AddSubscriber(this);
         
         AddPacketSubscriber.Invoke(this);
         AddKeySubscriber.Invoke(this);
@@ -904,13 +906,6 @@ else
         CanSeeTyping = true;
         return true;
     }
-    
-    public override async Task OnUpdate(UserRecord? data)
-    {
-        Self = (await AuthService.GetUser())!;
-        await base.OnUpdate(data);
-        await InvokeAsync(StateHasChanged);
-    }
 
     public List<GroupEvent> WatchedGroupEvents { get; } =
     [
@@ -922,6 +917,24 @@ else
 
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
+        await GetChatData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public List<InteractionEvent> WatchedInteractionEvents { get; } =
+    [
+        InteractionEvent.UserUpdated
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
+    {
+        await GetChatData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public override async Task OnUpdate(UserRecord? data)
+    {
+        await base.OnUpdate(data);
         await GetChatData();
         await InvokeAsync(StateHasChanged);
     }

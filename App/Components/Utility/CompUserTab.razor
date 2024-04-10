@@ -2,27 +2,27 @@
 @using Bamboozlers.Classes.AppDbContext
 
 <Div id="@($"user-{User.UserName}")" Class="user-container">
-    <Div style="flex-grow: 1;" Class="inner" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User))">
+    <Div style="flex-grow: 1; align-items: center" Class="inner" @onclick="async () => await OpenKnownPopup.InvokeAsync(new KnownPopupArgs(PopupType.UserProfile, User))">
         <Image id="avatar" Source="@(IsBlockedBy ? "images/default_profile.png" : User.GetAvatar())" Class="fit _32x32 border-mask" Style="margin-right: 0.5em" alt=""/>
         @if (IsBlocked || IsBlockedBy || string.IsNullOrEmpty(User.DisplayName))
         {
-            <Div id="username" Class="message-username clipping-text" Style="width: 410px">
+            <Div id="username" Class="message-username clipping-text" Style="max-width: 410px">
                 @User.UserName
             </Div>
         }
         else
         {
-            <Div id="display-name" Class="message-username clipping-text" Style="width: 200px">
+            <Div id="display-name" Class="message-username clipping-text" Style="max-width: 200px">
                 @User.DisplayName
             </Div>
-            <Div id="username" Class="clipping-text" style="margin-left: 0.5em; width: 200px">
+            <Div id="username" Class="clipping-text" style="margin-left: 0.5em; max-width: 200px">
                 (@User.UserName)
             </Div>
         }
     </Div>
     @if (ExtraInnerContent is not null)
     {
-        <Div id="inner-content-div" style="margin-left: auto; margin-right: 10px">
+        <Div id="inner-content-div" style="margin-right: 210px;">
             @ExtraInnerContent 
         </Div>
     }

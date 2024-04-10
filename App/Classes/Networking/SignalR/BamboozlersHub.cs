@@ -2,9 +2,11 @@ using Bamboozlers.Classes.Networking.Packets;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
+using Bamboozlers.Classes.Networking.Packets.Clientbound.User;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction;
 using Bamboozlers.Classes.Networking.Packets.Serverbound.Messaging;
+using Bamboozlers.Classes.Networking.Packets.Serverbound.User;
 using Bamboozlers.Classes.Utility.Observer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -120,7 +122,64 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     {
                         await SendToUser(groupInteractionSync.SpecificUserId, groupInteractionSyncResponse);
                     }
-                    break; 
+                    break;
+                case UserDataSyncC2SPacket userDataSync:
+                {
+                    await using var db = await DbContextFactory.CreateDbContextAsync();
+                    var userId = userDataSync.UserId;
+                    
+                    var friends = db.FriendShips
+                        .AsQueryable()
+                        .ToList()
+                        .Where(f => f.User1ID == userId || f.User2ID == userId)
+                        .Select(f => f.User1ID == userId ? f.User2ID : f.User1ID);
+                    var potentialFriends = db.FriendRequests
+                        .AsQueryable()
+                        .ToList()
+                        .Where(f => f.ReceiverID == userId)
+                        .Select(f => f.SenderID);
+                    potentialFriends = potentialFriends.Concat(db.FriendRequests
+                        .AsQueryable()
+                        .ToList()
+                        .Where(f => f.SenderID == userId)
+                        .Select(f => f.ReceiverID));
+                    var chatUsers = db.Chats
+                        .Include(c => c.Users)
+                        .AsQueryable()
+                        .ToList()
+                        .Where(c => c.Users.Any(u => u.Id == userId))
+                        .SelectMany(c => c.Users)
+                        .Select(u => u.Id);
+                    
+                    var toSend = new List<int>();
+                    toSend.AddRange(friends);
+                    toSend.AddRange(potentialFriends);
+                    toSend.AddRange(chatUsers);
+                    toSend = toSend.Distinct().ToList();
+                    
+                    var response = new UserDataSyncS2CPacket
+                    {
+                        UserId = userId
+                    };
+                    foreach (var id in toSend)
+                    {
+                        await SendToUser(id, response);
+                    }
+                    break;
+                }
+                case UserDeletedC2SPacket userDeleted:
+                {
+                    var toNotify = userDeleted.ToNotify;
+                    var response = new UserDataSyncS2CPacket
+                    {
+                        UserId = userDeleted.UserId
+                    };
+                    foreach (var id in toNotify)
+                    {
+                        await SendToUser(id, response);
+                    }
+                    break;
+                }
             }
         });
     }
@@ -128,21 +187,15 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
     private async Task SendToChat(int chatId, IPacket packet)
     {
         Console.WriteLine($"Sending packet to chat {chatId}: {packet.PacketType().GetId()}");
-        await Clients.Groups(chatId.ToString()).SendAsync("RecievePacketOnClient", packet.Serialize());
+        await Clients.Group(chatId.ToString()).SendAsync("RecievePacketOnClient", packet.Serialize());
     }
     
     private async Task SendToUser(int userId, IPacket packet)
     {
-        var success = false;
         foreach (var connectionId in Connections.GetConnections(userId))
         {
             Console.WriteLine($"Sending packet to user {userId} on connection {connectionId}: {packet.PacketType().GetId()}");
-            success = true;
             await Clients.Client(connectionId).SendAsync("RecievePacketOnClient", packet.Serialize());
-        }
-        if (!success)
-        {
-            Console.WriteLine($"Failed to send packet to user {userId}: {packet.PacketType().GetId()} (No connections)");
         }
     }
 

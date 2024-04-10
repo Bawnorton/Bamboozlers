@@ -12,7 +12,8 @@ public enum InteractionEvent
     RequestReceived,
     Unfriend,
     Block,
-    Unblock
+    Unblock,
+    UserUpdated
     
     /* TODO: Implement methods in UserInteractionService upon receiving network packet for this?
      ReceivedRequest

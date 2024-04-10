@@ -1,5 +1,7 @@
 @inherits UserViewComponentBase
+
 @implements IGroupSubscriber
+@implements IInteractionSubscriber
 
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
@@ -16,8 +18,8 @@
                 {
                     <Badge Color="Color.Dark" ElementId="incoming-badge">
                         @IncomingGroupInvites.Count
-                    </Badge>  
-                } 
+                    </Badge>
+                }
                 Received Group Invites
             </Tab>
             <Tab Name="Outgoing" ElementId="outgoing-toggle">
@@ -25,8 +27,8 @@
                 {
                     <Badge Color="Color.Dark" ElementId="outgoing-badge">
                         @OutgoingGroupInvites.Count
-                    </Badge>  
-                } 
+                    </Badge>
+                }
                 Sent Group Invites
             </Tab>
         </Items>
@@ -39,23 +41,23 @@
                         foreach (var invite in IncomingGroupInvites)
                         {
                             RenderFragment buttons = @<text>
-                                                         <CompGroupButton EventKind="GroupEvent.ReceivedInviteAccepted"
-                                                                          UserId="@invite.SenderID"
-                                                                          GroupID="@invite.GroupID"
-                                                                          ButtonId="accept-button"/>
-                                                         <CompGroupButton EventKind="GroupEvent.ReceivedInviteDeclined"
-                                                                          UserId="@invite.SenderID"
-                                                                          GroupID="@invite.GroupID"
-                                                                          ButtonId="decline-button"/>
-                                                     </text>;
-                            RenderFragment innerContent = @<text>
-                                                               (Invite for group
-                                                               <img style="margin-left: 5px; margin-right: 5px;" 
-                                                                    class="_32x32 border-mask" 
-                                                                    src="@invite.Group.GetGroupAvatar()" 
-                                                                    alt=""/>
-                                                               @invite.Group.GetGroupName())
-                                                           </text>;
+                                                          <CompGroupButton EventKind="GroupEvent.ReceivedInviteAccepted"
+                                                                           UserId="@invite.SenderID"
+                                                                           GroupID="@invite.GroupID"
+                                                                           ButtonId="accept-button"/>
+                                                          <CompGroupButton EventKind="GroupEvent.ReceivedInviteDeclined"
+                                                                           UserId="@invite.SenderID"
+                                                                           GroupID="@invite.GroupID"
+                                                                           ButtonId="decline-button"/>
+                                                      </text>;
+                            RenderFragment innerContent = @<Div style="display: flex; flex-direction: row; align-items: center">
+                                (Invite for group
+                                <img style="margin-left: 5px; margin-right: 5px;"
+                                     class="_32x32 border-mask"
+                                     src="@invite.Group.GetGroupAvatar()"
+                                     alt=""/>
+                                @invite.Group.GetGroupName())
+                            </Div>;
                             <CompUserTab @key=@invite
                                          User="@invite.Sender"
                                          Button="@buttons"
@@ -81,14 +83,14 @@
                                                                       UserId="@invite.RecipientID"
                                                                       GroupID="@invite.GroupID"
                                                                       ButtonId="revoke-button"/>;
-                            RenderFragment innerContent = @<text>
+                            RenderFragment innerContent = @<Div style="display: flex; flex-direction: row; align-items: center">
                                                                (Invite for group
-                                                               <img style="margin-left: 5px; margin-right: 5px;" 
-                                                                    class="_32x32 border-mask" 
-                                                                    src="@invite.Group.GetGroupAvatar()" 
+                                                               <img style="margin-left: 5px; margin-right: 5px;"
+                                                                    class="_32x32 border-mask"
+                                                                    src="@invite.Group.GetGroupAvatar()"
                                                                     alt=""/>
                                                                @invite.Group.GetGroupName())
-                                                           </text>;
+                                                           </Div>;
                             <CompUserTab @key=@invite
                                          User="@invite.Recipient"
                                          Button="@button"
@@ -112,17 +114,18 @@
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
 
     private string SelectedTab { get; set; } = "Incoming";
-    
+
     private List<GroupInvite> IncomingGroupInvites { get; set; } = [];
     private List<GroupInvite> OutgoingGroupInvites { get; set; } = [];
-    
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         UserGroupService.AddSubscriber(this);
+        UserInteractionService.AddSubscriber(this);
         await GetGroupsData();
     }
-    
+
     private async Task GetGroupsData()
     {
         IncomingGroupInvites = await UserGroupService.GetAllIncomingInvites();
@@ -138,13 +141,24 @@
         GroupEvent.ReceivedInviteDeclined,
         GroupEvent.ReceivedInviteRevoked
     ];
-    
+
     public List<int?> WatchedIDs { get; set; } = [];
-    
+
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetGroupsData();
         await InvokeAsync(StateHasChanged);
     }
-}
 
+    public List<InteractionEvent> WatchedInteractionEvents { get; } =
+    [
+        InteractionEvent.UserUpdated
+    ];
+
+    public async Task OnUpdate(InteractionEvent evt)
+    {
+        await GetGroupsData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

@@ -13,6 +13,7 @@
 @using System.Net
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.User
 @using Bamboozlers.Classes.Services.UserServices
 @using Microsoft.AspNetCore.Http.Connections.Client
 
@@ -41,7 +42,7 @@
 
     private string _hubUrl;
     private HubConnection? _hubConnection;
-
+    
     protected override void OnInitialized()
     {
         _sendToServer = EventCallback.Factory.Create<IPacket>(this, SendPacketToServer);
@@ -51,6 +52,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await base.OnAfterRenderAsync(firstRender);
         if (!firstRender) return;
 
         await Connect();
@@ -115,6 +117,10 @@
             case GroupInteractionSyncS2CPacket groupInteractionSync:
                 Console.WriteLine($"Syncing Group Event: {groupInteractionSync.Event}");
                 await UserGroupService.NotifySubscribersOf(groupInteractionSync.Event, groupInteractionSync.GroupId, groupInteractionSync.SpecificUserId);
+                break;
+            case UserDataSyncS2CPacket userDataSync:
+                Console.WriteLine($"Syncing User Data for User: {userDataSync.UserId}");
+                await UserInteractionService.NotifySubscribersOf(InteractionEvent.UserUpdated);
                 break;
         }
     }

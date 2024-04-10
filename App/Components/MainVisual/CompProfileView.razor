@@ -15,6 +15,7 @@
 
 @inject IUserInteractionService UserInteractionService
 @inject IUserGroupService UserGroupService
+@inject IDbContextFactory<AppDbContext> Db
 
 <style>
     .dropdown {
@@ -406,11 +407,19 @@
 
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } =
     [
-        InteractionEvent.General
+        InteractionEvent.General,
     ];
 
     public async Task OnUpdate(InteractionEvent evt)
     {
+        if (evt == InteractionEvent.UserUpdated)
+        {
+            await using var db = await Db.CreateDbContextAsync();
+            var user = await db.Users.FindAsync(FocusUser.Id);
+            if (user is null) return;
+            
+            FocusUser = UserRecord.From(user);
+        }
         await UpdateContext();
     }
 

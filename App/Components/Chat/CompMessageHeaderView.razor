@@ -1,7 +1,6 @@
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Components.Utility
 
-
 <Div Class="message-header">
     <Div Class="message-info">
         <Image Source="@Message.Sender!.GetAvatar()" Class="message-avatar" alt=""/>
@@ -13,7 +12,7 @@
 </Div>
 
 @code {
-
+    
     [Parameter] public Message Message { get; set; } = default!;
     
     [Parameter] public string? MaxWidth { get; set; }
