@@ -13,8 +13,3 @@
 .b-bar-vertical-inline { /* <Bar Mode="BarMode.VerticalInline"> */
     height: calc(100% - calc(62px * 2)) !important;
 }
-
-.search:focus {
-    outline: 0 none !important;
-    box-shadow: none !important;
-}
