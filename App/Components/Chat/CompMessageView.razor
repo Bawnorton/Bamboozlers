@@ -232,14 +232,20 @@
             case MessageEditedS2CPacket editPacket when editPacket.MessageId == Message.ID:
             {
                 await using var db = await Db.CreateDbContextAsync();
-                Message = (await db.Messages.FindAsync(Message.ID))!;
+                Message = await db.Messages
+                    .Include(m => m.Attachments)
+                    .Include(m => m.Sender)
+                    .FirstAsync(m => m.ID == Message.ID);
                 await InvokeAsync(StateHasChanged);
                 break;
             }
             case MessagePinStatusS2CPacket pinPacket when pinPacket.MessageId == Message.ID:
             {
                 await using var db = await Db.CreateDbContextAsync();
-                Message = (await db.Messages.FindAsync(Message.ID))!;
+                Message = await db.Messages
+                    .Include(m => m.Attachments)
+                    .Include(m => m.Sender)
+                    .FirstAsync(m => m.ID == Message.ID);
                 await InvokeAsync(StateHasChanged);
                 break;
             }

@@ -127,7 +127,7 @@
                 {
                     <Div ElementId="header-text" Style="display: flex; flex-direction: row; align-items: center">
                         <Image Source="@groupChat.GetGroupAvatar()" Class="message-avatar" alt=""/>
-                        <Div Class="clipping-text" Style="width: 300px;">
+                        <Div Class="clipping-text" Style="max-width: 300px;">
                             @ChatName
                         </Div>
                     </Div>
@@ -361,7 +361,7 @@ else
         
         await GetChatData();
         IsMod = IsModerator();
-        CanSeeTyping = Chat is GroupChat || (OtherUser != null && OtherUser.Id != User.Deleted.Id && await IsFriendsWith(OtherUser));
+        CanSeeTyping = Chat is GroupChat || (OtherUser != null && OtherUser.Id != User.Deleted.Id && await IsFriendsWith(OtherUser) && await NotBlockedOrBlocking(OtherUser.Id));
         
         await InitMessages();
 
@@ -435,6 +435,15 @@ else
 
         return await UserInteractionService.FindFriendship(user.Id) is not null;
     }
+    
+    private async Task<bool> NotBlockedOrBlocking(int userId)
+    {
+        if (Self is null) return false;
+
+        var blocked = await UserInteractionService.FindIfBlockedBy(userId) is not null;
+        var blocking = await UserInteractionService.FindIfBlocked(userId) is not null;
+        return !blocked && !blocking;
+    }
 
     private async Task GetChatData()
     {
@@ -504,11 +513,14 @@ else
             MessageId = message.ID
         };
 
+        await RemoveClientMessage(message.ID);
         await SendToServer.InvokeAsync(messageDeleted);
     }
 
     private async Task RemoveClientMessage(int messageId)
     {
+        if (!MessageIdToIndex.ContainsKey(messageId)) return;
+        
         var target = Messages[MessageIdToIndex[messageId]];
         if (target.Previous != null)
         {

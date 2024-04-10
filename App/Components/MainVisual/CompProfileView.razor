@@ -86,12 +86,12 @@
                         <div class="clip-to-bottom">
                             @if (!FocusUser.DisplayName.IsNullOrEmpty() && !IsBlocked && !IsBlockedBy)
                             {
-                                <h4 id="display-name" class="clipping-text" style="width: 300px">@(FocusUser.DisplayName)</h4>
-                                <p id="username" class="clipping-text" style="width: 300px">@FocusUser.UserName</p>
+                                <h4 id="display-name" class="clipping-text" style="max-width: 300px">@(FocusUser.DisplayName)</h4>
+                                <p id="username" class="clipping-text" style="max-width: 300px">@FocusUser.UserName</p>
                             }
                             else
                             {
-                                <h4 id="username" class="clipping-text" style="width: 300px">@FocusUser.UserName</h4>
+                                <h4 id="username" class="clipping-text" style="max-width: 300px">@FocusUser.UserName</h4>
                             }
                         </div>
                     </div>
