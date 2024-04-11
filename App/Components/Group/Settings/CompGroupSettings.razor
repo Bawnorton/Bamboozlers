@@ -161,7 +161,7 @@
             GroupDisplay = @<text>
                                 <Container id="@($"{Chat.Name}_displayContainer")">
                                     <Row Class="centre-content">
-                                        <Column ColumnSize="ColumnSize.Is2">
+                                        <Column ColumnSize="ColumnSize.Is3">
                                             <CompAvatarUploader OnDelete="DeleteAvatar"
                                                                 OnUpload="OnAvatarChange"
                                                                 DefaultSrc="@Chat.GetDefaultAvatar()"
@@ -169,7 +169,7 @@
                                                                 Avatar="@Chat.Avatar"
                                                                 DisplayPx="128"/>
                                         </Column>
-                                        <Column ColumnSize="ColumnSize.Is9">
+                                        <Column ColumnSize="ColumnSize.Is6">
                                             <CompEditGroupName ChatID="@Chat.ID"
                                                                AlertCallback="@(args => AlertArguments = args)"/>
                                         </Column>
