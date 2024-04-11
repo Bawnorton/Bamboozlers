@@ -28,10 +28,9 @@ public class ChatTests : AuthenticatedBlazoriseTestBase
 
         var component = Ctx.RenderComponent<CompChatView>(parameters => parameters
             .Add(p => p.AddPacketSubscriber, _ => true)
-            .Add(p => p.AddKeySubscriber, _ => true));
-
-        component.Instance.ChatID = chat.ID;
-        
+            .Add(p => p.AddKeySubscriber, _ => true)
+            .Add(p => p.ChatID, chat.ID));
+            
         // Assert
         Assert.NotNull(chat.Messages);
 
