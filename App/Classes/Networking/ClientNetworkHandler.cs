@@ -11,8 +11,6 @@ public class ClientNetworkHandler : AbstractNetworkHandler
 
     private ClientNetworkHandler()
     {
-        PacketRegistry.RegisterPacket(DidJoinChatS2CPacket.Type);
-        PacketRegistry.RegisterPacket(DidLeaveChatS2CPacket.Type);
         PacketRegistry.RegisterPacket(TypingStateS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageSentS2CPacket.Type);
         PacketRegistry.RegisterPacket(MessageEditedS2CPacket.Type);

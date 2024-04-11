@@ -70,17 +70,11 @@
             await InvokeAsync(() => SendToServer.InvokeAsync(typingState));
             _lastTypingTime = null;
         };
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
-        if (!firstRender) return;
-
+        
         AddPacketSubscriber.Invoke(this);
         AddKeySubscriber.Invoke(this);
     }
-
+    
     public async Task OnPacket(IPacket packet)
     {
         switch (packet)
