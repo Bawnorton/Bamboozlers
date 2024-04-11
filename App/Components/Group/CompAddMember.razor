@@ -2,6 +2,7 @@
 
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
+@implements IDisposable
 
 @using Bamboozlers.Classes.AppDbContext
 @using AngleSharp.Diffing.Extensions
@@ -67,6 +68,8 @@
     [Inject] private IUserGroupService UserGroupService { get; set; } = default!;
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
 
+    [CascadingParameter] public EventCallback DismissPopup { get; set; }
+    
     [Parameter] public int? ChatID { get; set; }
     public List<int?> WatchedIDs { get; set; } = [];
     
@@ -79,8 +82,15 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        WatchedIDs = [ChatID];
         UserGroupService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
+        UserInteractionService.AddSubscriber(this);
+        await LoadGroupData();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
         WatchedIDs = [ChatID];
         await LoadGroupData();
     }
@@ -113,10 +123,23 @@
         GroupEvent.ReceivedInviteDeclined,
         GroupEvent.RemoveMember,
         GroupEvent.SelfLeftGroup,
+        GroupEvent.SelfLeftGroup,
+        GroupEvent.OtherLeftGroup,
+        GroupEvent.PermissionsLost
     ];
     
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
+        if (Self is null || Chat is null) return;
+        
+        var selfCheck = specifiedGroup == Chat.ID && specifiedUser == Self.Id;
+        if ((evt is GroupEvent.DeleteGroup && specifiedGroup == Chat.ID) || 
+            (selfCheck && evt is GroupEvent.SelfLeftGroup or GroupEvent.PermissionsLost or GroupEvent.RemoveMember))
+        {
+            await DismissPopup.InvokeAsync();
+            return;
+        }
+        
         await LoadGroupData();
         await InvokeAsync(StateHasChanged);
     }
@@ -135,6 +158,11 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    public void Dispose()
+    {
+        UserGroupService.RemoveSubscriber(this);
+        UserInteractionService.RemoveSubscriber(this);
+    }
 }
 
 

@@ -3,9 +3,13 @@
 @using Bamboozlers.Classes.Data
 @using Blazorise.Extensions
 
-<Container style="position: relative; display: inline-block; width: max-content; height: max-content;">
-    <Row>
-        <Label Width="@Width.Px(DisplayPx)" Height="@Height.Px(DisplayPx)" Class="overlay-wrapper" for="avatar-input-file">
+<Container style="position: relative; display: inline-block; width: max-content; height: max-content">
+    <Row Style="width: max-content; height: max-content">
+        <Label Width="@Width.Px(DisplayPx)" 
+               Height="@Height.Px(DisplayPx)"
+               Style="max-height: 10vw; max-width: 10vw; aspect-ratio: 1" 
+               Class="overlay-wrapper" 
+               for="avatar-input-file">
             <Image ElementId="avatar-display"
                    Class="border-mask overlay-base fit"
                    Source="@(GetDisplayString())"/>

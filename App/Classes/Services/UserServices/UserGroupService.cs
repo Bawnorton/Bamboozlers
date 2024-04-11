@@ -119,14 +119,14 @@ public class UserGroupService(
         return IdentityResult.Success;
     }
     
-    public async Task<IdentityResult> DeleteGroup(int? chatId, bool overridePerms = false)
+    public async Task<(IdentityResult, List<GroupInvite>)> DeleteGroup(int? chatId, bool overridePerms = false)
     {
         if (!overridePerms)
         {
             var (self, group) = await GetUserAndGroup(chatId);
-            if (self is null || group is null) return IdentityResult.Failed();
+            if (self is null || group is null) return (IdentityResult.Failed(), []);
         
-            if (group.OwnerID != self.Id) return IdentityResult.Failed();
+            if (group.OwnerID != self.Id) return (IdentityResult.Failed(), []);
         }
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var grp = dbContext.GroupChats.First(gc => gc.ID == chatId);
@@ -138,11 +138,14 @@ public class UserGroupService(
         {
             dbContext.ChatModerators.Remove(chatModerator);
         }
-        dbContext.Remove(grp);
+
+        var invites = dbContext.GroupInvites.Where(i => i.GroupID == grp.ID).ToList();
+        
+        dbContext.GroupChats.Remove(grp);
         await dbContext.SaveChangesAsync();
 
         await NotifySubscribersOf(GroupEvent.DeleteGroup, -1);
-        return IdentityResult.Success;
+        return (IdentityResult.Success, invites);
     }
     
     public async Task<IdentityResult> UpdateGroupAvatar(int? chatId, byte[]? avatar)
@@ -256,15 +259,15 @@ public class UserGroupService(
         await NotifySubscribersOf(GroupEvent.ReceivedInviteDeclined, -1);
     }
 
-    public async Task RemoveGroupMember(int? chatId, int? memberId)
+    public async Task<List<GroupInvite>> RemoveGroupMember(int? chatId, int? memberId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
-        if (self is null || group is null) return;
+        if (self is null || group is null) return [];
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         
         var outranks = await Outranks(self.Id, memberId, chatId);
-        if (!outranks) return;
+        if (!outranks) return [];
 
         var chatUser = await dbContext.ChatUsers.FirstOrDefaultAsync(
             cu => cu.ChatId == chatId && cu.UserId == memberId
@@ -277,12 +280,14 @@ public class UserGroupService(
             dbContext.ChatUsers.Remove(chatUser);
         if (chatMod is not null)
             dbContext.ChatModerators.Remove(chatMod);
-        foreach (var inv in dbContext.GroupInvites.Where(i => i.GroupID == chatId && i.SenderID == memberId).ToList())
-            dbContext.GroupInvites.Remove(inv);
         
+        var invites = dbContext.GroupInvites.Where(i => i.GroupID == chatId && i.SenderID == memberId).ToList();
+        foreach (var inv in invites)
+            dbContext.GroupInvites.Remove(inv);
         await dbContext.SaveChangesAsync();
-
+        
         await NotifySubscribersOf(GroupEvent.RemoveMember, group.ID);
+        return invites;
     }
 
     public async Task AssignPermissions(int? chatId, int? modId)
@@ -303,15 +308,15 @@ public class UserGroupService(
         await NotifySubscribersOf(GroupEvent.GrantedPermissions, group.ID);
     }
 
-    public async Task RevokePermissions(int? chatId, int? modId)
+    public async Task<List<GroupInvite>> RevokePermissions(int? chatId, int? modId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
-        if (self is null || group is null) return;
+        if (self is null || group is null) return [];
         
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
         var selfOutranks = await Outranks(self.Id, modId, chatId);
-        if (!selfOutranks) return;
+        if (!selfOutranks) return [];
 
         var chatMod = await dbContext.ChatModerators
             .FirstOrDefaultAsync(cm => cm.GroupChatId == chatId && cm.UserId == modId);
@@ -321,14 +326,13 @@ public class UserGroupService(
             await dbContext.SaveChangesAsync();
         }
 
-        var invitesToClear = dbContext.GroupInvites.Where(i => i.SenderID == modId && i.GroupID == chatId).ToList();
-        foreach (var inv in invitesToClear)
-        {
+        var invites = dbContext.GroupInvites.Where(i => i.SenderID == modId && i.GroupID == chatId).ToList();
+        foreach (var inv in invites)
             dbContext.GroupInvites.Remove(inv);
-        }
         await dbContext.SaveChangesAsync();
 
         await NotifySubscribersOf(GroupEvent.RevokedPermissions, group.ID);
+        return invites;
     }
 
     public async Task SendGroupInvite(int? chatId, int? recipientId)
@@ -346,6 +350,7 @@ public class UserGroupService(
         var isMod = await dbContext.ChatModerators.FirstOrDefaultAsync(cm 
             => cm.GroupChatId == chatId && cm.UserId == self.Id
         ) is not null;
+        
         if (invite is null && (group.OwnerID == self.Id || isMod))
         {
             invite = new GroupInvite(self.Id, other.Id, group.ID);
@@ -374,11 +379,11 @@ public class UserGroupService(
         }
     }
 
-    public async Task LeaveGroup(int? chatId)
+    public async Task<List<GroupInvite>> LeaveGroup(int? chatId)
     {
         var (self, group) = await GetUserAndGroup(chatId);
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        if (self is null || group is null) return;
+        if (self is null || group is null) return [];
 
         var chatUser = await dbContext.ChatUsers.FirstOrDefaultAsync(
             cu => cu.ChatId == chatId && cu.UserId == self.Id
@@ -391,8 +396,11 @@ public class UserGroupService(
             dbContext.ChatUsers.Remove(chatUser);
         if (chatMod is not null)
             dbContext.ChatModerators.Remove(chatMod);
-        foreach (var inv in dbContext.GroupInvites.Where(i => i.GroupID == chatId && i.SenderID == self.Id).ToList())
+
+        var invites = dbContext.GroupInvites.Where(i => i.GroupID == chatId && i.SenderID == self.Id).ToList();
+        foreach (var inv in invites)
             dbContext.GroupInvites.Remove(inv);
+        
         await dbContext.SaveChangesAsync();
         
         if (self.Id == group.OwnerID)
@@ -401,6 +409,7 @@ public class UserGroupService(
         }
         
         await NotifySubscribersOf(GroupEvent.SelfLeftGroup, -1);
+        return invites;
     }
 
     public async Task<List<GroupChat>> GetAllModeratedGroups()
@@ -495,7 +504,7 @@ public class UserGroupService(
 public interface IUserGroupService : IAsyncPublisher<IGroupSubscriber>
 {
     Task<IdentityResult> CreateGroup(byte[]? avatar = null, string? name = null, List<User>? sendInvites = null);
-    Task<IdentityResult> DeleteGroup(int? chatId, bool overridePerms = false);
+    Task<(IdentityResult, List<GroupInvite>)> DeleteGroup(int? chatId, bool overridePerms = false);
     Task FindSuccessorOwner(int? chatId);
     Task<IdentityResult> UpdateGroupAvatar(int? chatId, byte[]? avatar);
     Task<IdentityResult> UpdateGroupName(int? chatId, string? name);
@@ -503,12 +512,12 @@ public interface IUserGroupService : IAsyncPublisher<IGroupSubscriber>
     Task<GroupInvite?> FindOutgoingGroupInvite(int? chatId, int? senderId);
     Task AcceptGroupInvite(int? chatId, int? senderId);
     Task DeclineGroupInvite(int? chatId, int? senderId);
-    Task RemoveGroupMember(int? chatId, int? memberId);
+    Task<List<GroupInvite>> RemoveGroupMember(int? chatId, int? memberId);
     Task AssignPermissions(int? chatId, int? modId);
-    Task RevokePermissions(int? chatId, int? modId);
+    Task<List<GroupInvite>> RevokePermissions(int? chatId, int? modId);
     Task SendGroupInvite(int? chatId, int? recipientId);
     Task RevokeGroupInvite(int? chatId, int? recipientId);
-    Task LeaveGroup(int? chatId);
+    Task<List<GroupInvite>> LeaveGroup(int? chatId);
     Task<List<GroupChat>> GetAllModeratedGroups();
     Task<List<GroupInvite>> GetAllIncomingInvites();
     Task<List<GroupInvite>> GetAllOutgoingInvites();

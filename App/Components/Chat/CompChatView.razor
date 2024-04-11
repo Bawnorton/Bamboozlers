@@ -283,15 +283,15 @@ else
 
 @* ReSharper disable always InconsistentNaming *@
 @code {
-    [Inject] IUserGroupService UserGroupService { get; set; }
-    [Inject] IUserInteractionService UserInteractionService { get; set; }
+    [Inject] IUserGroupService UserGroupService { get; set; } = default!;
+    [Inject] IUserInteractionService UserInteractionService { get; set; } = default!;
     
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback ClosePopupCallback { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
     
-    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; }
-    [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; }
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
+    [CascadingParameter] public Register<IAsyncKeySubscriber> AddKeySubscriber { get; set; } = default!;
 
     [Parameter] public EventCallback GoToHome { get; set; }
     [Parameter] public int ChatID { get; set; } = -1;
@@ -336,7 +336,6 @@ else
         await RefreshState();
         ChatLoaded = true;
     }
-
 
     private async Task RefreshState()
     {
@@ -914,12 +913,15 @@ else
         GroupEvent.GroupDisplayChange,
         GroupEvent.RemoveMember,
         GroupEvent.OtherLeftGroup,
-        GroupEvent.ReceivedInviteAccepted
+        GroupEvent.ReceivedInviteAccepted,
+        GroupEvent.PermissionsLost,
+        GroupEvent.PermissionsGained
     ];
 
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetChatData();
+        IsMod = IsModerator();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -966,5 +968,4 @@ else
         UserGroupService.RemoveSubscriber(this);
         UserInteractionService.RemoveSubscriber(this);
     }
-
 }

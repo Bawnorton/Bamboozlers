@@ -60,7 +60,7 @@
                                     {
                                         foreach (var chat in DmChats)
                                         {
-                                            <BarItem>
+                                            <BarItem @key=chat.User>
                                                 <BarLink Style="display: flex; flex-direction: row; align-items: center" Class="dm-entry" ElementId="@("user_" + chat.User.Id)" @onclick="async () => await OpenDm(chat.ID)">
                                                     <Image Source="@chat.User.GetAvatar()" Class="message-avatar" alt=""/>
                                                     <Div Class="clipping-text">
@@ -100,7 +100,7 @@
                                     {
                                         foreach (var chat in GroupChats)
                                         {
-                                            <BarItem>
+                                            <BarItem @key=chat>
                                                 <BarLink Style="display: flex; flex-direction: row; align-items: center" ElementId="@("group_" + chat.ID)" @onclick="@(async () => await OpenGroup(chat.ID))">
                                                     <Image Source="@chat.GetGroupAvatar()" Class="message-avatar" alt=""/>
                                                     <Div Class="clipping-text">
@@ -211,7 +211,7 @@
         if (Self?.Chats is null) throw new InvalidOperationException("User and/or chats were not found.");
 
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
-        WatchedIDs = GroupChats.Select(s => (int?)s.ID).ToList();
+        WatchedIDs = GroupChats.Select(s => (int?) s.ID).ToList();
 
         if (CurrentView != View.Group || GroupChats.FirstOrDefault(gc => gc.ID == CurrentChatId) is not null) return;
 
@@ -386,6 +386,7 @@
     {
         await GetUserData();
         GetGroupData();
+
         if (CurrentView == View.Group && CurrentChatId == specifiedGroup)
         {
             if (evt is GroupEvent.DeleteGroup or GroupEvent.SelfLeftGroup) // I left or group was deleted

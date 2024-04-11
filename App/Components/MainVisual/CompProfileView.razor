@@ -79,7 +79,7 @@
                     <div class="item left" style="margin-right: 15px">
                         <Image ElementId="avatar-display"
                                Class="border-mask fit _128x128"
-                               Source="@(IsBlocked || IsBlockedBy ? "images/default_profile.png" : FocusUser.Avatar)"/>
+                               Source="@(IsBlocked || IsBlockedBy ? "images/default_profiles/profile_deleted.png" : FocusUser.Avatar)"/>
                     </div>
                     <div id="content-div" class="item left" style="vertical-align: middle;">
                         @StatusBadge
@@ -349,7 +349,7 @@
                             else
                             {
                                 <Button ElementId="unblock-option" Class="dropdown-option" TextColor="TextColor.Danger"
-                                        Clicked="@(async () => await UserInteractionService.UnblockUser(FocusUser.Id))">
+                                        Clicked="@(async () => await SyncedInteraction(InteractionEvent.Unblock, UserInteractionService.UnblockUser))">
                                     Unblock user
                                 </Button>
                             }

@@ -15,6 +15,8 @@ public enum GroupEvent
     SelfLeftGroup,
     GrantedPermissions,
     RevokedPermissions,
+    PermissionsLost,
+    PermissionsGained,
     RemoveMember,
     GroupDisplayChange,
     OtherLeftGroup
