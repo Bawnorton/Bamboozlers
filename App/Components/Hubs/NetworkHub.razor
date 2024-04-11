@@ -11,6 +11,7 @@
 @using Microsoft.AspNetCore.Http.Connections
 @using System.Text.Json
 @using System.Net
+@using System.Text.Json.Nodes
 @using Bamboozlers.Classes.Func
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction
 @using Bamboozlers.Classes.Networking.Packets.Clientbound.User
@@ -20,7 +21,7 @@
 @inject NavigationManager NavigationManager
 
 <CascadingValue Value="_addPacketSubscriber">
-    <CascadingValue Value="_removePacketSubscribers">
+    <CascadingValue Value="_removePacketSubscribers" Name="URPacketSubscribers">
         <CascadingValue Value="_sendToServer">
             @ChildContent
         </CascadingValue>
@@ -72,6 +73,7 @@
         {
             await ClientNetworkHandler.Instance.Handle(packetJson, async packet =>
             {
+                Console.WriteLine($"Client: {Self?.UserName} - Recieved packet from server: {packetJson.Replace("\n", "")}"); 
                 await OnPacketRecieved(packet);
             });
         });
@@ -127,7 +129,6 @@
     
     private async Task OnPacketRecieved(IPacket packet)
     {
-        Console.WriteLine($"Recieved packet from server: {packet.PacketType().GetId()}");
         await TopLevelHandler(packet);
         foreach (var subscriber in Subscribers)
         {
@@ -143,7 +144,7 @@
             Console.WriteLine("Hub disconnected, cannot send packet");
             return;
         }
-        Console.WriteLine($"Sending packet to server: {packet.PacketType().GetId()}");
+        Console.WriteLine($"Client: {Self?.UserName} - Sending packet to server: {packet.Serialize().Replace("\n", "")}");
         try
         {
             await _hubConnection.SendAsync("ReceivePacketOnServer", packet.Serialize());

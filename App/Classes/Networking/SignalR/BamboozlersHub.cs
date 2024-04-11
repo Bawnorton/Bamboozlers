@@ -28,43 +28,35 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
     {
         await ServerNetworkHandler.Instance.Handle(packetJson, async packet =>
         {
-            Console.WriteLine($"Recieved packet from client: {packet.PacketType().GetId()}");
+            Console.WriteLine($"Server - Recieved packet from client {Context.User?.Identity?.Name}: {packetJson.Replace("\n", "")}");
             switch (packet)
             {
                 case JoinChatC2SPacket joinChat:
                     await Groups.AddToGroupAsync(Context.ConnectionId, joinChat.ChatId.ToString());
-                    var didJoinChat = new DidJoinChatS2CPacket
-                    {
-                        ChatId = joinChat.ChatId
-                    };
-                    await SendToUser(joinChat.SenderId, didJoinChat);
                     break;
                 case LeaveChatC2SPacket leaveChat:
-                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveChat.ChatId.ToString());
                     var updateTypingState = new TypingStateS2CPacket
                     {
                         Typing = false,
                         UserId = leaveChat.SenderId
                     };
                     await SendToChat(leaveChat.ChatId, updateTypingState);
-                    var didLeaveChat = new DidLeaveChatS2CPacket
-                    {
-                        ChatId = leaveChat.ChatId
-                    };
-                    await SendToUser(leaveChat.SenderId, didLeaveChat);
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveChat.ChatId.ToString());
                     break;
                 case TypingStateC2SPacket typingState:
                     var typingStateResponse = new TypingStateS2CPacket
                     {
                         Typing = typingState.Typing,
-                        UserId = typingState.SenderId
+                        UserId = typingState.SenderId,
+                        ChatId = typingState.ChatId
                     };
                     await SendToChat(typingState.ChatId, typingStateResponse);
                     break;
                 case MessageSentC2SPacket messageSent:
                     var messageSentResponse = new MessageSentS2CPacket
                     {
-                        MessageId = messageSent.MessageId
+                        MessageId = messageSent.MessageId,
+                        ChatId = messageSent.ChatId
                     };
                     await SendToChat(messageSent.ChatId, messageSentResponse);
                     break;
@@ -72,14 +64,16 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     var messageEditedResponse = new MessageEditedS2CPacket
                     {
                         MessageId = messageEdited.MessageId,
-                        NewContent = messageEdited.NewContent
+                        NewContent = messageEdited.NewContent,
+                        ChatId = messageEdited.ChatId
                     };
                     await SendToChat(messageEdited.ChatId, messageEditedResponse);
                     break;
                 case MessageDeletedC2SPacket messageDeleted:
                     var messageDeletedRespone = new MessageDeletedS2CPacket
                     {
-                        MessageId = messageDeleted.MessageId
+                        MessageId = messageDeleted.MessageId,
+                        ChatId = messageDeleted.ChatId
                     };
                     await SendToChat(messageDeleted.ChatId, messageDeletedRespone);
                     break;
@@ -87,7 +81,8 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     var messagePinStatusResponse = new MessagePinStatusS2CPacket
                     {
                         MessageId = messagePinStatus.MessageId,
-                        Pinned = messagePinStatus.Pinned
+                        Pinned = messagePinStatus.Pinned,
+                        ChatId = messagePinStatus.ChatId
                     };
                     await SendToChat(messagePinStatus.ChatId, messagePinStatusResponse);
                     break;
@@ -127,6 +122,21 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                 {
                     await using var db = await DbContextFactory.CreateDbContextAsync();
                     var userId = userDataSync.UserId;
+                    
+                    var user = db.Users
+                        .AsQueryable()
+                        .ToList()
+                        .Find(u => u.Id == userId);
+                    if (user == null)
+                    {
+                        Console.WriteLine($"User {userId} ({userDataSync.Username}) not found in database");
+                        return;
+                    }
+
+                    if (user.UserName != userDataSync.Username)
+                    {
+                        Context.Abort();
+                    }
                     
                     var friends = db.FriendShips
                         .AsQueryable()
@@ -178,6 +188,7 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     {
                         await SendToUser(id, response);
                     }
+                    Context.Abort();
                     break;
                 }
             }
@@ -186,15 +197,15 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
     
     private async Task SendToChat(int chatId, IPacket packet)
     {
-        Console.WriteLine($"Sending packet to chat {chatId}: {packet.PacketType().GetId()}");
+        Console.WriteLine($"Server - Sending packet to chat {chatId}: {packet.Serialize().Replace("\n", "")}");
         await Clients.Group(chatId.ToString()).SendAsync("RecievePacketOnClient", packet.Serialize());
     }
     
     private async Task SendToUser(int userId, IPacket packet)
     {
+        Console.WriteLine($"Server - Sending packet to user {userId}: {packet.Serialize().Replace("\n", "")}");
         foreach (var connectionId in Connections.GetConnections(userId))
         {
-            Console.WriteLine($"Sending packet to user {userId} on connection {connectionId}: {packet.PacketType().GetId()}");
             await Clients.Client(connectionId).SendAsync("RecievePacketOnClient", packet.Serialize());
         }
     }
