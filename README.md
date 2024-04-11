@@ -12,6 +12,25 @@
 | Ryan Osmond        | 66398421       | Phoenix78911    |
 | Ben Norton         | 98964356       | Bawnorton       |
 
+
+### Brief Description of the Software
+A messaging platform, designed to offer an intuitive and comprehensive communication experience. This platform facilitates individual and group interactions through direct messaging and chat groups. Users can create accounts, manage friends lists, and form or join groups for shared communication. Additionally, the platform empowers users with moderator roles, enabling them to manage group dynamics, such as member permissions and content oversight. 
+
+### User Groups and Example Scenarios
+
+1. **Casual Users**
+   - **Scenario:** John signs up to stay in touch with his friends. He creates a group chat for his close friends where they share updates, plan events, and chat daily. John enjoys the ease of adding friends and the intuitive chat interface that keeps his social circle connected.
+
+2. **Business Teams**
+   - **Scenario:** A small startup uses the platform for internal communication. They create several groups for different projects, and team leads are assigned as moderators. This setup allows for efficient project management, quick updates, and seamless collaboration among team members, all within a secure and organized platform.
+
+3. **Educators and Students**
+   - **Scenario:** A high school teacher, Mr. Thompson, sets up groups for his classes where he can share assignments, announcements, and educational resources. He uses the moderator role to manage student interactions and ensure the space remains focused on learning. Students use the platform to ask questions and collaborate on projects.
+
+4. **Event Organizers**
+   - **Scenario:** Linda, an event organizer, creates a group for an upcoming conference. She uses the platform to share updates, manage RSVPs, and facilitate discussions among attendees. As a moderator, Linda highlights important messages and manages participant interactions, making the platform an essential tool for event planning and communication.
+
+
 ## Requirements
 
 ### What the project is:
