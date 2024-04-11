@@ -28,7 +28,6 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
     {
         await ServerNetworkHandler.Instance.Handle(packetJson, async packet =>
         {
-            Console.WriteLine($"Server - Recieved packet from client {Context.User?.Identity?.Name}: {packetJson.Replace("\n", "")}");
             switch (packet)
             {
                 case JoinChatC2SPacket joinChat:
@@ -200,13 +199,11 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
     
     private async Task SendToChat(int chatId, IPacket packet)
     {
-        Console.WriteLine($"Server - Sending packet to chat {chatId}: {packet.Serialize().Replace("\n", "")}");
         await Clients.Group(chatId.ToString()).SendAsync("RecievePacketOnClient", packet.Serialize());
     }
     
     private async Task SendToUser(int userId, IPacket packet)
     {
-        Console.WriteLine($"Server - Sending packet to user {userId}: {packet.Serialize().Replace("\n", "")}");
         foreach (var connectionId in Connections.GetConnections(userId))
         {
             await Clients.Client(connectionId).SendAsync("RecievePacketOnClient", packet.Serialize());

@@ -486,7 +486,6 @@ public class UserGroupService(
             subscribersToGroup = subscribersToGroup.Where(s => s.WatchedGroupEvents.Contains(evt) || s.WatchedGroupEvents.Contains(GroupEvent.General)).ToList();
             foreach (var sub in subscribersToGroup)
             {
-                Console.WriteLine($"Notifying {sub.GetType().Name} of {evt} in {groupId} for {specificUserId}");
                 await sub.OnUpdate(evt, groupId, specificUserId);
             }
         }
