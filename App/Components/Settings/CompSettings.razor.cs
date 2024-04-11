@@ -413,7 +413,7 @@ public partial class CompSettings : SettingsComponentBase
             await OnAlertChange(new AlertArguments(
                 Color.Danger,
                 true,
-                "Error occurred while changing password:",
+                "Error occurred while deleting account. ",
                 errorString
             ));
             return false;

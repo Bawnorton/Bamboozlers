@@ -226,7 +226,7 @@
         var dms = Self.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
         foreach (var dm in dms)
         {
-            var otherUser = dm.Users.FirstOrDefault(u => u.Id != Self.Id) ?? User.Deleted;
+            var otherUser = dm.Users.First(u => u.Id != Self.Id);
             DmChats.Add(new DmChat(dm.ID, otherUser, otherUser.Avatar));
         }
 

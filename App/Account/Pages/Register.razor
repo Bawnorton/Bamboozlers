@@ -68,6 +68,13 @@
     {
         var user = CreateUser();
 
+        if(Input.Username.StartsWith("deleteduser"))
+        {
+            _validationMessageStore?.Add(new FieldIdentifier(Input, nameof(Input.Username)), "Username is invalid.");
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+        
         await UserStore.SetUserNameAsync(user, Input.Username, CancellationToken.None);
         var emailStore = (IUserEmailStore<User>)UserStore;
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);

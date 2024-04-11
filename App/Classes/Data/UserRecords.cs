@@ -9,9 +9,9 @@ namespace Bamboozlers.Classes.Data;
 ///     the User's database representation.
 /// </summary>
 
-public record UserRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes)
+public record UserRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes, bool? Deleted)
 {
-    public static UserRecord Default { get; } = new(0, "N/A", "N/A", "N/A", "N/A", null);
+    public static UserRecord Default { get; } = new(0, "N/A", "N/A", "N/A", "N/A", null, false);
     public string Avatar => GetDisplayableAvatar(AvatarBytes);
 
     /// <summary>
@@ -29,7 +29,7 @@ public record UserRecord(int? Id, string? UserName, string? Email, string? Displ
         return IsDeleted ? "images/default_profiles/profile_deleted.png" : $"images/default_profiles/profile_{Id % 7}.png";
     }
     
-    public bool IsDeleted => Id == -1;
+    public bool IsDeleted => Deleted ?? false;
 
     public static UserRecord From(User user)
     {
@@ -39,11 +39,12 @@ public record UserRecord(int? Id, string? UserName, string? Email, string? Displ
             user.Email,
             user.DisplayName,
             user.Bio,
-            user.Avatar
+            user.Avatar,
+            user.Deleted
         );
     }
     
-    public UserRecord() : this(null, null, null, null, null, null) {}
+    public UserRecord() : this(null, null, null, null, null, null, null) {}
 }
 
 /// <summary>
@@ -59,13 +60,13 @@ public enum UserDataType { Password, Username, Deletion, Email, Visual }
 /// <param name="DisplayName">If set, the display name value to pass.</param>
 /// <param name="Bio">If set, the bio (or description) value to pass.</param>
 /// <param name="Avatar">If set, the avatar value to pass.</param>
-public record UserDataRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes) : UserRecord(Id,UserName,Email,DisplayName,Bio,AvatarBytes)
+public record UserDataRecord(int? Id, string? UserName, string? Email, string? DisplayName, string? Bio, byte[]? AvatarBytes, bool? Deleted) : UserRecord(Id,UserName,Email,DisplayName,Bio,AvatarBytes,Deleted)
 {
     public UserDataType? DataType { get; init; }
     public string? CurrentPassword { get; init; }
     public string? NewPassword { get; init; }
     
-    public UserDataRecord() : this(null, null, null, null, null, null) {}
+    public UserDataRecord() : this(null, null, null, null, null, null, null) {}
 }
 
 /// <summary>

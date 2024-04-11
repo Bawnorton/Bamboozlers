@@ -37,7 +37,8 @@ public class UserService(IAuthService authService,
             user.Email,
             user.DisplayName,
             user.Bio,
-            user.Avatar
+            user.Avatar,
+            user.Deleted
         )
         : UserRecord.Default;
         return record;
@@ -147,7 +148,6 @@ public class UserService(IAuthService authService,
         var fr = dbContext.FriendRequests.Where(fr => fr.SenderID == user.Id || fr.ReceiverID == user.Id).ToList();
         var b = dbContext.BlockList.Where(b => b.BlockerID == user.Id || b.BlockedID == user.Id).ToList();
         var f = dbContext.FriendShips.Where(f => f.User1ID == user.Id || f.User2ID == user.Id).ToList();
-        var cu = dbContext.ChatUsers.Where(cu => cu.UserId == user.Id).ToList();
         var cm = dbContext.ChatModerators.Where(cm => cm.UserId == user.Id).ToList();
         var gc = dbContext.GroupChats.Where(gc => gc.OwnerID == user.Id).ToList();
         
@@ -155,17 +155,27 @@ public class UserService(IAuthService authService,
         dbContext.FriendRequests.RemoveRange(fr);
         dbContext.BlockList.RemoveRange(b);
         dbContext.FriendShips.RemoveRange(f);
-        dbContext.ChatUsers.RemoveRange(cu);
         dbContext.ChatModerators.RemoveRange(cm);
+
+        user.Deleted = true;
+        user.Email = "deleted@bamboozlers.com";
+        user.UserName = "deleteduser" + user.Id;
+        user.PasswordHash = null;
+        user.SecurityStamp = "deleted";
+        user.DisplayName = "Deleted User";
+        user.Bio = null;
+        user.Avatar = null;
+        
         await dbContext.SaveChangesAsync();
         
-        var iResult = await userManager.DeleteAsync(user);
-        if (iResult.Succeeded) 
-            gc.ForEach(_gc =>
-                UserGroupService.FindSuccessorOwner(_gc.ID)
-            );
+        var result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded) return result;
         
-        return iResult;
+        gc.ForEach(_gc =>
+            UserGroupService.FindSuccessorOwner(_gc.ID)
+        );
+        
+        return result;
     }
 
     public virtual async Task Initialize()

@@ -357,9 +357,8 @@ else
         await GetChatData();
         IsMod = IsModerator();
         CanSeeTyping = Chat is GroupChat || (
-            OtherUser != null 
-            && OtherUser.Id != User.Deleted.Id 
-            && await IsFriendsWith(OtherUser) 
+            OtherUser is { Deleted: false }
+            && await IsFriendsWith(OtherUser)
             && await NotBlockedOrBlocking(OtherUser.Id)
         );
         
@@ -453,7 +452,7 @@ else
         }
         else
         {
-            OtherUser = Chat?.Users.FirstOrDefault(u => u.Id != Self!.Id) ?? User.Deleted;
+            OtherUser = Chat?.Users.First(u => u.Id != Self!.Id);
         }
 
         
@@ -798,7 +797,8 @@ else
             SystemErrorType.NullRecipient => "Cannot send message to specified user at this time.",
             SystemErrorType.RecipientIsStranger => "You are not friends with this user and cannot send messages to them.",
             SystemErrorType.SenderIsBlocked => "You are blocked by this user and cannot send messages to them.",
-            _ => systemMessage.Content
+            SystemErrorType.DeletedRecipient => "This user has been deleted and cannot receive messages.",
+            _ => "Cannot send message a to this user."
         };
         await CreateMessageEntry(systemMessage, false, true);
         await InvokeAsync(StateHasChanged);
@@ -891,7 +891,7 @@ else
             return false;
         }
         
-        if (OtherUser.Id == User.Deleted.Id)
+        if (OtherUser.Deleted)
         {
             await CreateSystemMessage(SystemErrorType.DeletedRecipient);
             return false;

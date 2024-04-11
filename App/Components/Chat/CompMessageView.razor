@@ -163,12 +163,6 @@
             await using var db = await Db.CreateDbContextAsync();
             var sender = await db.Users.FindAsync(Message.SenderID);
             Message.Sender = sender;
-
-            if (Message.Sender is null)
-            {
-                Message.Sender = User.Deleted;
-                Message.SenderID = -1;
-            }
         }
         
         AddKeySubscriber(this);
@@ -262,7 +256,7 @@
         if (evt == InteractionEvent.UserUpdated)
         {
             await using var db = await Db.CreateDbContextAsync();
-            var sender = await db.Users.FindAsync(Message.SenderID) ?? User.Deleted;
+            var sender = await db.Users.FindAsync(Message.SenderID);
 
             Message.Sender = sender;
             await InvokeAsync(StateHasChanged);
