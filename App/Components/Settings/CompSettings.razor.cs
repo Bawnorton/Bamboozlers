@@ -1,6 +1,11 @@
+using Bamboozlers.Classes.AppDbContext;
 using Bamboozlers.Classes.Data;
+using Bamboozlers.Classes.Networking.Packets;
+using Bamboozlers.Classes.Networking.Packets.Serverbound.User;
 using Blazorise;
 using Microsoft.AspNetCore.Components;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.JSInterop;
 
 namespace Bamboozlers.Components.Settings;
@@ -8,8 +13,11 @@ namespace Bamboozlers.Components.Settings;
 public partial class CompSettings : SettingsComponentBase
 {
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
+    [Inject] private IDbContextFactory<AppDbContext> Db { get; set; } = default!;
     [Parameter] public bool Visible { get; set; }
     [Parameter] public string? SectionName { get; set; }
+    
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
     
     protected override void OnInitialized()
     {
@@ -27,6 +35,24 @@ public partial class CompSettings : SettingsComponentBase
 
     public async Task<bool> OnDataChange(UserDataRecord userDataRecord)
     {
+        var userData = await UserService.GetUserDataAsync();
+        var username = userData.UserName!;
+        var sync = await DataChangeInternal(userDataRecord);
+        if (sync)
+        {
+            var syncUserData = new UserDataSyncC2SPacket
+            {
+                UserId = userData.Id!.Value,
+                Username = username
+            };
+            await SendToServer.InvokeAsync(syncUserData);
+        }
+        await InvokeAsync(StateHasChanged);
+        return sync;
+    }
+    
+    private async Task<bool> DataChangeInternal(UserDataRecord userDataRecord)
+    {
         bool result;
         switch (userDataRecord.DataType)
         {
@@ -37,9 +63,50 @@ public partial class CompSettings : SettingsComponentBase
                 result = await ChangePassword(userDataRecord.CurrentPassword, userDataRecord.NewPassword);
                 break;
             case UserDataType.Deletion:
+            {
+                await using var db = await Db.CreateDbContextAsync();
+                var userId = (await UserService.GetUserDataAsync()).Id!.Value;
+                var friends = db.FriendShips
+                    .AsQueryable()
+                    .ToList()
+                    .Where(f => f.User1ID == userId || f.User2ID == userId)
+                    .Select(f => f.User1ID == userId ? f.User2ID : f.User1ID);
+                var potentialFriends = db.FriendRequests
+                    .AsQueryable()
+                    .ToList()
+                    .Where(f => f.ReceiverID == userId)
+                    .Select(f => f.SenderID);
+                potentialFriends = potentialFriends.Concat(db.FriendRequests
+                    .AsQueryable()
+                    .ToList()
+                    .Where(f => f.SenderID == userId)
+                    .Select(f => f.ReceiverID));
+                var chatUsers = db.Chats
+                    .Include(c => c.Users)
+                    .AsQueryable()
+                    .ToList()
+                    .Where(c => c.Users.Any(u => u.Id == userId))
+                    .SelectMany(c => c.Users)
+                    .Select(u => u.Id);
+                    
+                var toNotify = new List<int>();
+                toNotify.AddRange(friends);
+                toNotify.AddRange(potentialFriends);
+                toNotify.AddRange(chatUsers);
+                toNotify = toNotify.Distinct().ToList();
+                
                 result = await DeleteAccount(userDataRecord.CurrentPassword);
-                if (result) return result;
-                break;
+                if (!result) return false;
+                
+                var userDeleted = new UserDeletedC2SPacket
+                {
+                    UserId = userId,
+                    ToNotify = toNotify
+                };
+                await SendToServer.InvokeAsync(userDeleted);
+
+                return false;  // dont sync twice
+            }
             case UserDataType.Email:
                 result = await ChangeEmail(userDataRecord.Email);
                 break;
@@ -55,8 +122,6 @@ public partial class CompSettings : SettingsComponentBase
                 result = iResult.Succeeded;
                 break;
         }
-        
-        await InvokeAsync(StateHasChanged);
         
         return result;
     }

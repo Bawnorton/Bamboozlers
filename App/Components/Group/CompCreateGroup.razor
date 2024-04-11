@@ -85,14 +85,12 @@
     public byte[]? Avatar { get; set; }
     private string Name { get; set; } = "";
 
-    private User Self { get; set; } = default!;
     private List<User> FriendList { get; set; } = [];
     private List<InviteFriend> InviteList { get; set; } = [];
     
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        Self = (await AuthService.GetUser())!;
 
         FriendList = await UserInteractionService.GetAllFriends();
         foreach (var friend in FriendList)

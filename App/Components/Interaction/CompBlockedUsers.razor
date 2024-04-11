@@ -1,4 +1,5 @@
 @inherits UserViewComponentBase
+
 @implements IInteractionSubscriber
 
 @using Bamboozlers.Classes.Utility.Observer
@@ -47,13 +48,12 @@
 @code {
     [Inject] private IUserInteractionService UserInteractionService { get; set; } = default!;
     
-    private User Self { get; set; } = default!;
     private List<User> Blocked { get; set; } = [];
     private List<User> BlockedBy { get; set; } = [];
-
+    
     protected override async Task OnInitializedAsync()
     {
-        Self = (await AuthService.GetUser())!;
+        await base.OnInitializedAsync();
         UserInteractionService.AddSubscriber(this);
         await GetBlockedData();
     }
@@ -67,9 +67,10 @@
     public List<InteractionEvent> WatchedInteractionEvents { get; set; } = 
     [
         InteractionEvent.Block,
-        InteractionEvent.Unblock
+        InteractionEvent.Unblock,
+        InteractionEvent.UserUpdated
     ];
-
+    
     public async Task OnUpdate(InteractionEvent evt)
     {
         await GetBlockedData();
