@@ -119,6 +119,20 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     {
                         await SendToUser(groupInteractionSync.SpecificUserId, groupInteractionSyncResponse);
                     }
+                    if (groupInteractionSync.Event == GroupEvent.GroupDisplayChange)
+                    {
+                        await using var db = await DbContextFactory.CreateDbContextAsync();
+                        var invites = db.GroupInvites
+                            .AsQueryable()
+                            .ToList()
+                            .Where(i => i.GroupID == groupInteractionSync.GroupId)
+                            .SelectMany(i => new[] {i.SenderID, i.RecipientID});
+                        invites = invites.Distinct().ToList();
+                        foreach (var id in invites)
+                        {
+                            await SendToUser(id, groupInteractionSyncResponse);
+                        }
+                    }
                     break;
                 case UserDataSyncC2SPacket userDataSync:
                 {

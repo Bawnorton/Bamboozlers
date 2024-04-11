@@ -81,8 +81,6 @@
         Group = dbContext.GroupChats.AsNoTracking()
             .Include(gc => gc.Owner)
             .FirstOrDefault(c => c.ID == ChatID);
-        if (Group is null)
-            return;
     }
 
     public async Task OnSave()

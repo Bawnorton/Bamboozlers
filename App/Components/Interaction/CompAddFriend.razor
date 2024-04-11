@@ -102,7 +102,9 @@
         var matches = dbContext.Users.Where(
                 u => (u.UserName != null && u.UserName.ToLower().StartsWith(useQuery))
                      || (u.DisplayName != null && u.DisplayName.ToLower().StartsWith(useQuery)))
-            .Where(u => !Ignore.Contains(u));
+            .Where(u => !u.Deleted)
+            .Where(u => !Ignore.Contains(u))
+            .OrderBy(u => u.UserName);
         
         var len = matches.Count();
         CurrentSearchResults = matches.Take(int.Max(len,100)).ToList();
