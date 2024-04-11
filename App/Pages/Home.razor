@@ -38,10 +38,10 @@
                                 <KeyPressHub>
                                     <NetworkHub>
                                         <NavLayout @ref="_navLayout"/>
-                                        <Modal @ref="ModalRef" Closed="@(() => CurrentPopup = null)">
+                                        <Modal @ref="ModalRef">
                                             @CurrentPopup
                                         </Modal>
-                                        <Modal @ref="AlertModalRef" Closed="@(() => AlertPopup = null)">
+                                        <Modal @ref="AlertModalRef">
                                             @AlertPopup
                                         </Modal>
                                     </NetworkHub>
@@ -230,10 +230,15 @@
         if (AlertPopup is not null)
         {
             await AlertModalRef.Hide();
+            AlertPopup = null;
+            await InvokeAsync(StateHasChanged);
             return;
         }
 
         await ModalRef.Hide();
+        CurrentPopup = null;
+        
+        await InvokeAsync(StateHasChanged);
     }
 
 }
