@@ -13,6 +13,7 @@
 @using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
+@using Microsoft.EntityFrameworkCore.Internal
 
 @inject IDbContextFactory<AppDbContext> Db
 @inject ILogger<CompGroupSettings> Logger;
@@ -431,9 +432,20 @@
 
     private async Task DeleteGroup()
     {
+        await using var dbContext = await Db.CreateDbContextAsync();
+        var chatUserIds = dbContext.ChatUsers.Where(cu => cu.ChatId == ChatID)
+            .Where(cu => cu.UserId != Self!.Id)
+            .Select(cu => cu.UserId)
+            .Distinct()
+            .ToList();
+        
         await SyncedInteraction(GroupEvent.DeleteGroup, async (chatId, _) =>
         {
             var (_, invites) = await UserGroupService.DeleteGroup(chatId);
+            foreach (var id in chatUserIds)
+            {
+                await SyncedInteraction(GroupEvent.DeleteGroup, (_, _) => Task.CompletedTask, id);
+            }
             foreach (var id in invites.Select(i => i.RecipientID))
             {
                 await SyncedInteraction(GroupEvent.ReceivedInviteRevoked, (_, _) => Task.CompletedTask, id);
