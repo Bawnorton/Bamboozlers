@@ -28,7 +28,7 @@
     public IconName IconName { get; set; }
     public string? ButtonCaption { get; set; } = "";
     private Color? Color { get; set; } = Color.Success;
-    public bool Disabled { get; set; } = false;
+    public bool Disabled { get; set; }
 
     protected override async Task OnInitializedAsync()
     {

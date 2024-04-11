@@ -5,8 +5,11 @@
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.AppDbContext
 @using Bamboozlers.Classes.Data
+@using Bamboozlers.Classes.Networking.Packets.Serverbound.Interaction
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Utility
+@using AngleSharp.Dom.Events
+@using Bamboozlers.Classes.Networking.Packets
 
 <div style="margin-top: 10px; width: 100%">
     <Heading>
@@ -50,6 +53,7 @@
     [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback ClosePopup { get; set; }
+    [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
     
     [Parameter] public bool IsPopup { get; set; }
     
@@ -62,10 +66,17 @@
         await GetFriendData();
     }
 
-    public async Task CallOpenDm(User user)
+    private async Task CallOpenDm(User user)
     {
         await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, user.Id)); 
         if (IsPopup) await ClosePopup.InvokeAsync();
+
+        var sync = new InteractionSyncC2SPacket
+        {
+            Event = InteractionEvent.CreateDm,
+            ReceiverId = user.Id
+        };
+        await SendToServer.InvokeAsync(sync);
     }
     
     public async Task GetFriendData()

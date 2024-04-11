@@ -144,7 +144,7 @@ public class UserGroupService(
         dbContext.GroupChats.Remove(grp);
         await dbContext.SaveChangesAsync();
 
-        await NotifySubscribersOf(GroupEvent.DeleteGroup, -1);
+        await NotifySubscribersOf(GroupEvent.DeleteGroup, chatId!.Value);
         return (IdentityResult.Success, invites);
     }
     

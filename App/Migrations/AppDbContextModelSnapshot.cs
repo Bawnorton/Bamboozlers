@@ -196,11 +196,14 @@ namespace Bamboozlers.Migrations
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.MessageAttachment", b =>
                 {
-                    b.Property<int>("ID")
+                    b.Property<int>("MessageID")
                         .HasColumnType("int");
 
                     b.Property<int>("Index")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Index"));
 
                     b.Property<byte[]>("Data")
                         .IsRequired()
@@ -210,7 +213,7 @@ namespace Bamboozlers.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("ID", "Index");
+                    b.HasKey("MessageID", "Index");
 
                     b.ToTable("MessageAttachment");
                 });
@@ -584,11 +587,13 @@ namespace Bamboozlers.Migrations
 
             modelBuilder.Entity("Bamboozlers.Classes.AppDbContext.MessageAttachment", b =>
                 {
-                    b.HasOne("Bamboozlers.Classes.AppDbContext.Message", null)
+                    b.HasOne("Bamboozlers.Classes.AppDbContext.Message", "Message")
                         .WithMany("Attachments")
-                        .HasForeignKey("ID")
+                        .HasForeignKey("MessageID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Message");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>

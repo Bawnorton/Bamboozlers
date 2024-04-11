@@ -131,6 +131,7 @@
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback<AlertPopupArgs> OpenAlertPopup { get; set; }
     [CascadingParameter] public EventCallback<OpenChatArgs> OpenChatCallback { get; set; }
+    [CascadingParameter] public EventCallback DismissPopup { get; set; }
     
     [CascadingParameter] private EventCallback<IPacket> SendToServer { get; set; }
 
@@ -196,9 +197,11 @@
                     this,
                     async () =>
                     {
-                        if (FocusUser.Id is null)
-                            return;
+                        if (FocusUser.Id is null) return;
+                        
                         await OpenChatCallback.InvokeAsync(new OpenChatArgs(ChatType.Dm, (int)FocusUser.Id));
+                        await DismissPopup.InvokeAsync();
+                        await SyncedInteraction(InteractionEvent.CreateDm, _ => Task.CompletedTask);
                     }),
                 "Send Message",
                 faIconName: Icons.CommentDots,

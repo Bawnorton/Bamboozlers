@@ -41,15 +41,19 @@
             <AlertDescription>@AlertArguments.AlertDescription</AlertDescription>
         </Alert>
         <Div Display="Display.InlineFlex" Class="justify-content-between align-items-center w-100 mb-2">
-            @GroupDisplay
+            @if (GroupDisplay is not null) @GroupDisplay
         </Div>
         <CompSimpleDivider/>
         <Div Class="settings-tab scrollbar-container" style="margin-left: 2dvw; margin-right: 2dvw;">
-            <Heading ElementId = "mod-heading" Size="HeadingSize.Is4">Group Moderators</Heading>
-            @ModList
+            <Heading ElementId="mod-heading" Size="HeadingSize.Is4">
+                Group Moderators
+            </Heading>
+            @if(ModList is not null) @ModList
             <CompSimpleDivider/>
-            <Heading ElementId="member-heading" Size="HeadingSize.Is4">Group Members</Heading>
-            @MemberList
+            <Heading ElementId="member-heading" Size="HeadingSize.Is4">
+                Group Members
+            </Heading>
+            @if(MemberList is not null) @MemberList
         </Div>
     </ModalBody>
     <ModalFooter>
@@ -107,21 +111,20 @@
 
     private async Task LoadGroupData()
     {
-        Self = await AuthService.GetUser();
-        if (Self is null)
-            return;
-
+        if(Self is null) return;
+        
         await using var dbContext = await Db.CreateDbContextAsync();
         Chat = await dbContext.GroupChats.Where(c => c.ID == ChatID)
-            .Include(c => c.Users).ThenInclude(u => u.ModeratedChats)
+            .Include(c => c.Users)
+                .ThenInclude(u => u.ModeratedChats)
             .Include(c => c.Moderators)
             .Include(c => c.Owner)
             .FirstOrDefaultAsync();
-
-        if (Chat is null)
-            return;
+        
+        if (Chat is null) return;
 
         var owner = await dbContext.Users.Where(u => u.Id == Chat.OwnerID).FirstOrDefaultAsync();
+        
         MemberList = @<div id="memberList">
                          @foreach (var user in Chat.Users)
                          {
@@ -140,12 +143,10 @@
                            </Paragraph>
                        }
                        <div id="modList">
-                           @if (owner is not null)
-                           {
-                               <div id="@($"{Chat.Name}_memberDisplay")">
-                                   @GetUserFragment(owner)
-                               </div>
-                           }
+                           <div id="@($"{Chat.Name}_memberDisplay")">
+                               @GetUserFragment(owner!)
+                               <Divider/>
+                           </div>
                            @foreach (var user in Chat.Moderators)
                            {
                                <div id="@($"{Chat.Name}_memberDisplay")">
@@ -268,39 +269,43 @@
         
         return @<div id="@($"{user.UserName}_section")">
                    <div style="display: flex; flex-direction: row; align-items: center">
-                       <Image ElementId="@($"{user.UserName}_avatar")"
-                              Class="_32x32 message-avatar"
-                              Source="@user.GetAvatar()"
-                              alt=""/>
-                       <CompInteractUsername User="@user" MaxWidth="300px"/>
-                       @if (isOwner)
-                       {
-                           <Badge ElementId="@($"{user.UserName}_badge")"
-                                  Style="margin-left: 5px; margin-right: 5px;" 
-                                  Color="Color.Success">
-                               OWNER
-                           </Badge>
-                       }
-                       else if (isMod)
-                       {
-                           <Badge ElementId="@($"{user.UserName}_badge")"
-                                  Style="margin-left: 5px; margin-right: 5px;" 
-                                  Color="Color.Light">
-                               MODERATOR
-                           </Badge>
-                       }
+                       <Div Style="flex-grow: 1; display: flex; flex-direction: row; align-items: center">
+                           <Image ElementId="@($"{user.UserName}_avatar")"
+                                  Class="_32x32 message-avatar"
+                                  Source="@user.GetAvatar()"
+                                  alt=""/>
+                           <CompInteractUsername User="@user" MaxWidth="300px"/>
+                           @if (isOwner)
+                           {
+                               <Badge ElementId="@($"{user.UserName}_badge")"
+                                      Style="margin-left: 5px; margin-right: 5px;"
+                                      Color="Color.Success">
+                                   OWNER
+                               </Badge>
+                           }
+                           else if (isMod)
+                           {
+                               <Badge ElementId="@($"{user.UserName}_badge")"
+                                      Style="margin-left: 5px; margin-right: 5px;"
+                                      Color="Color.Light">
+                                   MODERATOR
+                               </Badge>
+                           }
+                       </Div>
+                       <Div>
+                           @if (!isOwner)
+                           {
+                               @if (Chat.OwnerID == Self.Id)
+                               {
+                                   @GetPermsButton(user)
+                               }
+                               @if ((Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null && !isMod) || Chat.OwnerID == Self.Id)
+                               {
+                                   @GetKickButton(user)
+                               }
+                           }
+                       </Div>
                    </div>
-                   @if (!isOwner)
-                   {
-                       @if ((Chat.Moderators.FirstOrDefault(u => u.Id == Self.Id) is not null && !isMod) || Chat.OwnerID == Self.Id)
-                       {
-                           @GetKickButton(user)
-                       }
-                       @if (Chat.OwnerID == Self.Id)
-                       {
-                           @GetPermsButton(user)
-                       }
-                   }
                </div>;
     }
 
@@ -310,7 +315,7 @@
             return null;
 
         var isMod = Chat.Moderators.Contains(user);
-        return @<div style="display: inline-block; float: right; margin-left: 5px; margin-right: 5px;">
+        return @<div style="display: inline-block; float: left; margin-left: 5px; margin-right: 5px;">
             <CompActionButton ButtonId="@($"{user.UserName}_permsButton")"
                               ButtonCaption="@(isMod ? "Revoke permissions" : "Assign permissions")"
                               Color="@(isMod ? Color.Warning : Color.Success)"
@@ -409,6 +414,11 @@
 
     private async Task LeaveGroup()
     {
+        if (Chat?.Users.Count == 1)
+        {
+            await DeleteGroup();
+            return;
+        }
         await SyncedInteraction(GroupEvent.SelfLeftGroup, async (chatId, _) =>
         {
             var invites = await UserGroupService.LeaveGroup(chatId);
@@ -423,7 +433,7 @@
     {
         await SyncedInteraction(GroupEvent.DeleteGroup, async (chatId, _) =>
         {
-            var (res, invites) = await UserGroupService.DeleteGroup(chatId);
+            var (_, invites) = await UserGroupService.DeleteGroup(chatId);
             foreach (var id in invites.Select(i => i.RecipientID))
             {
                 await SyncedInteraction(GroupEvent.ReceivedInviteRevoked, (_, _) => Task.CompletedTask, id);
@@ -464,8 +474,7 @@
         if (Self is null) return;
         
         var selfCheck = specifiedUser == Self.Id;
-        if (evt is GroupEvent.DeleteGroup
-            || (selfCheck && evt is GroupEvent.SelfLeftGroup or GroupEvent.PermissionsLost or GroupEvent.RemoveMember))
+        if (evt is GroupEvent.DeleteGroup || (selfCheck && evt is GroupEvent.SelfLeftGroup or GroupEvent.PermissionsLost or GroupEvent.RemoveMember))
         {
             if (specifiedGroup == ChatID)
             {

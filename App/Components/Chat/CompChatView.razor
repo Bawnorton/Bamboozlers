@@ -703,20 +703,6 @@ else
             SentAt = DateTime.Now
         };
         
-        if (FileData.Count > 0)
-        {
-            message.Attachments = [];
-            foreach (var filename in FileData.Keys)
-            {
-                message.Attachments.Add(new MessageAttachment
-                {
-                    FileName = filename,
-                    Data = FileData[filename]
-                });
-            }
-            FileData.Clear();
-        }
-        
         if (_replyingTo != null)
         {
             message.ReplyToID = _replyingTo.DbMessage.ID;
@@ -724,9 +710,28 @@ else
         }
 
         await using var db = await Db.CreateDbContextAsync();
-        db.Messages.Add(message);
+        var entry = db.Messages.Add(message);
         await db.SaveChangesAsync();
 
+        message = await db.Messages
+            .Include(m => m.Sender)
+            .Include(m => m.Attachments)
+            .FirstAsync(m => m.ID == entry.Entity.ID);
+        if (FileData.Count > 0)
+        {
+            message.Attachments = [];
+            foreach (var filename in FileData.Keys)
+            {
+                message.Attachments.Add(new MessageAttachment(message.ID)
+                {
+                    FileName = filename,
+                    Data = FileData[filename]
+                });
+            }
+            FileData.Clear();
+        }
+        await db.SaveChangesAsync();
+        
         await CreateMessageEntry(message, true);
         await InvokeAsync(StateHasChanged);
         await JumpToMessage(message, false);

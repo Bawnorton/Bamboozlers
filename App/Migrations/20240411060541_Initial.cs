@@ -363,16 +363,18 @@ namespace Bamboozlers.Migrations
                 name: "MessageAttachment",
                 columns: table => new
                 {
-                    ID = table.Column<int>(type: "int", nullable: false),
+                    MessageID = table.Column<int>(type: "int", nullable: false),
+                    Index = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Data = table.Column<byte[]>(type: "varbinary(max)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MessageAttachment", x => x.ID);
+                    table.PrimaryKey("PK_MessageAttachment", x => new { x.MessageID, x.Index });
                     table.ForeignKey(
-                        name: "FK_MessageAttachment_Messages_ID",
-                        column: x => x.ID,
+                        name: "FK_MessageAttachment_Messages_MessageID",
+                        column: x => x.MessageID,
                         principalTable: "Messages",
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);

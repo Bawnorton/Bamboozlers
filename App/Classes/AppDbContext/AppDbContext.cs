@@ -83,8 +83,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         
         modelBuilder.Entity<Message>()
             .HasMany(m => m.Attachments)
-            .WithOne()
-            .HasForeignKey(a => a.ID)
+            .WithOne(a => a.Message)
+            .HasForeignKey(a => a.MessageID)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Message>()
