@@ -300,8 +300,6 @@ else
     private string ChatName { get; set; }
     private bool ChatLoaded { get; set; }
     
-    private bool InitialLoad { get; set; }
-
     /// <summary>
     ///     Null if the chat is a group chat
     /// </summary>
@@ -326,25 +324,21 @@ else
     
     protected override async Task OnInitializedAsync()
     {
+        ChatLoaded = false;
         await base.OnInitializedAsync();
-        
-        InitialLoad = true;
         
         UserGroupService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
         
         AddPacketSubscriber.Invoke(this);
         AddKeySubscriber.Invoke(this);
-
-        await RefreshState();
         
-        InitialLoad = false;
+        await RefreshState();
+        ChatLoaded = true;
     }
-    
+
     private async Task RefreshState()
     {
-        ChatLoaded = false;
-        
         WatchedIDs = [ChatID];
      
         MessageInput = "";
@@ -362,30 +356,25 @@ else
         
         await GetChatData();
         IsMod = IsModerator();
-        CanSeeTyping = Chat is GroupChat || (OtherUser != null && OtherUser.Id != User.Deleted.Id && await IsFriendsWith(OtherUser) && await NotBlockedOrBlocking(OtherUser.Id));
+        CanSeeTyping = Chat is GroupChat || (
+            OtherUser != null 
+            && OtherUser.Id != User.Deleted.Id 
+            && await IsFriendsWith(OtherUser) 
+            && await NotBlockedOrBlocking(OtherUser.Id)
+        );
         
         await InitMessages();
-
-        ChatLoaded = true;
         
         await InvokeAsync(StateHasChanged);
-        
         await JsRuntime.InvokeVoidAsync("scrollToBottom");
     }
 
     public async Task OnPacket(IPacket packet)
     {
+        if(packet is AbstractMessageS2CPacket messagePacket && messagePacket.ChatId != ChatID) return;
+        
         switch (packet)
         {
-            case DidJoinChatS2CPacket:
-                if (!InitialLoad)
-                {
-                    await RefreshState();
-                }
-                break;
-            case DidLeaveChatS2CPacket:
-                // probably useful for something
-                break;
             case MessageSentS2CPacket messageSent:
                 await ReceiveMessage(messageSent.MessageId);
                 await InvokeAsync(StateHasChanged);
@@ -661,7 +650,7 @@ else
             }
             else
             {
-                CreateMessageEntry(message);
+                await CreateMessageEntry(message);
             }
         }
     }
@@ -684,7 +673,7 @@ else
                 .Include(m => m.Sender)
                 .Include(m => m.Attachments)
                 .FirstAsync(m => m.ID == messageId);
-            CreateMessageEntry(message);
+            await CreateMessageEntry(message);
             await JumpToMessage(message, false);
         }
     }
@@ -706,11 +695,10 @@ else
         while (messageText.EndsWith("\n")) messageText = messageText[..^1];
         while (messageText.StartsWith("\n")) messageText = messageText[1..];
 
-        var self = await AuthService.GetUser();
         var message = new Message
         {
             ChatID = ChatID,
-            SenderID = self!.Id,
+            SenderID = Self!.Id,
             Content = messageText,
             SentAt = DateTime.Now
         };
@@ -739,21 +727,21 @@ else
         db.Messages.Add(message);
         await db.SaveChangesAsync();
 
-        CreateMessageEntry(message, true);
+        await CreateMessageEntry(message, true);
         await InvokeAsync(StateHasChanged);
         await JumpToMessage(message, false);
 
         var typingPacket = new TypingStateC2SPacket
         {
             ChatId = ChatID,
-            SenderId = self.Id,
+            SenderId = Self.Id,
             Typing = false
         };
         await SendToServer.InvokeAsync(typingPacket);
         
         var messageSent = new MessageSentC2SPacket
         {
-            SenderId = self.Id,
+            SenderId = Self.Id,
             ChatId = ChatID,
             MessageId = message.ID
         };
@@ -807,12 +795,12 @@ else
             SystemErrorType.SenderIsBlocked => "You are blocked by this user and cannot send messages to them.",
             _ => systemMessage.Content
         };
-        CreateMessageEntry(systemMessage, false, true);
+        await CreateMessageEntry(systemMessage, false, true);
         await InvokeAsync(StateHasChanged);
         await JumpToMessage(systemMessage, false);
     }
 
-    private MessageEntry CreateMessageEntry(Message message, bool ephemeral = false, bool systemMessage = false)
+    private Task<MessageEntry> CreateMessageEntry(Message message, bool ephemeral = false, bool systemMessage = false)
     {
         var lastMessage = Messages.Count == 0 ? null : Messages[^1];
         var messageEntry = new MessageEntry
@@ -835,7 +823,7 @@ else
             EphemeralMessages.Add(message.ID);
         }
 
-        return messageEntry;
+        return Task.FromResult(messageEntry);
     }
 
     public async Task OnKeyPressed(KeyEventArgs keyEventArgs)

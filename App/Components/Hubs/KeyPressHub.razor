@@ -8,7 +8,7 @@
 @inject IKeyPressService KeyPressService
 
 <CascadingValue Value="_addKeySubscriber">
-    <CascadingValue Value="_removeKeySubscriber">
+    <CascadingValue Value="_removeKeySubscribers" Name="URKeyPressSubscribers">
         @ChildContent
     </CascadingValue>
 </CascadingValue>
@@ -18,10 +18,16 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
     
     private Register<IAsyncKeySubscriber> _addKeySubscriber = default!;
-    private Unregister<IAsyncKeySubscriber> _removeKeySubscriber = default!;
+    private Unregister<Type[]> _removeKeySubscribers = default!;
 
     public List<IAsyncKeySubscriber> Subscribers { get; } = [];
 
+    protected override void OnInitialized()
+    {
+        _addKeySubscriber = AddSubscriber;
+        _removeKeySubscribers = RemoveSubscribers;
+    }
+    
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
@@ -31,11 +37,6 @@
         KeyPressService.KeyReleased += OnKeyReleased;
     }
     
-    protected override void OnInitialized()
-    {
-        _addKeySubscriber = AddSubscriber;
-    }
-    
     public bool AddSubscriber(IAsyncKeySubscriber subscriber)
     {
         if (Subscribers.Contains(subscriber)) return false;
@@ -43,9 +44,18 @@
         return true;
     }
 
-    public bool RemoveSubscriber(IAsyncKeySubscriber subscriber)
+    private int RemoveSubscribers(Type[] types)
     {
-        return Subscribers.Remove(subscriber);
+        var runningCount = 0;
+        foreach (var type in types)
+        {
+            if (type.IsAssignableFrom(typeof(IAsyncPacketSubscriber)))
+            {
+                throw new ArgumentException($"Type {type.Name} is not of type {nameof(IAsyncKeySubscriber)}");
+            }
+            runningCount += Subscribers.RemoveAll(subscriber => subscriber.GetType() == type);
+        }
+        return runningCount;
     }
 
     private async void OnKeyPressed(object? sender, KeyEventArgs e)

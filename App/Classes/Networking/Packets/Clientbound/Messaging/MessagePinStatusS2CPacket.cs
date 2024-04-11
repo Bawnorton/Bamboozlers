@@ -3,32 +3,30 @@ using System.Text.Json.Nodes;
 
 namespace Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging;
 
-public class MessagePinStatusS2CPacket : IPacket
+public class MessagePinStatusS2CPacket : AbstractMessageS2CPacket
 {
     public static readonly PacketType<MessagePinStatusS2CPacket> Type =
         PacketType<MessagePinStatusS2CPacket>.Create("message_pin_status_s2c", json => new MessagePinStatusS2CPacket(json));
 
-    internal int MessageId;
     internal bool Pinned;
     
     internal MessagePinStatusS2CPacket()
     {
     }
 
-    private MessagePinStatusS2CPacket(JsonElement json)
+    private MessagePinStatusS2CPacket(JsonElement json) : base(json)
     {
-        MessageId = json.GetProperty("message_id").GetInt32();
         Pinned = json.GetProperty("pinned").GetBoolean();
     }
 
-    public PacketType PacketType()
+    public override PacketType PacketType()
     {
         return Type;
     }
     
-    public void Write(JsonObject obj)
+    public override void Write(JsonObject obj)
     {
-        obj["message_id"] = MessageId;
+        base.Write(obj);
         obj["pinned"] = Pinned;
     }
 }

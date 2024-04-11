@@ -151,7 +151,7 @@
     private bool ShowReply => IsShiftHeld || !IsSelfMessage;
     private bool ShowDelete => IsShiftHeld && (IsSelfMessage || ChatContext.IsMod);
 
-    private string TooltipClassDir => "button-tooltip " + (PreviousMessage == null ? "tooltip-down" : "tooltip-up");
+    private string TooltipClassDir => "button-tooltip " + (PreviousMessage == null ? "tooltip-down" : "tooltip-left");
     private string MessageClass => "message " + (Message.SenderID != PreviousMessage?.SenderID ? "mt-2" : "");
 
     protected override async Task OnInitializedAsync()

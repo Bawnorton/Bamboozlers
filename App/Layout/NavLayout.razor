@@ -156,7 +156,8 @@
 @code {
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
-    [CascadingParameter] public Unregister<Type[]> UnregisterPacketSubscribers { get; set; }
+    [CascadingParameter(Name = "URPacketSubscribers")] public Unregister<Type[]> UnregisterPacketSubscribers { get; set; }
+    [CascadingParameter(Name = "URKeyPressSubscribers")] public Unregister<Type[]> UnregisterKeyPressSubscribers { get; set; }
 
     private List<DmChat> DmChats { get; set; } = [];
     private List<GroupChat> GroupChats { get; set; } = [];
@@ -245,6 +246,11 @@
             typeof(CompTypingView),
             typeof(CompPinsView)
         ]);
+        UnregisterKeyPressSubscribers.Invoke([
+            typeof(CompChatView),
+            typeof(CompMessageReplyView),
+            typeof(CompTypingView)
+        ]);
     }
 
     public async Task GetFriendData()
@@ -276,6 +282,17 @@
 
     private async Task LeaveChat()
     {
+        UnregisterPacketSubscribers.Invoke([
+            typeof(CompChatView),
+            typeof(CompMessageReplyView),
+            typeof(CompTypingView),
+            typeof(CompPinsView)
+        ]);
+        UnregisterKeyPressSubscribers.Invoke([
+            typeof(CompChatView),
+            typeof(CompMessageReplyView),
+            typeof(CompTypingView)
+        ]);
         var leaveChat = new LeaveChatC2SPacket
         {
             SenderId = Self!.Id,
@@ -316,10 +333,9 @@
 
         CurrentView = View.Dm;
         CurrentChatId = chatId;
-
-        await InvokeAsync(StateHasChanged);
-
+        
         await JoinChat();
+        await InvokeAsync(StateHasChanged);
     }
 
     public async Task OpenGroup(int chatId, bool reload = false)
@@ -339,9 +355,8 @@
         CurrentView = View.Group;
         CurrentChatId = chatId;
 
-        await InvokeAsync(StateHasChanged);
-
         await JoinChat();
+        await InvokeAsync(StateHasChanged);
     }
 
     public List<int?> WatchedIDs { get; private set; } = [];

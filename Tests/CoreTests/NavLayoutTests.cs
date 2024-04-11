@@ -27,7 +27,8 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
             .AddCascadingValue<Register<IAsyncKeySubscriber>>(_ => true)
             .AddCascadingValue<Register<IAsyncPacketSubscriber>>(_ => true)
-            .Add(p => p.UnregisterPacketSubscribers, _ => 0));
+            .Add(p => p.UnregisterPacketSubscribers, _ => 0)
+            .Add(p => p.UnregisterKeyPressSubscribers, _ => 0));
 
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var dms = Self!.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
@@ -60,7 +61,8 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
             .AddCascadingValue<Register<IAsyncKeySubscriber>>(_ => true)
             .AddCascadingValue<Register<IAsyncPacketSubscriber>>(_ => true)
-            .Add(p => p.UnregisterPacketSubscribers, _ => 0));
+            .Add(p => p.UnregisterPacketSubscribers, _ => 0)
+            .Add(p => p.UnregisterKeyPressSubscribers, _ => 0));
 
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var groups = Self!.Chats.OfType<GroupChat>().ToList();
@@ -93,7 +95,8 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
             .AddCascadingValue<Register<IAsyncKeySubscriber>>(_ => true)
             .AddCascadingValue<Register<IAsyncPacketSubscriber>>(_ => true)
-            .Add(p => p.UnregisterPacketSubscribers, _ => 0));
+            .Add(p => p.UnregisterPacketSubscribers, _ => 0)
+            .Add(p => p.UnregisterKeyPressSubscribers, _ => 0));
         
         component.Find("#home").Click();
         var text = component.Find("#header-text");
@@ -112,7 +115,8 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
             .AddCascadingValue<Register<IAsyncKeySubscriber>>(_ => true)
             .AddCascadingValue<Register<IAsyncPacketSubscriber>>(_ => true)
-            .Add(p => p.UnregisterPacketSubscribers, _ => 0));
+            .Add(p => p.UnregisterPacketSubscribers, _ => 0)
+            .Add(p => p.UnregisterKeyPressSubscribers, _ => 0));
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var dms = Self!.Chats.Except(Self.Chats.OfType<GroupChat>()).ToList();
@@ -141,7 +145,8 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
             .AddCascadingValue<Register<IAsyncKeySubscriber>>(_ => true)
             .AddCascadingValue<Register<IAsyncPacketSubscriber>>(_ => true)
-            .Add(p => p.UnregisterPacketSubscribers, _ => 0));
+            .Add(p => p.UnregisterPacketSubscribers, _ => 0)
+            .Add(p => p.UnregisterKeyPressSubscribers, _ => 0));
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var groups = Self!.Chats.OfType<GroupChat>().ToList();
@@ -171,7 +176,8 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
             .AddCascadingValue<Register<IAsyncKeySubscriber>>(_ => true)
             .AddCascadingValue<Register<IAsyncPacketSubscriber>>(_ => true)
-            .Add(p => p.UnregisterPacketSubscribers, _ => 0));
+            .Add(p => p.UnregisterPacketSubscribers, _ => 0)
+            .Add(p => p.UnregisterKeyPressSubscribers, _ => 0));
         
         await using var db = await MockDatabaseProvider.GetDbContextFactory().CreateDbContextAsync();
         var groups = Self!.Chats.OfType<GroupChat>().ToList();
@@ -217,7 +223,8 @@ public class NavLayoutTests : AuthenticatedBlazoriseTestBase
         var component = Ctx.RenderComponent<NavLayout>(parameters => parameters
             .AddCascadingValue<Register<IAsyncKeySubscriber>>(_ => true)
             .AddCascadingValue<Register<IAsyncPacketSubscriber>>(_ => true)
-            .Add(p => p.UnregisterPacketSubscribers, _ => 0));
+            .Add(p => p.UnregisterPacketSubscribers, _ => 0)
+            .Add(p => p.UnregisterKeyPressSubscribers, _ => 0));
 
         await SetUser(null);
 

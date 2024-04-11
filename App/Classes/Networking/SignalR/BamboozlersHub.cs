@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Bamboozlers.Classes.Networking.Packets;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Chat;
 using Bamboozlers.Classes.Networking.Packets.Clientbound.Interaction;
@@ -34,38 +33,30 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
             {
                 case JoinChatC2SPacket joinChat:
                     await Groups.AddToGroupAsync(Context.ConnectionId, joinChat.ChatId.ToString());
-                    var didJoinChat = new DidJoinChatS2CPacket
-                    {
-                        ChatId = joinChat.ChatId
-                    };
-                    await SendToUser(joinChat.SenderId, didJoinChat);
                     break;
                 case LeaveChatC2SPacket leaveChat:
-                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveChat.ChatId.ToString());
                     var updateTypingState = new TypingStateS2CPacket
                     {
                         Typing = false,
                         UserId = leaveChat.SenderId
                     };
                     await SendToChat(leaveChat.ChatId, updateTypingState);
-                    var didLeaveChat = new DidLeaveChatS2CPacket
-                    {
-                        ChatId = leaveChat.ChatId
-                    };
-                    await SendToUser(leaveChat.SenderId, didLeaveChat);
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, leaveChat.ChatId.ToString());
                     break;
                 case TypingStateC2SPacket typingState:
                     var typingStateResponse = new TypingStateS2CPacket
                     {
                         Typing = typingState.Typing,
-                        UserId = typingState.SenderId
+                        UserId = typingState.SenderId,
+                        ChatId = typingState.ChatId
                     };
                     await SendToChat(typingState.ChatId, typingStateResponse);
                     break;
                 case MessageSentC2SPacket messageSent:
                     var messageSentResponse = new MessageSentS2CPacket
                     {
-                        MessageId = messageSent.MessageId
+                        MessageId = messageSent.MessageId,
+                        ChatId = messageSent.ChatId
                     };
                     await SendToChat(messageSent.ChatId, messageSentResponse);
                     break;
@@ -73,14 +64,16 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     var messageEditedResponse = new MessageEditedS2CPacket
                     {
                         MessageId = messageEdited.MessageId,
-                        NewContent = messageEdited.NewContent
+                        NewContent = messageEdited.NewContent,
+                        ChatId = messageEdited.ChatId
                     };
                     await SendToChat(messageEdited.ChatId, messageEditedResponse);
                     break;
                 case MessageDeletedC2SPacket messageDeleted:
                     var messageDeletedRespone = new MessageDeletedS2CPacket
                     {
-                        MessageId = messageDeleted.MessageId
+                        MessageId = messageDeleted.MessageId,
+                        ChatId = messageDeleted.ChatId
                     };
                     await SendToChat(messageDeleted.ChatId, messageDeletedRespone);
                     break;
@@ -88,7 +81,8 @@ public class BamboozlersHub(IDbContextFactory<AppDbContext.AppDbContext> dbConte
                     var messagePinStatusResponse = new MessagePinStatusS2CPacket
                     {
                         MessageId = messagePinStatus.MessageId,
-                        Pinned = messagePinStatus.Pinned
+                        Pinned = messagePinStatus.Pinned,
+                        ChatId = messagePinStatus.ChatId
                     };
                     await SendToChat(messagePinStatus.ChatId, messagePinStatusResponse);
                     break;
