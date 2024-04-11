@@ -77,28 +77,37 @@ Users are individuals seeking a communication platform. They range from casual u
 ### 3. Specific Requirements
 
 #### 3.1 User Requirements
--   Users must be able to register, login, and manage their profiles.
+-   Users should be able to register for a new account.
+-   Users should be able to log in to an existing account with their username and passcode.
+-   Users should be able to change their username, email, display name and avatar.
 -   Users must be able to add and remove friends.
--   Users must be able to create and manage groups
--   Users must be able to send, receive, edit, and delete messages.
--   Moderators in groups must be able to manage member roles and permissions.
+-   Users should be able to accept/deny friend requests from other users
+-   Users should be able to remove existing friends
+-   Users should be able to block other users
+-   Users should be able to create individual or group chats with other users
+-   Group Moderators should be able to invite/remove group members
+-   Group Owners should be able to assign Group Moderator status to other group members
+-   Group Moderators should be able to remove messages sent by other group members
+-   User should be able to send, receive, edit, pin and delete messages
 
 #### 3.2 Functional Requirements
-
--   The system must allow Users to register using their email.
--   The system must save the account information of users to the database.
--   The system must send a verification email when a new User attempts to register.
--   The system must send a confirmation email when a user successfully registers, changes their password or email.
--   The system must allow users to update their profile and username.
--   The system must update the database when Users edit their account information.
--   The system must allow users to change their email or password.
--   The system must allow users to access their friend list.
--   The system must allow users to send and accept friend requests.
--   The system must update the database and users friend lists when they accept friend requests.
--   The system must support the creation and management of groups.
--   The system must update the database and message history when users send, receive, edit, pin, and delete messages.
--   The system must allow moderators to manage memeber roles and permission.
--   The system must update the database if moderators change member roles and permission.
+- The system should send a confirmation email when a new account is created.
+- When a new account is created, the system should:
+  - Save the username, email, and an encrypted version of the password in a new row in the Users table in the database.
+- The system should send a confirmation email when a user changes their profile details. If verified, the system should:
+  - Edit the changed detail in the relevant row in the Users table in the database.
+- When a new chat is created, the system should:
+  - Create a new row in the Chats table and input the type (group or individual).
+- When a user is added/removed to a group, the system should:
+  - Add that user to the ChatUser table under the relevant Chat ID.
+- When a user clicks on the add friend tab, the system should:
+  - Display a popup containing a checklist of the user's current friends as pulled from the Friendships table in the database.
+  - Display a list of the user's existing Direct message chats as pulled from the Chats table in the database.
+- The system must update the Friendships and Friend Request columns of the database when a user accepts/denies a friend request.
+- The system must update the Friendships and Blocked columns of the database when a user is blocked.
+- The system must add a new column in the messages table in the database when a user sends a message.
+- The system must edit the relevant columns of the messages table in the database when a user deletes, pins, or edits a message.
+- The system must update the relevant rows in the Chats database if moderators change the permissions of users.
 
 #### 3.3 Non-Functional Requirements
 
