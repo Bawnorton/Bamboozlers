@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bamboozlers.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240411060541_Initial")]
-    partial class Initial
+    [Migration("20240411210740_Final")]
+    partial class Final
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -241,6 +241,9 @@ namespace Bamboozlers.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("DisplayName")
                         .HasColumnType("nvarchar(max)");

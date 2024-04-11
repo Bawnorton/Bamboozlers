@@ -4,6 +4,7 @@
 
 @implements IGroupSubscriber
 @implements IInteractionSubscriber
+@implements IAsyncPacketSubscriber
 
 @using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Data
@@ -13,6 +14,7 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Classes.Utility.Observer
 @using Bamboozlers.Classes.AppDbContext
+@using Bamboozlers.Classes.Networking.Packets.Clientbound.Messaging
 @using Bamboozlers.Components.MainVisual
 @using Bamboozlers.Components.Chat
 
@@ -66,6 +68,7 @@
                                                     <Div Class="clipping-text">
                                                         @chat.User.GetName()
                                                     </Div>
+                                                    @GetNotificationsForChat(chat.ID)
                                                 </BarLink>
                                             </BarItem>
                                         }
@@ -106,6 +109,7 @@
                                                     <Div Class="clipping-text">
                                                         @chat.GetGroupName()
                                                     </Div>
+                                                    @GetNotificationsForChat(chat.ID)
                                                 </BarLink>
                                             </BarItem>
                                         }
@@ -156,6 +160,8 @@
 @code {
     [CascadingParameter] public EventCallback<KnownPopupArgs> OpenKnownPopup { get; set; }
     [CascadingParameter] public EventCallback<IPacket> SendToServer { get; set; }
+    
+    [CascadingParameter] public Register<IAsyncPacketSubscriber> AddPacketSubscriber { get; set; } = default!;
     [CascadingParameter(Name = "URPacketSubscribers")] public Unregister<Type[]> UnregisterPacketSubscribers { get; set; }
     [CascadingParameter(Name = "URKeyPressSubscribers")] public Unregister<Type[]> UnregisterKeyPressSubscribers { get; set; }
 
@@ -174,6 +180,7 @@
         UserService.AddSubscriber(this);
         UserGroupService.AddSubscriber(this);
         UserInteractionService.AddSubscriber(this);
+        AddPacketSubscriber.Invoke(this);
         await Refresh();
 
         Loaded = true;
@@ -209,7 +216,7 @@
     public void GetGroupData()
     {
         if (Self?.Chats is null) throw new InvalidOperationException("User and/or chats were not found.");
-
+        
         GroupChats = Self.Chats.OfType<GroupChat>().ToList();
         WatchedIDs = GroupChats.Select(s => (int?) s.ID).ToList();
 
@@ -301,6 +308,29 @@
         await SendToServer.InvokeAsync(leaveChat);
     }
 
+    private RenderFragment? GetNotificationsForChat(int chatId)
+    {
+        if (Self is null) return null;
+
+        using var dbContext = Db.CreateDbContext();
+        var chatUser = dbContext.ChatUsers.FirstOrDefault(cu =>
+            cu.ChatId == chatId && cu.UserId == Self.Id
+        );
+
+        if (chatUser is null) return null;
+        var msgCount = dbContext.Messages.Where(m =>
+                m.ChatID == chatId && m.SenderID != Self.Id && m.SentAt > chatUser.LastAccess)
+            .ToList()
+            .Count;
+
+        return msgCount switch
+        {
+            <= 0 => null,
+            > 9 => @<text><Badge Style="margin-left: auto" Color="Color.Danger">9+</Badge></text>,
+            _ => @<text><Badge Style="margin-left: auto" Color="Color.Danger">@msgCount</Badge></text>
+        };
+    }
+
     public async Task OpenDm(int chatId = -1, int? otherId = null, bool reload = false)
     {
         if (reload)
@@ -381,7 +411,7 @@
         GroupEvent.GroupDisplayChange,
         GroupEvent.DeleteGroup
     ];
-
+    
     public async Task OnUpdate(GroupEvent evt, int? specifiedGroup = null, int? specifiedUser = null)
     {
         await GetUserData();
@@ -412,6 +442,19 @@
         }
         await GetFriendData();
         await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task OnPacket(IPacket packet)
+    {
+        if (packet is not AbstractMessageS2CPacket messagePacket) return;
+
+        Console.WriteLine("packet");
+        switch (packet)
+        {
+            case MessageSentS2CPacket:
+                await InvokeAsync(StateHasChanged);
+                break;
+        }
     }
 
     public override async Task OnUpdate(UserRecord? data)

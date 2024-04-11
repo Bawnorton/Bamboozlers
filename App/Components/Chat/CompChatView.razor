@@ -337,6 +337,22 @@ else
         ChatLoaded = true;
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        if (Self is null) return;
+        
+        await using var dbContext = await Db.CreateDbContextAsync();
+        var chatUser = await dbContext.ChatUsers.FirstOrDefaultAsync(cu =>
+            cu.UserId == Self.Id && cu.ChatId == ChatID
+        );
+        if (chatUser is not null)
+        {
+            chatUser.LastAccess = DateTime.Now;
+            await dbContext.SaveChangesAsync();
+        }
+    }
+
     private async Task RefreshState()
     {
         WatchedIDs = [ChatID];
