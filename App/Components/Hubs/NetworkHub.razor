@@ -21,7 +21,7 @@
 @inject NavigationManager NavigationManager
 
 <CascadingValue Value="_addPacketSubscriber">
-    <CascadingValue Value="_removePacketSubscribers">
+    <CascadingValue Value="_removePacketSubscribers" Name="URPacketSubscribers">
         <CascadingValue Value="_sendToServer">
             @ChildContent
         </CascadingValue>

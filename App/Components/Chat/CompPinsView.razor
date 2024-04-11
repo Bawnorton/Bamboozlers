@@ -99,6 +99,8 @@
 
     public async Task OnPacket(IPacket packet)
     {
+        if (packet is AbstractMessageS2CPacket messagePacket && messagePacket.ChatId != ChatID) return;
+        
         switch (packet)
         {
             case MessagePinStatusS2CPacket pinStatus:

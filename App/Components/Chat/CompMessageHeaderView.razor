@@ -3,7 +3,7 @@
 
 <Div Class="message-header">
     <Div Class="message-info">
-        <Image Source="@Message.Sender!.GetAvatar()" Class="message-avatar" alt=""/>
+        <Image Source="@Message.Sender?.GetAvatar()" Class="message-avatar" alt=""/>
         <CompInteractUsername User="@Message.Sender" MaxWidth="@MaxWidth"/>
         <Div Class="message-timestamp">
             @Message.SentAt.ToString("dd/MM/yyyy HH:mm:ss tt")
