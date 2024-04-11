@@ -9,6 +9,7 @@
 @using Bamboozlers.Classes.Services.UserServices
 @using Bamboozlers.Components.Utility
 @using AngleSharp.Dom.Events
+@using Icons = Blazorise.Icons.FontAwesome.FontAwesomeIcons
 @using Bamboozlers.Classes.Networking.Packets
 
 <div style="margin-top: 10px; width: 100%">
@@ -30,7 +31,7 @@
             {
                 RenderFragment button = @<CompActionButton ButtonId="send-message"
                                                            ButtonCaption="Send Message" 
-                                                           IconName="@IconName.Mail"
+                                                           FaIconName="@Icons.CommentDots"
                                                            ActionCallback="@(async () => await CallOpenDm(user))"
                                                            ColumnWrapped="@false"/>;
                 <CompUserTab @key=@user 

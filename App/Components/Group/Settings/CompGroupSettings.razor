@@ -420,9 +420,20 @@
             await DeleteGroup();
             return;
         }
+        await using var dbContext = await Db.CreateDbContextAsync();
+        var chatUserIds = dbContext.ChatUsers.Where(cu => cu.ChatId == ChatID)
+            .Where(cu => cu.UserId != Self!.Id)
+            .Select(cu => cu.UserId)
+            .Distinct()
+            .ToList();
         await SyncedInteraction(GroupEvent.SelfLeftGroup, async (chatId, _) =>
         {
             var invites = await UserGroupService.LeaveGroup(chatId);
+            foreach (var id in chatUserIds)
+            {
+                // Ensure that even if they've not opened the chat, they receive the notification
+                await SyncedInteraction(GroupEvent.SelfLeftGroup, (_, _) => Task.CompletedTask, id);
+            }
             foreach (var id in invites.Select(i => i.RecipientID))
             {
                 await SyncedInteraction(GroupEvent.ReceivedInviteRevoked, (_, _) => Task.CompletedTask, id);
@@ -444,6 +455,7 @@
             var (_, invites) = await UserGroupService.DeleteGroup(chatId);
             foreach (var id in chatUserIds)
             {
+                // Ensure that even if they've not opened the chat, they receive the notification
                 await SyncedInteraction(GroupEvent.DeleteGroup, (_, _) => Task.CompletedTask, id);
             }
             foreach (var id in invites.Select(i => i.RecipientID))
