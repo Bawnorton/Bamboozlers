@@ -12,6 +12,25 @@
 | Ryan Osmond        | 66398421       | Phoenix78911    |
 | Ben Norton         | 98964356       | Bawnorton       |
 
+
+### Brief Description of the Software
+A messaging platform, designed to offer an intuitive and comprehensive communication experience. This platform facilitates individual and group interactions through direct messaging and chat groups. Users can create accounts, manage friends lists, and form or join groups for shared communication. Additionally, the platform empowers users with moderator roles, enabling them to manage group dynamics, such as member permissions and content oversight. 
+
+### User Groups and Example Scenarios
+
+1. **Casual Users**
+   - **Scenario:** John signs up to stay in touch with his friends. He creates a group chat for his close friends where they share updates, plan events, and chat daily. John enjoys the ease of adding friends and the intuitive chat interface that keeps his social circle connected.
+
+2. **Business Teams**
+   - **Scenario:** A small startup uses the platform for internal communication. They create several groups for different projects, and team leads are assigned as moderators. This setup allows for efficient project management, quick updates, and seamless collaboration among team members, all within a secure and organized platform.
+
+3. **Educators and Students**
+   - **Scenario:** A high school teacher, Mr. Thompson, sets up groups for his classes where he can share assignments, announcements, and educational resources. He uses the moderator role to manage student interactions and ensure the space remains focused on learning. Students use the platform to ask questions and collaborate on projects.
+
+4. **Event Organizers**
+   - **Scenario:** Linda, an event organizer, creates a group for an upcoming conference. She uses the platform to share updates, manage RSVPs, and facilitate discussions among attendees. As a moderator, Linda highlights important messages and manages participant interactions, making the platform an essential tool for event planning and communication.
+
+
 ## Requirements
 
 ### What the project is:
@@ -77,28 +96,40 @@ Users are individuals seeking a communication platform. They range from casual u
 ### 3. Specific Requirements
 
 #### 3.1 User Requirements
--   Users must be able to register, login, and manage their profiles.
+-   Users should be able to register for a new account.
+-   Users should be able to log in to an existing account with their username and passcode.
+-   Users should be able to change their username, email, display name, avatar, and password  and delete their account permanently
 -   Users must be able to add and remove friends.
--   Users must be able to create and manage groups
--   Users must be able to send, receive, edit, and delete messages.
--   Moderators in groups must be able to manage member roles and permissions.
+-   Users should be able to accept/deny friend requests from other users
+-   Users should be able to remove existing friends
+-   Users should be able to block other users
+-   Users should be able to directly message their friends in one-on-one chats.
+-   Users should be able to create group chats in which they can invite and message multiple other users concurrently.
+-   Group Owners and Moderators should be able to invite/remove group members 
+-   Group Owners should be able to assign Group Moderator status to other group members
+-   Group Owners and Moderators should be able to remove messages sent by other group members
+-   User should be able to send, receive, edit, pin and delete messages
 
 #### 3.2 Functional Requirements
+- The system should send a confirmation email when a new account is created.
+- When a new account is created, the system should save the username, email, and an encrypted version of the password in a new row in the Users table in the database.
+- The system should send a confirmation email when a user changes their email. If verified, the system should edit the changed detail in the relevant row in the Users table in the database.
+- The system should request password verification when a user attempts to change their username or password. If the correct password is entered, the system should edit the changed detail in the relevant row in the Users table in the database
+- When a new chat is created, the system should create a new row in the Chats table with a descriptor to differentiate between Direct Message and Group chats.
+- When a user sends a group Invite, the system should create a new row in the GroupInvites table
+- When a user accepts a group invite, the system should add that user to the ChatUser table under the relevant Chat ID
+- When a user is removed from a group, the system should remove that user from the ChatUser table under the relevant Chat ID
+- When a user clicks on the find friend tab, the system should display a search bar that displays a matching query of the relevant user in the database
+- When a user clicks on the Direct Messages tab, the system should display  an open direct messages tab and any existing chats a user may have as pulled from the Chats table
+- When a user clicks on the Open Direct Messages tab, the system should display a list of all the user's existing friends as pulled from the Friendships table with a button Send Message next to each friend's name.
+- When a user clicks on the Send Message tab, the system should check the Chats table to see if a direct message chat between these 2 users already exists, if so it should redirect the user to that chat, otherwise it should create a new row in the Chats table in the database and create a new tab with the friends name under the Direct Message tab.
+- The system must update the Friendships and Friend Request columns of the database when a user accepts/denies a friend request
+- When a user is blocked, the system should remove the relevant rows in the Friendship Table, GroupInvites table and FriendRequests table, and add a row to the Blocked table.
+- The system must add a new column in the messages table in the database when a user sends a message
+- The system must edit the relevant columns of the messages table in the database when a user deletes, pins, or edits a message
+- The system must update the relevant rows in the Chats database if owners change the permissions of users
 
--   The system must allow Users to register using their email.
--   The system must save the account information of users to the database.
--   The system must send a verification email when a new User attempts to register.
--   The system must send a confirmation email when a user successfully registers, changes their password or email.
--   The system must allow users to update their profile and username.
--   The system must update the database when Users edit their account information.
--   The system must allow users to change their email or password.
--   The system must allow users to access their friend list.
--   The system must allow users to send and accept friend requests.
--   The system must update the database and users friend lists when they accept friend requests.
--   The system must support the creation and management of groups.
--   The system must update the database and message history when users send, receive, edit, pin, and delete messages.
--   The system must allow moderators to manage memeber roles and permission.
--   The system must update the database if moderators change member roles and permission.
+
 
 #### 3.3 Non-Functional Requirements
 
