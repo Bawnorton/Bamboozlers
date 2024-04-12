@@ -103,7 +103,8 @@ Users are individuals seeking a communication platform. They range from casual u
 -   Users should be able to accept/deny friend requests from other users
 -   Users should be able to remove existing friends
 -   Users should be able to block other users
--   Users should be able to create individual or group chats with other users
+-   Users should be able to directly message their friends in one-on-one chats.
+-   Users should be able to create group chats in which they can invite and message multiple other users concurrently.
 -   Group Owners and Moderators should be able to invite/remove group members 
 -   Group Owners should be able to assign Group Moderator status to other group members
 -   Group Owners and Moderators should be able to remove messages sent by other group members
