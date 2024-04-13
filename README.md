@@ -97,45 +97,45 @@ Users are individuals seeking a communication platform. They range from casual u
 
 #### 3.1 User Requirements
 -   Users should be able to register for a new account.
--   Users should be able to log in to an existing account with their username and passcode.
--   Users should be able to change their username, email, display name, avatar, and password  and delete their account permanently
+-   Users should be able to log in to an existing account with their username and password.
+-   Users should be able to change their username, email, display name, avatar, and password, in addition to the ability to delete their accounts permanently.
 -   Users must be able to add and remove friends.
--   Users should be able to accept/deny friend requests from other users
--   Users should be able to remove existing friends
--   Users should be able to block other users
+-   Users should be able to accept and/or deny friend requests from other users.
+-   Users should be able to remove existing friends.
+-   Users should be able to block other users.
 -   Users should be able to directly message their friends in one-on-one chats.
 -   Users should be able to create group chats in which they can invite and message multiple other users concurrently.
 -   Group Owners and Moderators should be able to invite/remove group members 
 -   Group Owners should be able to assign Group Moderator status to other group members
 -   Group Owners and Moderators should be able to remove messages sent by other group members
--   User should be able to send, receive, edit, pin and delete messages
+-   Users should be able to send, receive, edit, pin, and delete messages
 
 #### 3.2 Functional Requirements
 - The system should send a confirmation email when a new account is created.
 - When a new account is created, the system should save the username, email, and an encrypted version of the password in a new row in the Users table in the database.
 - The system should send a confirmation email when a user changes their email. If verified, the system should edit the changed detail in the relevant row in the Users table in the database.
-- The system should request password verification when a user attempts to change their username or password. If the correct password is entered, the system should edit the changed detail in the relevant row in the Users table in the database
-- When a new chat is created, the system should create a new row in the Chats table with a descriptor to differentiate between Direct Message and Group chats.
-- When a user sends a group Invite, the system should create a new row in the GroupInvites table
-- When a user accepts a group invite, the system should add that user to the ChatUser table under the relevant Chat ID
-- When a user is removed from a group, the system should remove that user from the ChatUser table under the relevant Chat ID
-- When a user clicks on the find friend tab, the system should display a search bar that displays a matching query of the relevant user in the database
-- When a user clicks on the Direct Messages tab, the system should display  an open direct messages tab and any existing chats a user may have as pulled from the Chats table
+- The system should require password verification when a user attempts to change their username or password. If the correct password is entered, the system should edit the changed detail in the relevant row in the Users table in the database.
+- When a new chat is created, the system should create a new row in the Chats table with a descriptor to differentiate between Direct Message and Group Chats.
+- When a user sends a Group Invite, the system should create a new row in the GroupInvites table.
+- When a user accepts a Group invite, the system should add that user to the ChatUser table under the relevant Chat ID.
+- When a user is removed from a group, the system should remove that user from the ChatUser table under the relevant Chat ID.
+- When a user clicks on the Find Friend tab, the system should display a search bar that shows a matching query of the relevant users from the database.
+- When a user clicks on the Direct Messages tab, the system should display  an open direct messages tab and any existing chats a user may have as pulled from the Chats table.
 - When a user clicks on the Open Direct Messages tab, the system should display a list of all the user's existing friends as pulled from the Friendships table with a button Send Message next to each friend's name.
-- When a user clicks on the Send Message tab, the system should check the Chats table to see if a direct message chat between these 2 users already exists, if so it should redirect the user to that chat, otherwise it should create a new row in the Chats table in the database and create a new tab with the friends name under the Direct Message tab.
-- The system must update the Friendships and Friend Request columns of the database when a user accepts/denies a friend request
-- When a user is blocked, the system should remove the relevant rows in the Friendship Table, GroupInvites table and FriendRequests table, and add a row to the Blocked table.
-- The system must add a new column in the messages table in the database when a user sends a message
-- The system must edit the relevant columns of the messages table in the database when a user deletes, pins, or edits a message
-- The system must update the relevant rows in the Chats database if owners change the permissions of users
+- When a user clicks on the Send Message tab, the system should check the Chats table to see if a direct message chat between these 2 users already exists, if it does, the system should redirect the user to that chat. Otherwise, it should create a new row in the Chats table in the database and create a new tab with the friends' name and avatar, if any, within the Direct Message dropdown.
+- The system must update the corresponding FriendRequest row and add a Friendship row into the specified tables when a user accepts/denies a friend request.
+- When a user is blocked, the system should remove the relevant rows in the Friendship Table, GroupInvites table, and FriendRequests table, and add a row to the Blocked table.
+- The system must add a new row in the Messages table in the database when a user sends a message.
+- The system must edit the relevant columns of the Messages table in the database when a user deletes, pins, or edits a message
+- The system must update the relevant rows in the ChatModerators table if owners change the permissions of users.
 
 
 
 #### 3.3 Non-Functional Requirements
 
--   **Performance & Reliability**: The system should be able to handle multiple users performing system functions such as messaging, registering, friend requesting.
--   **Scalability**: Should accommodate an increasing number of users and groups while maintaining performance and reliability.
--   **Security**: Robust security measures to protect user data and privacy. Policies such as email verification when resetting password and safe password and email storing.
+-   **Performance & Reliability**: The system should be able to handle multiple users performing system functions such as messaging, registering, friend requesting, etc.
+-   **Scalability**: The system should accommodate a growing number of users and groups while maintaining performance and reliability.
+-   **Security**: The system should include robust security measures to protect user data and privacy. This entails policies such as email verification when activating an account, and safe password and email storing through hashing methods.
 
 ### 4. Appendix
 
@@ -143,7 +143,7 @@ Users are individuals seeking a communication platform. They range from casual u
 
 ![requirements\\usecasediagram.png](requirements/usecasediagram.png)
 
-####4.2 Detailed Use Cases
+#### 4.2 Detailed Use Cases
 
 <table>
 <tr>
